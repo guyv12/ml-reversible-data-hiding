@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ml-rdhei"
 version = "0.0.1"
-dependencies = ["opencv-python>=4.12.0.88"]
+dependencies = ["opencv-python>=4.12.0.88", "numpy>=2.3.0"]
 authors = [
     { name = "Igor Sitko-Bajorski", email = "igorsitkobajorski@gmail.com" },
-    { name = "changethis", email = "changethis@example.com" },
-    { name = "changethis", email = "changethis@example.com" },
-    { name = "changethis", email = "changethis@example.com" },
+    { name = "Konrad Machura", email = "konrad.machura44@gmail.com" },
+    { name = "Jakub Wiśniewski", email = "kubawfcb@gmail.com" },
+    { name = "Tobiasz Grzesik", email = "changethis@example.com" },
 ]
 description = ""
 readme = "README.md"
