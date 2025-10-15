@@ -102,8 +102,9 @@ http-client.private.env.json
 
 
 # ----- datasets -----
-datasets/
+datasets/*
 !datasets/sample/
+!datasets/sample/**
 
 
 # ----- pyproj.toml -----
