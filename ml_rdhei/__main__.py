@@ -1,8 +1,8 @@
-from data import loader
+import data
 
 
 def main() -> None:
-    loader.get_image("datasets/samples/1.pgm")
+    data.get_train_data()
     return
 
 
