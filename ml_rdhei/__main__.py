@@ -4,8 +4,9 @@ import data
 
 
 def main() -> None:
-    
+
     dev = 'cuda' if torch.cuda.is_available() else 'cpu' # kinda essential - to elevate elsewhere later?
+    print(torch.version.cuda) # sanity check
 
     train_set_ref = data.get_train_ref(torch.device(dev))
     print(f"shape ref: {train_set_ref.shape}")

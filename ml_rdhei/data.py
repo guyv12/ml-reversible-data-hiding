@@ -29,18 +29,18 @@ class ImageDataset(Dataset):
         return torch.from_numpy(img).float() # !GS: assumes grayscale .pgm
     
         # if we do a dummy run to save images with torch.save()
-        # we can do torch.load(map_location="cuda") to skip CPU & openCV completly - good idea?
+        # we can do torch.load(map_location="cuda") to skip CPU & openCV completely - good idea?
 
 
 def get_train_ref(dev: torch.device) -> torch.Tensor:
-    ''' 
+    """
     Returns a 2D torch.Tensor of reference pixels for all images.
 
     Shape:
         (N_images, N_ref_pixels)
 
     Each row contains the reference pixels (flattened) from one grayscale image (float32).
-    '''
+    """
 
     def ref_pixels(images: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         return images[:, mask] # !GS: assumes grayscale .pgm
@@ -84,14 +84,14 @@ def get_train_ref(dev: torch.device) -> torch.Tensor:
 
 
 def get_train_raw(dev: torch.device) -> torch.Tensor:
-    ''' 
+    """
     Returns a 3D torch.Tensor of image pixels.
 
     Shape:
         (N_images, cols, rows)
 
     Each row contains pixel data (2D tensor of float32).
-    '''
+    """
 
     BOSSbase_train_dataset = ImageDataset("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
     BOSSbase_train_loader = DataLoader(
