@@ -5,6 +5,9 @@ import data
 
 def main() -> None:
 
+    # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
+    # apparently this is a known headache for Windows machines - bruh
+
     dev = 'cuda' if torch.cuda.is_available() else 'cpu' # kinda essential - to elevate elsewhere later?
     print(torch.version.cuda) # sanity check
 
