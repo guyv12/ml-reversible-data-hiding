@@ -1,15 +1,41 @@
-from . import dev, mask
 import torch
 from torch.utils.data import Dataset, DataLoader
 import cv2
 from pathlib import Path
-from typing import Union
 import re
+
+
+global dev, mask
+dev, mask = None, None
+
+
+def set_device() -> None:
+    global dev
+    dev = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+
+def set_mask(new_mask: torch.Tensor | None = None) -> None:
+    """
+    Sets a global mask to be used to access reference pixels.
+    If none is provided it will default to ::2::2 512x512 checkerboard.
+    """
+
+    global mask, dev
+
+    if dev is None:
+        raise ValueError("Variable dev is None. Call set_device() before using this DataLoader.")
+
+    if new_mask is None:
+        mask = torch.zeros((512, 512), dtype=torch.bool).to(dev) # !GS: assumes grayscale .pgm
+        mask[::2, ::2] = True
+
+    else:
+        mask = new_mask.to(dev)
 
 
 class ImageDataset(Dataset):
     
-    def __init__(self, img_dir: Union[str, Path], regex: re.Pattern | None = None) -> None:
+    def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
         # Dataset holds file paths
         all_files = list(Path(img_dir).glob("*.pgm"))
         if regex is None:
@@ -33,7 +59,7 @@ class ImageDataset(Dataset):
         # we can do torch.load(map_location="cuda") to skip CPU & openCV completely - good idea?
 
 
-def get_loader(dataset_dir: Union[str, Path], regex: re.Pattern | None = None) -> tuple[DataLoader, int]:
+def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tuple[DataLoader, int]:
     # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
     # apparently this is a known headache for Windows machines - bruh
     
@@ -49,22 +75,6 @@ def get_loader(dataset_dir: Union[str, Path], regex: re.Pattern | None = None) -
     return loader, len(dataset)
 
 
-def set_mask(new_mask: torch.Tensor | None = None) -> None:
-    """
-    Sets a global mask to be used to access reference pixels.
-    If none is provided it will default to ::2::2 512x512 checkerboard.
-    """
-
-    global mask
-
-    if new_mask is None:
-        mask = torch.zeros((512, 512), dtype=torch.bool).to(dev) # !GS: assumes grayscale .pgm
-        mask[::2, ::2] = True
-
-    else:
-        mask = new_mask.to(dev)
-
-
 def get_raw(batch: torch.Tensor) -> torch.Tensor:
     """
     Returns a 3D torch.Tensor of image pixels, moved to target device.
@@ -74,6 +84,9 @@ def get_raw(batch: torch.Tensor) -> torch.Tensor:
 
     Each row contains pixel data (2D tensor of float32).
     """
+
+    if dev is None:
+        raise ValueError("Variable dev is None. Call set_device() before using this DataLoader.")
 
     return batch.to(dev, non_blocking=True)
 

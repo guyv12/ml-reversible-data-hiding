@@ -3,7 +3,7 @@ import torch
 
 class Ridge:
 
-    def __init__(self, dev: torch.device) -> None:
+    def __init__(self) -> None:
         return
     
     def fit(self, X) -> None:
