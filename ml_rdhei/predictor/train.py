@@ -5,36 +5,24 @@ import torch
 import re
 
 
-def train_kernel(kernel_size: int = 5) -> None:
-    loader.set_device()
-    loader.set_mask()
-
+def train_kernel(dev: torch.device, K: int = 5) -> None:
 
     BOSSBase, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
+    H, W = 512, 512 # !GS: assumes grayscale .pgm
+
+    mask = torch.zeros((H, W), dtype=torch.bool).to(dev)
+    mask[::2, ::2] = True
+    
+    model = Ridge()
 
     for idx, batch in enumerate(BOSSBase):
+        batch.to(dev)
+        X, y = extract_features(batch, mask, K)
 
-        ref, raw = loader.get_ref(batch)
-        feat = extract_features(ref)
-
-        # for img in feat[0]:
-
-        #     for row in img:
-        #         for pixel in row:
-        #             if pixel in feat continue
-        #             model = Ridge(kernel_size)
-                    
-        #             X, y = img, img # trimmed to 5x5?
-        #             model.fit(X, y)
-
-        #             new_val = model.predict(X)
-        #             feat[img[row[pixel]]] = new_val
-
+        # model.fit() ? --- we can use smth else? for incremental learning to utilize dataloader to the fullest
 
     return
 
 
 def train_mask() -> None:
-    loader.set_device()
-
     return
