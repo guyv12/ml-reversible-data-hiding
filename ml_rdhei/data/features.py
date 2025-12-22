@@ -9,7 +9,6 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[t
     
     masked_batch = torch.zeros((B, H, W), device=ref_p.device, dtype=torch.float)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
-    
     X_all = fn.unfold(
         masked_batch.unsqueeze(1), # !GS: assumes grayscale .pgm - insert channel dimension
         kernel_size=K,
@@ -19,5 +18,4 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[t
 
     X = X_all[:, :, ~mask.flatten()].permute(0, 2, 1).reshape(-1, K * K)
     y = batch.view(B, H * W)[:, ~mask.flatten()]
-
     return X, y
