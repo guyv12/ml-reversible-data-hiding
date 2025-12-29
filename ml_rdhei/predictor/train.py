@@ -1,11 +1,11 @@
 import ml_rdhei.data.loader as loader
 from ml_rdhei.data.features import extract_features
-from .model import Ridge
+from sklearn.linear_model import Ridge
 import torch
 import re
 
 
-def train_kernel(dev: torch.device, K: int = 5) -> None:
+def train_kernel(K: int = 5) -> None:
 
     BOSSBase, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
 
@@ -14,15 +14,12 @@ def train_kernel(dev: torch.device, K: int = 5) -> None:
     mask = torch.zeros((H, W), dtype=torch.bool).to(dev)
     mask[::2, ::2] = True
 
-    model = Ridge()
+    model = Ridge(alpha=1, solver="svd", fit_intercept=False)
 
     for idx, batch in enumerate(BOSSBase):
-        batch.to(dev)
         X, y = extract_features(batch, mask, K)
-        model.fit(X, y) #? --- we can use smth else? for incremental learning to utilize dataloader to the fullest
-        y_pred = model.predict(X)
-        for i in range(y):
-            print(y[i]-y_pred[i])
+        model.fit(feature_matrix, y)
+
     return
 
 
