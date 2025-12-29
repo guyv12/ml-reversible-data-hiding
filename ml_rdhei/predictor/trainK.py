@@ -8,13 +8,11 @@ import ml_rdhei.performence_metric.results as res
 
 def train_kernel(K: int = 5) -> None:
     start_time = time.time()
-    # BOSSBase, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
-    # H, W = 512, 512
+    BOSSbase_train_loader, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
+    H, W = 512, 512
 
-    H, W = 10, 10
-    BOSSBase = np.arange(H * W).reshape(H, W)
-
-    # print(BOSSBase)
+    BOSSBase = next(iter(BOSSbase_train_loader))[0].numpy()
+    print(BOSSBase)
     mask = np.zeros((H, W), dtype=bool)
     mask[::2, ::2] = True
 

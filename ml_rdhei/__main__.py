@@ -1,6 +1,6 @@
 import torch
 from data.test import test_dataloader
-from predictor.trainK import train_kernel
+from predictor.train import train_kernel
 
 
 def main() -> None:
