@@ -14,7 +14,7 @@ def test_dataloader() -> None:
     # BOWS2_train_loader, data_len = data.get_loader("datasets/BOWS2_512/train", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
     
     img_shape = next(iter(BOSSbase_train_loader)).shape[1:]
-    all_imgs = torch.empty((data_len, *img_shape), dtype=torch.float)
+    all_imgs = torch.empty((data_len, *img_shape), dtype=torch.float32)
 
     for idx, batch in enumerate(BOSSbase_train_loader):
         start = idx * batch.shape[0]
