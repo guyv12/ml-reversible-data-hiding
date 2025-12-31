@@ -6,11 +6,10 @@ from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 import torch
 import re
 
-
 # with scikit learn there will be loops - we can implement ridge in pyTorch to handle batched input but idk if worth it
 def train_kernel(K: int = 5) -> None:
 
-    BOWS2_loader, _ = loader.get_loader("datasets/BOWS2_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
+    BOWS2_loader, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
 
     H, W = 512, 512 # !GS: assumes grayscale .pgm
 
@@ -18,6 +17,9 @@ def train_kernel(K: int = 5) -> None:
     mask[::2, ::2] = True
 
     model = Ridge(alpha=1, solver="svd", fit_intercept=False)
+
+    f = open("ml_rdhei/data/results.txt", "a")
+    f.write(f'### {K} x {K} filter ###\n\n')
 
     for idx, batch in enumerate(BOWS2_loader):
         X, y, ref_pixels = extract_features(batch, mask, K)
@@ -31,3 +33,6 @@ def train_kernel(K: int = 5) -> None:
             psnr = peak_signal_noise_ratio(image_y.numpy(), y_pred, data_range=255.0)
             ssim = structural_similarity(image_y.numpy(), y_pred, data_range=255.0)
             print(psnr, ssim)
+            f.write(f'{idx} {psnr} {ssim}\n')
+
+    f.close()
