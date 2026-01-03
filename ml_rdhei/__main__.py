@@ -1,10 +1,23 @@
-import torch
 from data.test import test_dataloader_time
-from ml_rdhei.predictor.train_sklearn import train_kernel
+from ml_rdhei.predictor.test import test_sklearn_kernel
 
+import data
+import predictor.models as pmodels
+import predictor.predict as ppredict
+import compressor.compress as ccompress
+
+
+def pref_main():
+    # get image
+    model = pmodels.get_sklearn_model()
+
+    stuff = ppredict.get_raw_ad()
+    ad = ccompress.compress_ad(stuff)
+
+    # embed
 
 def main() -> None:
-    train_kernel(9)
+   test_sklearn_kernel()
 
 
 if __name__ == "__main__":

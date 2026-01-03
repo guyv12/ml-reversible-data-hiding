@@ -1,9 +1,8 @@
-# so umm it's not used I guess?
-
+from sklearn.linear_model import Ridge
 import torch
 
 
-class Ridge:
+class TorchRidge:
 
     def __init__(self, lambda_: float = 1e-1) -> None:
         self.L = lambda_
@@ -17,3 +16,10 @@ class Ridge:
     def predict(self, X: torch.Tensor) -> torch.Tensor:
         return self.weights @ X
 
+
+def get_sklearn_model():
+    return Ridge(alpha=1, solver="svd", fit_intercept=False)
+
+
+def get_torch_model():
+    return TorchRidge()
