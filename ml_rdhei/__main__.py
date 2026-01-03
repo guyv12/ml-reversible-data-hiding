@@ -1,6 +1,6 @@
 import torch
 from data.test import test_dataloader
-from predictor.train import train_kernel
+from ml_rdhei.predictor.train_sklearn import train_kernel
 
 
 
