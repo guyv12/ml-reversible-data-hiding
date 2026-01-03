@@ -1,9 +1,11 @@
 import torch
+from data.test import test_dataloader
+from ml_rdhei.predictor.train_sklearn import train_kernel
+
 
 
 def main() -> None:
-
-    dev = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu') # elevate it sometime soon
+    train_kernel(9)
 
     
 

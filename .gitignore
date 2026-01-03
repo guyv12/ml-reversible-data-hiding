@@ -107,6 +107,8 @@ http-client.private.env.json
 # ----- datasets -----
 datasets/*
 
+# keep the dir tho
+!datasets/.gitkeep
 
 
 # ----- pyproj.toml -----
