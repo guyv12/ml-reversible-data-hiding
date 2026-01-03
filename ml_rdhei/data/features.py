@@ -2,7 +2,7 @@ import torch.nn.functional as fn
 import torch
 
 
-def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
