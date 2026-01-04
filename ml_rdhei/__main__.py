@@ -19,7 +19,8 @@ def pref_main():
     return
 
 def main() -> None:
-   test_sklearn_kernel()
+    #test_dataloader_time()
+    test_sklearn_kernel()
 
 
 if __name__ == "__main__":

@@ -38,7 +38,7 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tupl
     dataset = ImageDataset(dataset_dir, regex)
     loader = DataLoader(
         dataset,
-        batch_size=1,
+        batch_size=64,
         shuffle=True,
         num_workers=0,
         pin_memory=True
