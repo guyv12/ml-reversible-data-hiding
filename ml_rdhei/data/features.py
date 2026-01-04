@@ -1,4 +1,3 @@
-import data.loader as loader
 import torch.nn.functional as fn
 import torch
 
