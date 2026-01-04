@@ -9,12 +9,14 @@ import compressor.compress as ccompress
 
 def pref_main():
     # get image
+    img = None
     model = pmodels.get_sklearn_model()
 
-    stuff = ppredict.get_raw_ad()
-    ad = ccompress.compress_ad(stuff)
+    kernel_weights, ref_pixels, error_map = ppredict.get_raw_ad_sklearn(img, model)
+    ad = ccompress.compress_ad_classic(kernel_weights, ref_pixels, error_map)
 
     # embed
+    return
 
 def main() -> None:
    test_sklearn_kernel()

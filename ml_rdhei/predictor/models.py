@@ -10,7 +10,7 @@ class TorchRidge:
 
     def fit(self, X: torch.Tensor, y: torch.Tensor) -> None:
         Features = X.shape[1]
-        I = torch.eye(Features, device=X.device, dtype=X.dtype)
+        I = torch.eye(Features, dtype=X.dtype)
         self.weights = torch.linalg.solve(X.T @ X + self.L * I, X.T @ y)
 
     def predict(self, X: torch.Tensor) -> torch.Tensor:
@@ -21,5 +21,5 @@ def get_sklearn_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
 
 
-def get_torch_model():
+def get_torch_model(): # don't use it's not implemented
     return TorchRidge()

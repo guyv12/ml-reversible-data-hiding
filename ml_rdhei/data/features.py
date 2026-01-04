@@ -20,4 +20,4 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.
 
     X = X_all[:, :, ~mask.flatten()].permute(0, 2, 1) # get rid of refs and transform to (B, L, K*K)
     y = batch.view(B, H * W)[:, ~mask.flatten()]
-    return X, y, ref_p
+    return X, y, ref_p.to(torch.float64)
