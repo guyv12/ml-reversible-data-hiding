@@ -4,7 +4,7 @@ import time
 import re
 
 
-def test_dataloader_time() -> None:
+def test_dataloader(dev: torch.device) -> None:
     """
     time check for dataloader
     """
