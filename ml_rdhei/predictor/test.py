@@ -18,7 +18,7 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
     if results_file is None:
         results_dir = __build_path('sklearn_results.txt')
 
-    BOWS2_loader, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
+    BOSSbase_loader, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
 
     H, W = 512, 512 # !GS: assumes grayscale .pgm
 
@@ -28,7 +28,7 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
     model = Ridge(alpha=1, solver="svd", fit_intercept=False)
 
     with open(results_dir, "a") as f:
-        for idx, batch in enumerate(BOWS2_loader):
+        for idx, batch in enumerate(BOSSbase_loader):
             X, y, ref_pixels = extract_features(batch, mask, K)
 
             for image_X, image_y in zip(X, y):
@@ -42,6 +42,7 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
 
                 print(psnr, ssim)
                 f.write(f"{psnr},{ssim}\n")
+
 
 def test_torch_kernel(K: int = 5, results_file: str | Path = None) -> None:
     pass
