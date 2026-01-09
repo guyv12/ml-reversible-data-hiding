@@ -1,7 +1,5 @@
 import torch
-from huffman import build_huffman_tree
-from huffman import get_huffman_codes
-from huffman import delta_encode
+from .huffman import build_huffman_tree, get_huffman_codes, delta_encode
 
 # here compression logic
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
@@ -22,8 +20,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     pixels_codes = get_huffman_codes(pixels_tree)
 
     # 3 huffman compress (error map)
-    error_map_tensor = torch.from_numpy(error_map)
-    error_map_ints = torch.round(error_map_tensor).to(torch.int16)
+    error_map_ints = torch.round(error_map).to(torch.int16)
     error_map_ints += 255 # offset
     error_list = error_map_ints.flatten().tolist()
 
