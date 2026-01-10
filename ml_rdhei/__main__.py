@@ -16,7 +16,7 @@ def pref_main():
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.get_raw_ad_sklearn(batch, model):
             kernel_weights, ref_pixels, error_map = raw_ad
-            ad = ccompress.compress_ad_classic(kernel_weights, ref_pixels, error_map)
+            ad = ccompress.compress_ad_classic(kernel_weights, ref_pixels, error_map, batch)
 
             print(f"Batch:{i} | Ad Length: {len(ad)}")
 

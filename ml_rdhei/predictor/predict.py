@@ -18,7 +18,7 @@ def get_raw_ad_sklearn(batch: torch.Tensor, model: models.Ridge, K: int = 5) -> 
         y_pred = torch.from_numpy(model.predict(X.numpy()))
         error_map = (y - y_pred)
 
-        kernel_weights = torch.from_numpy(model.coef_)
+        kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
 
         yield kernel_weights, ref_pixels, error_map
 
