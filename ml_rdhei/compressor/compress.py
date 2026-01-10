@@ -69,7 +69,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     b_sym = 9  # range [0, 510] so 9 bits are required
     width = math.ceil(math.log2(n_ref * b_sym))
     codebook = huffman_codebook_to_bytes(pixels_codes, b_sym)
-    compressed_data = "".join([pixels_codes[val] for val in ref_pixels])
+    compressed_data = "".join([pixels_codes[val] for val in pixels_list])
 
     ad += format(len(codebook), f'0{width}b')
     ad += codebook
@@ -81,7 +81,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     # b_sym stays the same
     width = math.ceil(math.log2(n_non_ref * b_sym))
     codebook = huffman_codebook_to_bytes(error_codes, b_sym)
-    compressed_data = "".join([error_codes[val] for val in error_map])
+    compressed_data = "".join([error_codes[val] for val in error_list])
 
     ad += format(len(codebook), f'0{width}b')
     ad += codebook
