@@ -3,11 +3,10 @@ import math
 import torch
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode
 
-# here compression logic
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
     return t.contiguous().cpu().numpy().tobytes()
 
-def huffman_codebook_to_bytes(huffman_codes, b_sym):
+def huffman_codebook_to_bits(huffman_codes, b_sym):
     codebook = ""
 
     L_max = max(len(code) for code in huffman_codes.values())
@@ -34,7 +33,7 @@ def bits_to_bytes(bits):
 
 def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor, batch: torch.Tensor) -> bytes:
 
-    # 2 delta-huffman compress (reference pixels)
+    # delta-huffman compression (reference pixels)
     encoded_ref_pixels = delta_encode(ref_pixels)
     pixels_list = encoded_ref_pixels.tolist()
 
@@ -42,7 +41,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     pixels_codes = get_huffman_codes(pixels_tree)
 
 
-    # 3 huffman compress (error map)
+    # huffman compression (error map)
     error_map_ints = torch.round(error_map).to(torch.int16)
     error_map_ints += 255 # offset
     error_list = error_map_ints.flatten().tolist()
@@ -52,7 +51,6 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
 
 
     # Auxiliary Data formulation
-    #ad = bytearray()
     ad = ""
 
     # AD length
@@ -68,7 +66,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     n_ref = len(ref_pixels)
     b_sym = 9  # range [0, 510] so 9 bits are required
     width = math.ceil(math.log2(n_ref * b_sym))
-    codebook = huffman_codebook_to_bytes(pixels_codes, b_sym)
+    codebook = huffman_codebook_to_bits(pixels_codes, b_sym)
     compressed_data = "".join([pixels_codes[val] for val in pixels_list])
 
     ad += format(len(codebook), f'0{width}b')
@@ -80,7 +78,7 @@ def compress_ad_classic(kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, 
     n_non_ref = N - n_ref
     # b_sym stays the same
     width = math.ceil(math.log2(n_non_ref * b_sym))
-    codebook = huffman_codebook_to_bytes(error_codes, b_sym)
+    codebook = huffman_codebook_to_bits(error_codes, b_sym)
     compressed_data = "".join([error_codes[val] for val in error_list])
 
     ad += format(len(codebook), f'0{width}b')
