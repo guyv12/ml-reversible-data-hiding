@@ -13,12 +13,23 @@ def pref_main():
     BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
     model = pmodels.get_sklearn_model()
 
+    rates = 0
+    counter = 0
+    pixels = 512 * 512
+    bits_per_image = pixels * 8
+
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.get_raw_ad_sklearn(batch, model):
             kernel_weights, ref_pixels, error_map = raw_ad
             ad = ccompress.compress_ad_classic(kernel_weights, ref_pixels, error_map, batch)
 
+            available_bits = bits_per_image - (len(ad)*8)
+            emb_rate = available_bits / pixels
+            rates += emb_rate
+            counter += 1
             print(f"Batch:{i} | Ad Length: {len(ad)}")
+            print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
+            print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
     return
 
