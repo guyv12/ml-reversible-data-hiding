@@ -23,3 +23,17 @@ def get_sklearn_model():
 
 def get_torch_model(): # don't use it's not implemented
     return TorchRidge()
+
+
+def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    model = get_sklearn_model()
+    
+    X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
+    model.fit(X_np, y_np)
+
+    y_pred = torch.from_numpy(model.predict(X_np))
+    error_map = (y.to(torch.int16) - y_pred.to(torch.int16))
+
+    kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
+
+    return kernel_weights, error_map
