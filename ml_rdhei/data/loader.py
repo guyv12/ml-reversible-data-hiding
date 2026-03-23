@@ -25,7 +25,7 @@ class ImageDataset(Dataset):
         if img is None:
             raise OSError(f"Could not load {self.files[idx]}")
         
-        return torch.from_numpy(img).float() # !GS: assumes grayscale .pgm
+        return torch.from_numpy(img).float() # torch requires floats, if they fix that we can too...
     
         # if we do a dummy run to save images with torch.save()
         # we can do torch.load(map_location="cuda") to skip CPU & openCV completely - good idea?
@@ -42,6 +42,6 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tupl
         shuffle=True,
         num_workers=4,
         pin_memory=True
-        )
+    )
     
     return loader, len(dataset)
