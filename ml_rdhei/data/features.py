@@ -6,11 +6,13 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires single channel images")
     
+    batch = batch.float()   # absolute garbage, but PyTorch requires floats for nn.unfold...
+                            # if they fix that we can too  
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
     # apply mask to all images in the batch
-    masked_batch = torch.zeros((B, H, W), dtype=batch.dtype)
+    masked_batch = torch.zeros((B, H, W), dtype=batch.dtype).contiguous()
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     # X_all shape = (B, K*K, H*W)
@@ -27,7 +29,7 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.
 
 
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    if batch.is_floating_point:
+    if batch.is_floating_point():
         raise TypeError("Left-Right Decomposition requires (u)int16/int32")
 
     image1_batch = (batch >> 8).to(torch.uint8) # left
@@ -36,7 +38,7 @@ def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     return image1_batch, image2_batch
 
 def oe_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    if batch.is_floating_point:
+    if batch.is_floating_point():
         raise TypeError("Odd-Even Decomposition requires (u)int16/int32")
     
     pass

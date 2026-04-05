@@ -55,8 +55,8 @@ def dicom_main():
             # print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
 def main() -> None:
-    #test_dataloader_time()
-    #test_sklearn_kernel()
+    # test_dataloader_time()
+    # test_sklearn_kernel()
     regular_main()
 
 

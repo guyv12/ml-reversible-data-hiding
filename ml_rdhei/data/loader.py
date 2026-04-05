@@ -25,7 +25,7 @@ class ImageDataset(Dataset):
         if img is None:
             raise OSError(f"Could not load {self.files[idx]}")
         
-        return torch.from_numpy(img).float() # torch requires floats, if they fix that we can too...
+        return torch.from_numpy(img).float() # torch requires floats rn so we can avoid double storing...
     
         # if we do a dummy run to save images with torch.save()
         # we can do torch.load(map_location="cuda") to skip CPU & openCV completely - good idea?
