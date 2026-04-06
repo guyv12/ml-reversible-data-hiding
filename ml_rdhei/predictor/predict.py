@@ -4,7 +4,7 @@ import torch
 from collections.abc import Iterator
 
 
-def get_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[torch.Tensor, torch.Tensor, torch.Tensor]:
+def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
     mask = torch.zeros((H, W), dtype=torch.bool)
@@ -17,7 +17,7 @@ def get_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[torch.Tensor
 
         yield kernel_weights, ref_pixels, error_map
 
-def get_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
     mask = torch.zeros((H, W), dtype=torch.bool)
@@ -29,7 +29,7 @@ def get_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, tor
     return kernel_weights_batch, ref_pixels_batch, error_map_batch
 
 
-def get_raw_ad_sklearn_dicom(batch: torch.Tensor, K: int = 5) -> Iterator[torch.Tensor, torch.Tensor, torch.Tensor]:
+def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
     mask = torch.zeros((H, W), dtype=torch.bool)
@@ -46,10 +46,9 @@ def get_raw_ad_sklearn_dicom(batch: torch.Tensor, K: int = 5) -> Iterator[torch.
         # image2 -> classic approach
         img2_kernel_weights, img2_error_map = sklearn_ridge(img2_X, img2_y)
 
-
         yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
 
-def get_raw_ad_torch_dicom(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def dicom_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
     mask = torch.zeros((H, W), dtype=torch.bool)

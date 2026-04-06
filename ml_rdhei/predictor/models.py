@@ -26,6 +26,13 @@ def __get_torch_model():
 
 
 def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Creates a ridge model prediction and error map. Assumes 8bit image.
+    Works on a single image input
+
+    :return: kernel weights, error map
+    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    """
     model = __get_sklearn_model()
     
     X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
@@ -39,6 +46,13 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch
     return kernel_weights, error_map
 
 def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Creates a ridge model prediction and error map. Assumes 8bit image.
+    Works on a batched input.
+    
+    :return: kernel weights, error map
+    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    """
     model = __get_torch_model()
     
     model.fit(X_batch, y_batch)
