@@ -65,7 +65,8 @@ def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset
 def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bytes:
     H, W = img_size
     N = H * W
-    header_width = math.ceil(math.log2(N * 8))
+    bpp = 8
+    header_width = math.ceil(math.log2(N * bpp))
 
     ad = __compress_kernel_weights(kernel_weights)
     ad += __compress_ref_pixels(ref_pixels, len(ref_pixels))
@@ -80,11 +81,10 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
     return ad_bytes
 
 def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bytes:
-    raise NotImplementedError("Not implemented fully just yet")
-    
     H, W = img_size
     N = H * W
-    header_width = math.ceil(math.log2(N * 8))
+    bpp = 16
+    header_width = math.ceil(math.log2(N * bpp))
 
     ad = __compress_error_map(img1_error_map, add_offset=False)
 
