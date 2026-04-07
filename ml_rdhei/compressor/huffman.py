@@ -1,3 +1,4 @@
+import math
 import heapq
 import torch
 from collections import Counter
@@ -49,3 +50,21 @@ def delta_encode(ref_pixels: torch.Tensor):
     encoded_deltas = torch.cat((ref_pixels[0].unsqueeze(0), deltas))
 
     return encoded_deltas
+
+def huffman_codebook_to_bits(huffman_codes, b_sym):
+    codebook = ""
+
+    L_max = max(len(code) for code in huffman_codes.values())
+    b_code = math.ceil(math.log2(L_max))
+
+    for symbol, code in huffman_codes.items():
+        # symbol value
+        codebook += format(int(symbol), f'0{b_sym}b')
+
+        # code length
+        codebook += format(len(code), f'0{b_code}b')
+
+        # huffman code itself
+        codebook += code
+
+    return codebook
