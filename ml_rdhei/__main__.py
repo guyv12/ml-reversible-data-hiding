@@ -1,9 +1,11 @@
 from data.test import test_dataloader_time
+from ml_rdhei.compressor.hiding import hider
 from ml_rdhei.predictor.test import test_sklearn_kernel
 
 import data.loader as dloader
 import predictor.predict as ppredict
 import compressor.compress as ccompress
+import compressor.encryption as encryption
 
 
 def pgm_main():
@@ -15,11 +17,14 @@ def pgm_main():
     pixels = 512 * 512
     bpp = 8
     bits_per_image = pixels * bpp
+    K_e = "password"
+    K_h = "password"
 
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
             kernel_weights, ref_pixels, error_map = raw_ad
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
+            ad_enrypted = encryption.encrypt_data(ad, K_e)
 
             available_bits = bits_per_image - (len(ad) * bpp)
             emb_rate = available_bits / pixels
@@ -28,6 +33,8 @@ def pgm_main():
             print(f"Batch:{i} | Ad Length: {len(ad)}")
             print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
+
+            image = hider(ad_enrypted, available_bits/8, "bardzo tajna wiadomosc", K_h)
 
     return
 
