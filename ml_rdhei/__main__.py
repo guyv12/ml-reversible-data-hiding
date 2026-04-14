@@ -34,7 +34,7 @@ def pgm_main():
             print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
-            image = hider(ad_enrypted, available_bits/8, "bardzo tajna wiadomosc", K_h)
+            image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
 
     return
 

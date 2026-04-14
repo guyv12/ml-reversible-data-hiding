@@ -5,8 +5,8 @@ def generate_bitstream(key, length):
     rng = np.random.default_rng(seed)
     return rng.integers(0, 256, length, dtype=np.uint8)
 
-def encrypt_data(data_bytes, key) -> bytes:
+def encrypt_data(data_bytes: bytes, key: str) -> bytes:
     random_bitstream = generate_bitstream(key, len(data_bytes))
     data = np.frombuffer(data_bytes, dtype=np.uint8)
     result = data ^ random_bitstream
-    return result
+    return result.tobytes()
