@@ -35,7 +35,7 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            extraction.ad_extraction(image, pixels, bpp, K_e)
+            extraction.ad_extraction(image, K_e, len(ref_pixels))
             show_image(image)
 
     return
