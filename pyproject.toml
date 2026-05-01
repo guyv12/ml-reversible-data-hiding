@@ -5,7 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ml_rdhei"
 version = "0.0.1"
-dependencies = ["torch", "torchvision", "numpy", "opencv-python", "scikit-learn", "scikit-image"]
+dependencies = ["torch", "torchvision",
+                "numpy", "opencv-python",
+                "scikit-learn", "scikit-image",
+                "bitarray", "matplotlib"]
 requires-python = ">=3.13.0"
 authors = [
     { name = "Igor Sitko-Bajorski", email = "igorsitkobajorski@gmail.com" },
