@@ -48,8 +48,8 @@ class DicomDataset(Dataset):
         if img is None:
             raise OSError(f"Could not load {self.files[idx]}")
 
-        return torch.from_numpy(img)
-    
+        return torch.from_numpy(img).clamp(min=0) # DICOM images loaded with pydicom can hold negative values
+                                                  # which are 99% just pure black, so we can clamp to 0
 
 def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tuple[DataLoader, int]:
     # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
