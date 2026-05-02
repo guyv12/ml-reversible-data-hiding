@@ -14,9 +14,9 @@ def __build_path(filename: str) -> Path:
     return res_dir / filename
 
 
-def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
+def test_sklearn_kernel(K: int = 5, results_file: str | Path | None = None) -> None:
     if results_file is None:
-        results_dir = __build_path('sklearn_results.txt')
+        results_file = __build_path('sklearn_results.txt')
 
     BOSSbase_loader, _ = loader.get_loader("datasets/BOSSbase_512", re.compile(r"[0-4][0-9]?[0-9]?[0-9]?\.pgm"))
 
@@ -27,13 +27,13 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
 
     model = Ridge(alpha=1, solver="svd", fit_intercept=False)
 
-    with open(results_dir, "a") as f:
+    with open(results_file, "a") as f:
         for idx, batch in enumerate(BOSSbase_loader):
             X, y, ref_pixels = extract_features(batch, mask, K)
 
             for image_X, image_y in zip(X, y):
-                model.fit(image_X, image_y)
-                y_pred = model.predict(image_X).astype("float32")
+                model.fit(image_X.numpy(), image_y.numpy())
+                y_pred = model.predict(image_X.numpy()).astype("float32")
 
                 psnr = peak_signal_noise_ratio(image_y.numpy(), y_pred, data_range=255.0)
                 ssim = structural_similarity(image_y.numpy(), y_pred, data_range=255.0)
@@ -44,5 +44,5 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path = None) -> None:
                 f.write(f"{psnr},{ssim}\n")
 
 
-def test_torch_kernel(K: int = 5, results_file: str | Path = None) -> None:
+def test_torch_kernel(K: int = 5, results_file: str | Path | None = None) -> None:
     pass

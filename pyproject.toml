@@ -8,7 +8,9 @@ version = "0.0.1"
 dependencies = ["torch", "torchvision",
                 "numpy", "opencv-python",
                 "scikit-learn", "scikit-image",
-                "bitarray", "matplotlib"]
+                "bitarray", "matplotlib"
+                "pydicom"
+]
 requires-python = ">=3.13.0"
 authors = [
     { name = "Igor Sitko-Bajorski", email = "igorsitkobajorski@gmail.com" },
