@@ -4,11 +4,11 @@ import torch
 from collections import Counter
 
 class HuffmanNode:
-    def __init__(self, char, freq):
+    def __init__(self, char: str | None, freq: int):
         self.char = char
         self.freq = freq
-        self.left = None
-        self.right = None
+        self.left: HuffmanNode | None = None
+        self.right: HuffmanNode | None = None
 
     def __lt__(self, other):
         return self.freq < other.freq
@@ -31,7 +31,7 @@ def build_huffman_tree(data):
 
     return heap[0]
 
-def get_huffman_codes(node: HuffmanNode, code="", huffman_codes=None):
+def get_huffman_codes(node: HuffmanNode | None, code="", huffman_codes=None):
     if huffman_codes is None:
         huffman_codes = {}
     if node:
