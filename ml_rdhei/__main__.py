@@ -41,7 +41,7 @@ def pgm_main():
     return
 
 def dicom_main():
-    DICOM_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
+    DICOM_loader, _ = dloader.get_dicom_loader("datasets/DICOM")
 
     rates = 0
     counter = 0
@@ -50,12 +50,17 @@ def dicom_main():
     bits_per_image = pixels * bpp
 
     for i, batch in enumerate(DICOM_loader):
+        H, W = batch.shape[-2:]
+
         for raw_ad in ppredict.dicom_raw_ad_sklearn(batch):
             img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map = raw_ad
             
-            ad = ccompress.compress_dicom_ad((512, 512), img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map)
+            ad = ccompress.compress_dicom_ad((H, W), img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map)
 
-            available_bits = bits_per_image - (len(ad) * bpp)
+            pixels = H * W
+            bits_per_image = pixels * bpp
+
+            available_bits = bits_per_image - (len(ad) * 8)
             emb_rate = available_bits / pixels
             rates += emb_rate
             counter += 1
@@ -67,7 +72,7 @@ def dicom_main():
 
 def main() -> None:
     pgm_main()
-    # dicom_main()
+    dicom_main()
 
 
 if __name__ == "__main__":
