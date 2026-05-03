@@ -14,12 +14,11 @@ def ad_extraction(bitstream: bytes, key: str, n_ref : int, n: int = 512*512, bpp
     ad_length = ba[:length]
     ad_and_message = ba[length:]
     ad_length_int = int(ad_length.to01(), 2)
-    print(ad_length_int)
     ad = ad_and_message[:ad_length_int]
 
+    ad = encrypt_data(ad, key) # decrypting
+
     # Kernel weights
-    length : int = 64 * k ** 2
-    weights = ad[:length]
     weights_float = []
     for i in range(k**2):
         weight = ad[:64]
@@ -36,6 +35,3 @@ def ad_extraction(bitstream: bytes, key: str, n_ref : int, n: int = 512*512, bpp
     header = ad[:header_length]
     header_int = int(header.to01(), 2)
     ad = ad[header_length:]
-
-
-    #decrypted_ad = encrypt_data(ad_rest, key)

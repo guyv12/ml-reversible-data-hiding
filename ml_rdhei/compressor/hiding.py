@@ -1,4 +1,4 @@
-import numpy as np
+from bitarray import bitarray
 
 from .encryption import encrypt_data
 
@@ -10,9 +10,10 @@ def hider(ad: bytes, length: int, message: str, key: str) -> bytes:
     if padding_len < 0:
         raise ValueError(f"Message is bigger than the image!")
 
-    encoded_message = np.zeros(length, dtype=np.uint8)
-    encoded_message[:len(msg_bytes)] = np.frombuffer(msg_bytes, dtype=np.uint8)
 
-    encrypted_msg = encrypt_data(encoded_message.tobytes(), key)
+    msg = msg_bytes.ljust(length, b'\x00')
+    msg_bits = bitarray()
+    msg_bits.frombytes(msg)
+    encrypted_msg = encrypt_data(msg_bits, key)
 
-    return ad + encrypted_msg
+    return ad + encrypted_msg.tobytes()
