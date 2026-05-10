@@ -9,7 +9,7 @@ dependencies = ["torch", "torchvision",
                 "numpy", "opencv-python",
                 "scikit-learn", "scikit-image",
                 "bitarray", "matplotlib"
-                "pydicom"
+                "pydicom", "PySide6"
 ]
 requires-python = ">=3.13.0"
 authors = [
