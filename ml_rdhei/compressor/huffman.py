@@ -55,7 +55,8 @@ def huffman_codebook_to_bits(huffman_codes, b_sym):
     codebook = ""
 
     L_max = max(len(code) for code in huffman_codes.values())
-    b_code = math.ceil(math.log2(L_max))
+    #b_code = math.ceil(math.log2(L_max))
+    b_code = 5 # na chwile
 
     for symbol, code in huffman_codes.items():
         # symbol value

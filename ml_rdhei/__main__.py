@@ -36,7 +36,7 @@ def pgm_main():
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
             extraction.ad_extraction(image, K_e, len(ref_pixels))
-            show_image(image)
+            #show_image(image)
 
     return
 
