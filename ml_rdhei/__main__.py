@@ -1,11 +1,10 @@
-from ml_rdhei.compressor.hiding import hider
-
 import data.loader as dloader
 import predictor.predict as ppredict
 import compressor.compress as ccompress
 import compressor.encryption as encryption
-import receiver.extraction as extraction
 from ml_rdhei.data.show import show_image
+from ml_rdhei.receiver.receive import receive
+from ml_rdhei.compressor.hiding import hider
 
 
 def pgm_main():
@@ -35,7 +34,7 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            extraction.ad_extraction(image, K_e, len(ref_pixels))
+            receive(image, K_e, K_h, len(ref_pixels))
             #show_image(image)
 
     return
