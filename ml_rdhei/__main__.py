@@ -72,7 +72,7 @@ def dicom_main():
 
 def main() -> None:
     pgm_main()
-    dicom_main()
+    #dicom_main()
 
 
 if __name__ == "__main__":

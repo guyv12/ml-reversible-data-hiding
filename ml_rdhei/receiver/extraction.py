@@ -27,7 +27,6 @@ def ad_extraction(bitstream: bytes, key: str, n_ref: int, n: int = 512 * 512, bp
         weight_bytes = weight.tobytes()
         weight_float = struct.unpack('>d', weight_bytes)[0]
         weights_float.append(weight_float)
-        #print(weights_float[i])
         ad = ad[64:]
 
     # Compressed reference pixels
@@ -67,5 +66,6 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
     header_int = int(header.to01(), 2)
     ad = ad[header_length:]
     compressed_data = ad[:header_int]
+    ad = ad[header_int:]
 
     return ad, extracted_codebook, compressed_data
