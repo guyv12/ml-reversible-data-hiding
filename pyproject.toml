@@ -8,7 +8,7 @@ version = "0.0.1"
 dependencies = ["torch", "torchvision",
                 "numpy", "opencv-python",
                 "scikit-learn", "scikit-image",
-                "bitarray", "matplotlib",
+                "bitarray", "matplotlib"
                 "pydicom", "PySide6"
 ]
 requires-python = ">=3.13.0"
@@ -21,6 +21,7 @@ authors = [
 description = ""
 readme = "README.md"
 classifiers = [
+    "Private :: Do Not Upload",
     "Development Status :: 2 - Pre-Alpha",
     "Programming Language :: Python",
 ]
