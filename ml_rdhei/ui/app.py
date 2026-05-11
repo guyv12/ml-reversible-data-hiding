@@ -123,7 +123,7 @@ class AboutWindow(QDialog):
 
 		layout.addWidget(QLabel("<b>RDHEI Version 1.0</b>"))
 		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Processing"))
-		layout.addWidget(QLabel("Kuba Wiśniewski: Grayscale Processing"))
+		layout.addWidget(QLabel("Jakub Wiśniewski: Grayscale Processing"))
 		layout.addWidget(QLabel("Konrad Machura: User Interface"))
 
 		self.return_btn = QDialogButtonBox(QDialogButtonBox.Close)
