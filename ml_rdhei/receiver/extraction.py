@@ -1,9 +1,6 @@
 import math
 import struct
-
 from bitarray import bitarray
-from torch.distributed.tensor import empty
-
 from ml_rdhei.compressor.encryption import encrypt_data
 
 
@@ -21,22 +18,18 @@ def ad_extraction(bitstream: bytes, key: str, n_ref: int, n: int = 512 * 512, bp
     ad = encrypt_data(ad, key)  # decrypting
 
     # Kernel weights
-    weights_float = []
-    for i in range(k ** 2):
-        weight = ad[:64]
-        weight_bytes = weight.tobytes()
-        weight_float = struct.unpack('>d', weight_bytes)[0]
-        weights_float.append(weight_float)
-        ad = ad[64:]
+    weights_float = weights_extraction(ad, k)
 
     # Compressed reference pixels
     b_sym = 9
     header_length_pixels = math.ceil(math.log2(n_ref * b_sym))
-    ad, codebook_pixels, compressed_pixels = huffman_extraction(ad, b_sym, header_length_pixels)
+    codebook_pixels, compressed_pixels = huffman_extraction(ad, b_sym, header_length_pixels)
 
     # Compressed error map
     header_length_error = math.ceil(math.log2((n - n_ref) * b_sym))
-    ad, codebook_error, compressed_error = huffman_extraction(ad, b_sym, header_length_error)
+    codebook_error, compressed_error = huffman_extraction(ad, b_sym, header_length_error)
+
+    return weights_float, codebook_pixels, compressed_pixels, codebook_error, compressed_error
 
 
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
@@ -68,4 +61,15 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
     compressed_data = ad[:header_int]
     ad = ad[header_int:]
 
-    return ad, extracted_codebook, compressed_data
+    return extracted_codebook, compressed_data
+
+def weights_extraction(ad: bitarray, k: int):
+    weights_float = []
+    for i in range(k ** 2):
+        weight = ad[:64]
+        weight_bytes = weight.tobytes()
+        weight_float = struct.unpack('>d', weight_bytes)[0]
+        weights_float.append(weight_float)
+        ad = ad[64:]
+
+    return weights_float
