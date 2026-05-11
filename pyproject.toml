@@ -15,7 +15,7 @@ requires-python = ">=3.13.0"
 authors = [
     { name = "Igor Sitko-Bajorski", email = "igorsitkobajorski@gmail.com" },
     { name = "Konrad Machura", email = "konrad.machura44@gmail.com" },
-    { name = "Jakub Wiśniewski", email = "kubawfcb@gmail.com" },
+    { name = "Jakub Wiśniewski", email = "jakub.wisniewski344@gmail.com" },
     { name = "Tobiasz Grzesik", email = "tobiasz.grzesik9@gmail.com" },
 ]
 description = ""
