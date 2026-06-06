@@ -24,8 +24,8 @@ def pgm_main():
             kernel_weights, ref_pixels, error_map = raw_ad
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
             ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
-
-            available_bits = bits_per_image - (len(ad) * bpp)
+            print(len(ad))
+            available_bits = bits_per_image - len(ad)
             emb_rate = available_bits / pixels
             rates += emb_rate
             counter += 1
@@ -34,8 +34,8 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            receive(image, K_e, K_h, len(ref_pixels))
             #show_image(image)
+            receive(image, K_e, K_h, len(ref_pixels))
 
     return
 
