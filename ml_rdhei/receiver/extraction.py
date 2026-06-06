@@ -1,21 +1,21 @@
 import math
 import struct
 
-import torch
 from bitarray import bitarray
 from ml_rdhei.compressor.encryption import encrypt_data
 
 
-def ad_extraction(bitstream: bytes, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):
-    ba = bitarray()
-    ba.frombytes(bitstream)
+def ad_extraction(bitstream: bitarray, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):
+    #ba = bitarray()
+    #ba.frombytes(bitstream)
 
     # AD length
     length = math.ceil(math.log2(n * bpp))
-    ad_length = ba[:length]
-    ad_and_message = ba[length:]
+    ad_length = bitstream[:length]
+    ad_and_message = bitstream[length:]
     ad_length_int = int(ad_length.to01(), 2)
     ad = ad_and_message[:ad_length_int]
+    message = ad_and_message[ad_length_int:]
 
     ad = encrypt_data(ad, key)  # decrypting
 
@@ -44,7 +44,7 @@ def ad_extraction(bitstream: bytes, key: str, n_ref: int, n: int = 512 * 512, bp
     # remove delta encoding
     pixels = delta_decoding(deltas)
 
-    return weights_float, pixels, error_map
+    return weights_float, pixels, error_map, message
 
 
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
@@ -113,3 +113,10 @@ def delta_decoding(deltas: [int]):
         pixels.append(current_pixel)
 
     return pixels
+
+def msg_extraction(image, key):
+    message = encrypt_data(image, key)
+    message = message.tobytes()
+    decoded_msg = message.decode('utf-8').rstrip('\x00')
+
+    return decoded_msg
