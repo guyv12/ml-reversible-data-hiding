@@ -22,10 +22,10 @@ def encrypt_data(data_bits: bitarray, key: str) -> bitarray:
     result = data_bits ^ random_bitstream
     return result
 
-def encrypt_ad(ad: bytes, n: int, bpp: int, key: str) -> bytes:
+def encrypt_ad(ad: bitarray, n: int, bpp: int, key: str) -> bitarray:
     header = int(math.ceil(math.log2(n * bpp)))
-    ad_bits = bitarray()
-    ad_bits.frombytes(ad)
-    ad_header = ad_bits[:header]
-    ad_rest = encrypt_data(ad_bits[header:], key)
-    return (ad_header + ad_rest).tobytes()
+    #ad_bits = bitarray()
+    #ad_bits.frombytes(ad)
+    ad_header = ad[:header]
+    ad_rest = encrypt_data(ad[header:], key)
+    return ad_header + ad_rest
