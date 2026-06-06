@@ -1,6 +1,8 @@
 import math
 
 import torch
+from bitarray import bitarray
+
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode, huffman_codebook_to_bits
 
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
@@ -62,7 +64,7 @@ def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset
         + compressed_data
     )
 
-def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bytes:
+def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 8
@@ -76,9 +78,10 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
     ad = format(len(ad), f'0{header_width}b') + ad
 
     # change bits string to bytes
-    ad_bytes = __bits_to_bytes(ad)
+    ad_bits = bitarray(ad)
+    #ad_bytes = __bits_to_bytes(ad)
 
-    return ad_bytes
+    return ad_bits
 
 def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bytes:
     H, W = img_size
