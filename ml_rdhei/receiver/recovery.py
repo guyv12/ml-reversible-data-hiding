@@ -25,6 +25,12 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
                             counter +=1
                     prediction = np.sum(feature_vector) / counter
 
+                original_val = int(round(prediction)) + error_map[error_idx]
+                error_idx += 1
+                reconstructed_img[r,c] = max(0, min(255, original_val))
+
+    return reconstructed_img
+
 
 def get_feature_vector(r: int, c: int, reconstructed_img, k: int = 5):
     feature_vector = []
