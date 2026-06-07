@@ -9,4 +9,6 @@ def receive(image, key_ad, key_msg, n_ref):
     message = msg_extraction(message, key_msg)
     print(message)
 
-    recovery(weights, ref_pixels, error_map)
+    original_image = recovery(weights, ref_pixels, error_map)
+
+    return original_image
