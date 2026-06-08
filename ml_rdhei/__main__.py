@@ -1,3 +1,5 @@
+from bitarray import bitarray
+
 import data.loader as dloader
 import predictor.predict as ppredict
 import compressor.compress as ccompress
@@ -21,7 +23,10 @@ def pgm_main():
 
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
-            kernel_weights, ref_pixels, error_map = raw_ad
+            kernel_weights, ref_pixels, error_map, first_image = raw_ad
+            first_bytes = first_image.contiguous().cpu().numpy().astype('uint8').tobytes()
+            show_image(first_bytes)
+
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
             ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
 

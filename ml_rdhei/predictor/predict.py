@@ -4,7 +4,7 @@ import torch
 from collections.abc import Iterator
 
 
-def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
+def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     _, H, W = batch.shape
 
     mask = torch.zeros((H, W), dtype=torch.bool)
@@ -12,10 +12,10 @@ def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
 
-    for X, y, ref_pixels in zip(X_batch, y_batch, ref_pixels_batch):
+    for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
         kernel_weights, error_map = sklearn_ridge(X, y)
 
-        yield kernel_weights, ref_pixels, error_map
+        yield kernel_weights, ref_pixels, error_map, batch[i]
 
 def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
