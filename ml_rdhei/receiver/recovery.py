@@ -10,13 +10,14 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
                 reconstructed_img[r,c] = ref_pixels[ref_idx]
                 ref_idx += 1
 
+    only_ref_pixels = reconstructed_img.copy()
     error_idx = 0
     for r in range(512):
         for c in range(512):
             if r % 2 != 0 or c % 2 != 0:
-                feature_vector = get_feature_vector(r, c, reconstructed_img)
+                feature_vector = get_feature_vector(r, c, only_ref_pixels)
 
-                if len(feature_vector) == k^2-1:
+                if len(feature_vector) == k**2:
                     prediction = np.dot(feature_vector, weights)
                 else:
                     counter = 0
