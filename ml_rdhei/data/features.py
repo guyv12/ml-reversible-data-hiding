@@ -2,7 +2,7 @@ import torch.nn.functional as fn
 import torch
 
 
-def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires single channel images")
     
@@ -38,6 +38,8 @@ def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     return image1_batch, image2_batch
 
 def oe_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    raise NotImplementedError("Odd-Even Decomposition is not implemented yet...")
+
     if batch.is_floating_point():
         raise TypeError("Odd-Even Decomposition requires (u)int16/int32")
     
