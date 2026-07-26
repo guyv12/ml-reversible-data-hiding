@@ -89,7 +89,7 @@ def weights_extraction(ad: bitarray, k: int):
 
     return weights_float, ad
 
-def huffman_decode(codebook: [(str, int)], compressed_data: str):
+def huffman_decode(codebook: dict[str, int], compressed_data: str):
     decoded = []
     buffer = ""
 
@@ -103,7 +103,7 @@ def huffman_decode(codebook: [(str, int)], compressed_data: str):
 
     return decoded
 
-def delta_decoding(deltas: [int]):
+def delta_decoding(deltas: list[int]):
     pixels = []
     current_pixel = deltas[0]
     pixels.append(current_pixel)
