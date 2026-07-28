@@ -8,24 +8,24 @@ from PySide6.QtWidgets import (
 	)
 	
 from PySide6.QtGui import QColor, QPalette, QPixmap
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, Signal
 
 current_dir = Path(__file__).parent
-dicom_image_path = os.path.join(current_dir, "assets", "dicom.png")
-grayscale_image_path = os.path.join(current_dir, "assets", "a.webp")
-about_image_path = os.path.join(current_dir, "assets", "about.webp")
+processing_window_image_path = os.path.join(current_dir, "assets", "a.webp")
+about_window_image_path = os.path.join(current_dir, "assets", "about.webp")
 MAIN_SIZE = QSize(720,540)
-DISPLAY_SIZE = QSize(620,540)
 
 class HoverButton(QPushButton):
-    def __init__(self, text, image_path, parent_window):
-        super().__init__(text)
-        self.image_path = image_path
-        self.parent_window = parent_window
 
-    def enterEvent(self, event):
-        self.parent_window.update_image(self.image_path)
-        super().enterEvent(event)
+	hovered = Signal(str)
+	
+	def __init__(self, text, image_path):
+		super().__init__(text)
+		self.image_path = image_path
+
+	def enterEvent(self, event):
+		self.hovered.emit(self.image_path)
+		super().enterEvent(event)
 
 class MainWindow(QMainWindow):
 	def __init__(self):
@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
 		self.setFixedSize(MAIN_SIZE)
 
 		self.sidebar = Sidebar(self)
-		self.display = PhotoDisplay(grayscale_image_path)
+		self.display = PhotoDisplay(processing_window_image_path)
 
 		central_widget = QWidget()
 		main_layout = QHBoxLayout(central_widget)
@@ -48,13 +48,10 @@ class MainWindow(QMainWindow):
 		self.display.update_image(path)
 
 	@property
-	def dicom_btn(self): return self.sidebar.dicom_btn
+	def processing_window_btn(self): return self.sidebar.processing_window_btn
 
 	@property
-	def grayscale_btn(self): return self.sidebar.grayscale_btn
-
-	@property
-	def about_btn(self): return self.sidebar.about_btn
+	def about_window_btn(self): return self.sidebar.about_window_btn
 
 class Sidebar(QWidget):
 		def __init__(self, parent_window):
@@ -62,13 +59,11 @@ class Sidebar(QWidget):
 			self.setFixedWidth(320)
 			layout = QVBoxLayout(self)
 
-			self.dicom_btn= HoverButton("DICOM", dicom_image_path, parent_window)
-			self.grayscale_btn = HoverButton("Grayscale", grayscale_image_path, parent_window)
-			self.about_btn = HoverButton("About", about_image_path, parent_window)
-			
-			layout.addWidget(self.dicom_btn)
-			layout.addWidget(self.grayscale_btn)
-			layout.addWidget(self.about_btn)
+			self.processing_window_btn = HoverButton("Image", processing_window_image_path)
+			self.about_window_btn = HoverButton("About", about_window_image_path)
+		
+			layout.addWidget(self.processing_window_btn)
+			layout.addWidget(self.about_window_btn)
 
 class PhotoDisplay(QFrame):
 	def __init__(self, default_path):
@@ -91,25 +86,16 @@ class PhotoDisplay(QFrame):
 		else:
 			self.label.setText("Error loading image")
 
-class GrayscaleWindow(QWidget):
+class ProcessingWindow(QWidget):
 	def __init__(self):
 		super().__init__()
 
 		layout = QHBoxLayout()
-		self.label = QLabel("grayscale processing window")
-		self.return_btn = QPushButton("Return to main window")
-		layout.addWidget(self.label)
-		layout.addWidget(self.return_btn)
-		self.setLayout(layout)
 
-class DicomWindow(QWidget):
-	def __init__(self):
-		super().__init__()
-
-		layout = QHBoxLayout()
-		self.label = QLabel("dicom processing window")
-		self.return_btn = QPushButton("Return to main window")
+		self.label = QLabel("image processing window")
 		layout.addWidget(self.label)
+
+		self.return_btn = QPushButton("Return to main window")
 		layout.addWidget(self.return_btn)
 		self.setLayout(layout)
 
@@ -123,36 +109,40 @@ class AboutWindow(QDialog):
 
 		layout.addWidget(QLabel("<b>RDHEI Version 1.0</b>"))
 		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Processing"))
-		layout.addWidget(QLabel("Jakub Wiśniewski: Grayscale Processing"))
+		layout.addWidget(QLabel("Jakub Wiśniewski: Image Processing"))
 		layout.addWidget(QLabel("Konrad Machura: User Interface"))
 
-		self.return_btn = QDialogButtonBox(QDialogButtonBox.Close)
-		layout.addWidget(self.return_btn)
+		self.close_btn = QDialogButtonBox(QDialogButtonBox.Close)
+		self.close_btn.rejected.connect(self.reject)
+		layout.addWidget(self.close_btn)
 
 		self.setLayout(layout)
 
 class AppController:
 	def __init__(self):
 		self.main_window = MainWindow()
-		self.dicom_window = DicomWindow()
-		self.grayscale_window = GrayscaleWindow()
+		self.processing_window = ProcessingWindow()
 		self.about_window = AboutWindow()
 
-		self.all_windows = [self.main_window, self.dicom_window, self.grayscale_window, self.about_window]
+		self.all_windows = [self.main_window, self.processing_window, self.about_window]
 
-		self.main_window.dicom_btn.clicked.connect(lambda: self.switch_to(self.dicom_window))
-		self.main_window.grayscale_btn.clicked.connect(lambda: self.switch_to(self.grayscale_window))
-		self.main_window.about_btn.clicked.connect(lambda: self.switch_to(self.about_window))
+		self.main_window.processing_window_btn.clicked.connect(self.show_processing_window)
+		self.main_window.about_window_btn.clicked.connect(self.show_about_window)
 
-		self.dicom_window.return_btn.clicked.connect(lambda: self.switch_to(self.main_window))
-		self.grayscale_window.return_btn.clicked.connect(lambda: self.switch_to(self.main_window))
+		self.processing_window.return_btn.clicked.connect(self.show_main_window)
 
-		self.about_window.return_btn.rejected.connect(lambda: self.switch_to(self.main_window))
+	def show_about_window(self):	
+		self.about_window.exec()
 
-	def switch_to(self, target_window):
-			for window in self.all_windows:
+	def show_processing_window(self):
+		for window in self.all_windows:
 				window.hide()
-			target_window.show()
+		self.processing_window.show()
+
+	def show_main_window(self):
+		for window in self.all_windows:
+				window.hide()
+		self.main_window.show()
 
 if __name__ == "__main__":
 	app = QApplication([])
