@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Final
 
 from PySide6.QtWidgets import (
 	QApplication, QMainWindow, QDialog, QStackedWidget,
@@ -7,13 +8,18 @@ from PySide6.QtWidgets import (
 	QWidget, QFrame, QLabel, QPushButton, QDialogButtonBox
 	)
 	
-from PySide6.QtGui import QColor, QPalette, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QSize, Qt, Signal
+
+APP_VERSION: Final[str] = "1.0"
+APP_SHELL_SIZE: Final[QSize] = QSize(720, 540)
+ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
+SIDEBAR_WIDTH: Final[int] = 320
+PHOTO_MARGIN: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
 
 current_dir = Path(__file__).parent
 processing_view_image_path = os.path.join(current_dir, "assets", "a.webp")
 about_view_image_path = os.path.join(current_dir, "assets", "about.webp")
-MAIN_SIZE = QSize(720,540)
 
 class HoverButton(QPushButton):
 
@@ -53,7 +59,7 @@ class MainView(QWidget):
 class Sidebar(QWidget):
 		def __init__(self):
 			super().__init__()
-			self.setFixedWidth(320)
+			self.setFixedWidth(SIDEBAR_WIDTH)
 			layout = QVBoxLayout(self)
 
 			self.processing_view_btn = HoverButton("Image", processing_view_image_path)
@@ -63,16 +69,16 @@ class Sidebar(QWidget):
 			layout.addWidget(self.about_view_btn)
 
 class PhotoDisplay(QFrame):
-	def __init__(self, default_path):
+	def __init__(self, path):
 		super().__init__()
 		
 		self.setFrameShape(QFrame.StyledPanel)
 		layout = QVBoxLayout(self)
-		layout.setContentsMargins(0, 0, 0, 0)
+		layout.setContentsMargins(*PHOTO_MARGIN)
 
 		self.label = QLabel()
 		self.label.setAlignment(Qt.AlignCenter)
-		self.update_image(default_path)
+		self.update_image(path)
 
 		layout.addWidget(self.label)
 
@@ -98,10 +104,10 @@ class AboutDialog(QDialog):
 	def __init__(self):
 		super().__init__()
 		self.setWindowTitle("About")
-		self.setFixedSize(300, 200)
+		self.setFixedSize(ABOUT_DIALOG_SIZE)
 
 		layout = QVBoxLayout(self)
-		layout.addWidget(QLabel("<b>RDHEI Version 1.0</b>"))
+		layout.addWidget(QLabel(f"<b>RDHEI Version {APP_VERSION}</b>"))
 		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Processing"))
 		layout.addWidget(QLabel("Jakub Wiśniewski: Image Processing"))
 		layout.addWidget(QLabel("Konrad Machura: User Interface"))
@@ -115,7 +121,7 @@ class AppController:
 	def __init__(self):
 		self.app_shell = QMainWindow()
 		self.app_shell.setWindowTitle("RDHEI Application")
-		self.app_shell.setFixedSize(MAIN_SIZE)
+		self.app_shell.setFixedSize(APP_SHELL_SIZE)
 
 		self.stack = QStackedWidget()
 		self.app_shell.setCentralWidget(self.stack)
