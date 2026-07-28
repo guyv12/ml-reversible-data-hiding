@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QApplication, QMainWindow, QDialog,
+	QApplication, QMainWindow, QDialog, QStackedWidget,
 	QVBoxLayout, QHBoxLayout,
 	QWidget, QFrame, QLabel, QPushButton, QDialogButtonBox
 	)
@@ -11,8 +11,8 @@ from PySide6.QtGui import QColor, QPalette, QPixmap
 from PySide6.QtCore import QSize, Qt, Signal
 
 current_dir = Path(__file__).parent
-processing_window_image_path = os.path.join(current_dir, "assets", "a.webp")
-about_window_image_path = os.path.join(current_dir, "assets", "about.webp")
+processing_view_image_path = os.path.join(current_dir, "assets", "a.webp")
+about_view_image_path = os.path.join(current_dir, "assets", "about.webp")
 MAIN_SIZE = QSize(720,540)
 
 class HoverButton(QPushButton):
@@ -27,43 +27,40 @@ class HoverButton(QPushButton):
 		self.hovered.emit(self.image_path)
 		super().enterEvent(event)
 
-class MainWindow(QMainWindow):
+class MainView(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		self.setWindowTitle("RDHEI Application")
-		self.setFixedSize(MAIN_SIZE)
+		self.sidebar = Sidebar()
+		self.display = PhotoDisplay(processing_view_image_path)
 
-		self.sidebar = Sidebar(self)
-		self.display = PhotoDisplay(processing_window_image_path)
+		self.sidebar.processing_view_btn.hovered.connect(self.update_image)
+		self.sidebar.about_view_btn.hovered.connect(self.update_image)
 
-		central_widget = QWidget()
-		main_layout = QHBoxLayout(central_widget)
+		main_layout = QHBoxLayout(self)
 		main_layout.addWidget(self.display)
 		main_layout.addWidget(self.sidebar)
-
-		self.setCentralWidget(central_widget)
 
 	def update_image(self, path):
 		self.display.update_image(path)
 
 	@property
-	def processing_window_btn(self): return self.sidebar.processing_window_btn
+	def processing_view_btn(self): return self.sidebar.processing_view_btn
 
 	@property
-	def about_window_btn(self): return self.sidebar.about_window_btn
+	def about_view_btn(self): return self.sidebar.about_view_btn
 
 class Sidebar(QWidget):
-		def __init__(self, parent_window):
+		def __init__(self):
 			super().__init__()
 			self.setFixedWidth(320)
 			layout = QVBoxLayout(self)
 
-			self.processing_window_btn = HoverButton("Image", processing_window_image_path)
-			self.about_window_btn = HoverButton("About", about_window_image_path)
+			self.processing_view_btn = HoverButton("Image", processing_view_image_path)
+			self.about_view_btn = HoverButton("About", about_view_image_path)
 		
-			layout.addWidget(self.processing_window_btn)
-			layout.addWidget(self.about_window_btn)
+			layout.addWidget(self.processing_view_btn)
+			layout.addWidget(self.about_view_btn)
 
 class PhotoDisplay(QFrame):
 	def __init__(self, default_path):
@@ -86,27 +83,24 @@ class PhotoDisplay(QFrame):
 		else:
 			self.label.setText("Error loading image")
 
-class ProcessingWindow(QWidget):
+class ProcessingView(QWidget):
 	def __init__(self):
 		super().__init__()
 
-		layout = QHBoxLayout()
-
+		layout = QHBoxLayout(self)
 		self.label = QLabel("image processing window")
-		layout.addWidget(self.label)
-
 		self.return_btn = QPushButton("Return to main window")
-		layout.addWidget(self.return_btn)
-		self.setLayout(layout)
 
-class AboutWindow(QDialog):
+		layout.addWidget(self.label)
+		layout.addWidget(self.return_btn)
+
+class AboutDialog(QDialog):
 	def __init__(self):
 		super().__init__()
 		self.setWindowTitle("About")
 		self.setFixedSize(300, 200)
 
 		layout = QVBoxLayout(self)
-
 		layout.addWidget(QLabel("<b>RDHEI Version 1.0</b>"))
 		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Processing"))
 		layout.addWidget(QLabel("Jakub Wiśniewski: Image Processing"))
@@ -116,36 +110,39 @@ class AboutWindow(QDialog):
 		self.close_btn.rejected.connect(self.reject)
 		layout.addWidget(self.close_btn)
 
-		self.setLayout(layout)
 
 class AppController:
 	def __init__(self):
-		self.main_window = MainWindow()
-		self.processing_window = ProcessingWindow()
-		self.about_window = AboutWindow()
+		self.app_shell = QMainWindow()
+		self.app_shell.setWindowTitle("RDHEI Application")
+		self.app_shell.setFixedSize(MAIN_SIZE)
 
-		self.all_windows = [self.main_window, self.processing_window, self.about_window]
+		self.stack = QStackedWidget()
+		self.app_shell.setCentralWidget(self.stack)
 
-		self.main_window.processing_window_btn.clicked.connect(self.show_processing_window)
-		self.main_window.about_window_btn.clicked.connect(self.show_about_window)
+		self.main_view = MainView()
+		self.processing_view = ProcessingView()
+		self.about_dialog = AboutDialog()
 
-		self.processing_window.return_btn.clicked.connect(self.show_main_window)
+		self.stack.addWidget(self.main_view)
+		self.stack.addWidget(self.processing_view)
+		
+		self.main_view.processing_view_btn.clicked.connect(self.show_processing)
+		self.main_view.about_view_btn.clicked.connect(self.about_dialog.exec)
 
-	def show_about_window(self):	
-		self.about_window.exec()
+		self.processing_view.return_btn.clicked.connect(self.show_main)
 
-	def show_processing_window(self):
-		for window in self.all_windows:
-				window.hide()
-		self.processing_window.show()
+	def show_processing(self):
+		self.stack.setCurrentWidget(self.processing_view)
 
-	def show_main_window(self):
-		for window in self.all_windows:
-				window.hide()
-		self.main_window.show()
+	def show_main(self):
+		self.stack.setCurrentWidget(self.main_view)
+
+	def run(self):
+		self.app_shell.show()
 
 if __name__ == "__main__":
 	app = QApplication([])
 	controller = AppController()
-	controller.main_window.show()
+	controller.run()
 	app.exec()
