@@ -1,6 +1,12 @@
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton
 
 class ProcessingView(QWidget):
+	"""
+	Processing screen view for RDHEI operations.
+
+	Provides workspace and UI controls for RDHEI operations.
+	"""
+
 	def __init__(self):
 		super().__init__()
 

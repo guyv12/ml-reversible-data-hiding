@@ -4,7 +4,14 @@ from frontend.config import APP_SHELL_SIZE
 from frontend.views import MainView, ProcessingView, AboutDialog
 
 class AppController:
+	"""
+	Central UI Controler 
+	
+	Manages application navigation inside QStackedWidget
+	"""
+	
 	def __init__(self):
+		"Creating and configuring app container that display views"
 		self.app_shell = QMainWindow()
 		self.app_shell.setWindowTitle("RDHEI Application")
 		self.app_shell.setFixedSize(APP_SHELL_SIZE)

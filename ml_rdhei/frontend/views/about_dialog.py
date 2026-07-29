@@ -3,6 +3,10 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox
 from frontend.config import ABOUT_DIALOG_SIZE, APP_VERSION
 
 class AboutDialog(QDialog):
+	"""
+	Custom QDialog that present project team members and project version
+	"""
+	
 	def __init__(self):
 		super().__init__()
 		self.setWindowTitle("About")
