@@ -11,6 +11,13 @@ from frontend.config import (
 from frontend.components.hover_button import HoverButton
 	
 class MainView(QWidget):
+	"""
+	Main application landing view.
+	
+	Assembles photo display preview on the left and navigation panel on the right.
+	Handles hover interaction signals to update image preview dynamically.
+	"""
+
 	def __init__(self):
 		super().__init__()
 		
