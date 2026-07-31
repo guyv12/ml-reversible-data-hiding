@@ -27,7 +27,7 @@ class AppController:
 		self.stack.addWidget(self.processing_view)
 		
 		self.main_view.processing_view_btn.clicked.connect(
-			lambda: stack.setCurrentWidget(self.processing_view)
+			lambda: self.stack.setCurrentWidget(self.processing_view)
 		)
 		
 		self.main_view.about_dialog_btn.clicked.connect(self.about_dialog.exec)
