@@ -12,7 +12,7 @@ class HoverButton(QPushButton):
 	
 	hovered = Signal(str)
 	
-	def __init__(self, text, image_path):
+	def __init__(self, text: str, image_path: str):
 		super().__init__(text)
 		self.image_path = image_path
 
