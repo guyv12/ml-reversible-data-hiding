@@ -1,0 +1,42 @@
+ImageUploader 
+{
+    border: 2px dashed #aaa;
+	border-radius: 10px;
+	background-color: #2b2b2b;
+}
+
+ImageUploader:hover, 
+ImageUploader[drag_active="true"]
+{
+	border-color: #3498db;
+	background-color: #323232;
+}
+
+ImageUploader QLabel
+{
+    border: none;
+    background: transparent;
+    color: #aaa;
+}
+
+ImageUploader #titleLabel
+{
+    font-size: 15px;
+    font-weight: bold;
+    color: #ececec
+}
+
+ImageUploader #subtitleLabel
+{
+    font-size: 12px;
+}
+
+ImageUploader #chipLabel
+{
+    border-radius: 5px;
+    padding: 3px 8px;
+    background-color: #565656;
+    color: #ececec;
+    font-size: 12px;
+    font-weight: bold;
+}

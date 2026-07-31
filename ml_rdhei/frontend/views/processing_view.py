@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
 
+from frontend.components.image_uploader import ImageUploader
+
 class ProcessingView(QWidget):
 	"""
 	Processing screen view for RDHEI operations.
@@ -19,7 +21,6 @@ class ProcessingView(QWidget):
 		sections_layout = QHBoxLayout()
 		layout.addLayout(sections_layout)
 
-		input_layout = QVBoxLayout()
 		input_panel = QFrame()
 		input_panel.setStyleSheet("""
 			QFrame {
@@ -28,8 +29,20 @@ class ProcessingView(QWidget):
 				border-radius: 8px;
 			}
 		""")
-		input_layout.addWidget(input_panel)
-		sections_layout.addLayout(input_layout)
+		
+		input_layout = QVBoxLayout()
+		input_panel.setLayout(input_layout)
+
+		image_uploader = ImageUploader()
+		input_layout.addWidget(image_uploader)
+		sections_layout.addWidget(input_panel)
+
+
+
+
+
+
+
 
 
 		metrics_layout = QVBoxLayout()
