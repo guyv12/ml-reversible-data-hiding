@@ -14,6 +14,12 @@ from frontend.config import (
 )
 
 class ImageUploader(QFrame):
+	"""
+	Drag-and-drop image upload widget with file preview.
+
+    Supports selecting or dropping grayscale (PGM) and DICOM images.
+    Manages image preview scaling and emits signals when an image is loaded or cleared.
+    """
 	image_dropped = Signal(object)
 	image_cleared = Signal()
 
