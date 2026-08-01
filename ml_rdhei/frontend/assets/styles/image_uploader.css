@@ -41,12 +41,14 @@ ImageUploader #chipLabel
     font-weight: bold;
 }
 
-ImageUploader[has_image="true"] {
+ImageUploader[has_image="true"] 
+{
     border-radius: 10px;
     background-color: #323232;
 }
 
-ImageUploader #removeBtn {
+ImageUploader #removeBtn 
+{
     background-color: transparent;
     border: none;
     color: #888888;
@@ -56,11 +58,13 @@ ImageUploader #removeBtn {
     margin: 0px;
 }
 
-ImageUploader #removeBtn:hover {
+ImageUploader #removeBtn:hover 
+{
     background-color: transparent;
     color: #e74c3c;
 }
 
-ImageUploader #removeBtn:pressed {
+ImageUploader #removeBtn:pressed 
+{
     color: #c0392b;
 }

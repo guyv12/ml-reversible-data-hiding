@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QFrame, QHBoxLayout, QVBoxLayout, QLabel,
 from PySide6.QtCore import Qt
 
 from frontend.components.image_uploader import ImageUploader
+from frontend.components.histogram import Histogram
 from frontend.config import IMAGE_UPLOADER_SIZE
 
 class ProcessingView(QWidget):
@@ -41,7 +42,17 @@ class ProcessingView(QWidget):
 
 		image_uploader = ImageUploader()
 		image_uploader.setFixedSize(IMAGE_UPLOADER_SIZE)
+
+		input_histogram = Histogram()
+		image_uploader.image_dropped.connect(
+			input_histogram.plot_histogram
+		)
+		image_uploader.image_cleared.connect(
+			input_histogram.clear
+		)
+
 		input_layout.addWidget(image_uploader)
+		input_layout.addWidget(input_histogram)
 		
 		metrics_panel = QFrame()
 		metrics_panel.setObjectName("metricsPanel")
