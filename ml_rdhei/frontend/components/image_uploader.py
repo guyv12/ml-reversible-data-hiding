@@ -13,7 +13,6 @@ from frontend.config import (
 	IMAGE_UPLOADER_MARGIN
 )
 
-
 class ImageUploader(QFrame):
 	image_dropped = Signal(object)
 	image_cleared = Signal()
@@ -29,8 +28,8 @@ class ImageUploader(QFrame):
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
 
-		self._setup_empty_view()
-		self._setup_preview_view()
+		self._setup_empty_widget()
+		self._setup_preview_widget()
 
 		self.stacked_layout.addWidget(self.empty_widget)
 		self.stacked_layout.addWidget(self.preview_widget)
@@ -47,7 +46,7 @@ class ImageUploader(QFrame):
 		if self.has_image:
 			self._update_ui()
 
-	def _setup_empty_view(self):
+	def _setup_empty_widget(self):
 		self.empty_widget = QWidget()
 		uploader_layout = QVBoxLayout(self.empty_widget)
 		uploader_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -83,7 +82,7 @@ class ImageUploader(QFrame):
 		uploader_layout.addSpacing(6)
 		uploader_layout.addLayout(chips_layout)
 
-	def _setup_preview_view(self):
+	def _setup_preview_widget(self):
 		self.preview_widget = QWidget()
 		uploader_layout = QVBoxLayout(self.preview_widget)
 		uploader_layout.setContentsMargins(0, 0, 0, 0) 
@@ -169,7 +168,6 @@ class ImageUploader(QFrame):
 		self.setProperty("drag_active", is_active)
 		self.style().unpolish(self)
 		self.style().polish(self)
-
 
 	def mousePressEvent(self, event: QMousePressEvent):
 		if not self.has_image:
