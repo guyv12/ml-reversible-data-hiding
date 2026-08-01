@@ -6,8 +6,9 @@ APP_VERSION: Final[str] = "1.0"
 APP_SHELL_SIZE: Final[QSize] = QSize(720, 540)
 ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
 MENU_WIDTH: Final[int] = 320
-PHOTO_MARGIN: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
+PHOTO_MARGINS: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
 IMAGE_UPLOADER_SIZE: Final[QSize] = QSize(300, 200)
+IMAGE_UPLOADER_MARGIN: int = 5
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 
