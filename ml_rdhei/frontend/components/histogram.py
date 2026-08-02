@@ -87,7 +87,6 @@ class Histogram(QFrame):
 		if image_path.lower().endswith(".dcm"):
 			dicom = dcmread(self._image_path)
 			image = dicom.pixel_array
-
 		else:
 			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
@@ -102,13 +101,15 @@ class Histogram(QFrame):
 		image_ndarray = self._transform_image_to_ndarray(image_path)
 		self.plot_widget.clear()
 
-		pixel_min = float(image_ndarray.min())
-		pixel_max = float(image_ndarray.max())
+		if image_ndarray.dtype == "uint8":
+			_range = (0, 256)
+		else:
+			_range = (float(image_ndarray.min()), float(image_ndarray.max()))
 
 		counts, bins = np.histogram(
 			image_ndarray,
 			bins=256,
-			range=(pixel_min, pixel_max) 
+			range=_range
 		)
 
 		histogram_item = pg.PlotCurveItem(
