@@ -5,8 +5,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 
 from frontend.config import (
-	PHOTO_MARGINS, MENU_WIDTH, 
-	PROCESSING_VIEW_IMAGE_PATH, ABOUT_DIALOG_IMAGE_PATH, STARTING_IMAGE_PATH
+	MENU_WIDTH, PROCESSING_VIEW_IMAGE_PATH, 
+	ABOUT_DIALOG_IMAGE_PATH, STARTING_IMAGE_PATH
 )
 from frontend.components.hover_button import HoverButton
 	
@@ -23,7 +23,7 @@ class MainView(QWidget):
 		
 		self.photo_display = QLabel()
 		self.photo_display.setAlignment(Qt.AlignCenter)
-		self.photo_display.setContentsMargins(*PHOTO_MARGINS)
+		self.photo_display.setContentsMargins(0, 0, 0, 0)
 		self.update_image(STARTING_IMAGE_PATH)
 
 		self.processing_view_btn = HoverButton("Image", PROCESSING_VIEW_IMAGE_PATH)

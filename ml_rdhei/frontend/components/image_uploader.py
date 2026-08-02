@@ -4,41 +4,41 @@ from PySide6.QtWidgets import (
 	QFrame, QWidget, QLabel, QFileDialog, QPushButton,
 	QVBoxLayout, QHBoxLayout, QStackedLayout
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QDir
 from PySide6.QtGui import QIcon, QPixmap
 
 from frontend.utils import load_stylesheet
-from frontend.config import (
-	STYLES_DIR, PHOTO_MARGINS,
-	IMAGE_UPLOADER_MARGIN
-)
+from frontend.components.image_preview import ImagePreview
+from frontend.config import STYLES_DIR
 
 class ImageUploader(QFrame):
 	"""
 	Drag-and-drop image upload widget with file preview.
 
-    Supports selecting or dropping grayscale (PGM) and DICOM images.
-    Manages image preview scaling and emits signals when an image is loaded or cleared.
-    """
+	Supports selecting or dropping grayscale (PGM) and DICOM images.
+	Manages image preview scaling and emits signals when an image is loaded or cleared.
+	"""
 	image_dropped = Signal(object)
 	image_cleared = Signal()
 
 	def __init__(self):
 		super().__init__()
-		self._image_path = None
+		self._image_path: str | None = None
 		self.setAcceptDrops(True)
 		
 		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(*PHOTO_MARGINS)
+		self.main_layout.setContentsMargins(0, 0, 0, 0)
 		
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
 
 		self._setup_empty_widget()
-		self._setup_preview_widget()
+		self.image_preview = ImagePreview()
 
 		self.stacked_layout.addWidget(self.empty_widget)
-		self.stacked_layout.addWidget(self.preview_widget)
+		self.stacked_layout.addWidget(self.image_preview)
+
+		self.image_preview.remove_requested.connect(self._clear_image)
 
 		load_stylesheet(self, STYLES_DIR / "image_uploader.css")
 		self._update_ui()
@@ -47,10 +47,16 @@ class ImageUploader(QFrame):
 	def has_image(self) -> bool:
 		return self._image_path is not None
 
-	def resizeEvent(self, event):
-		super().resizeEvent(event)
-		if self.has_image:
-			self._update_ui()
+	def _set_image(self, file_path: str | None):
+		self._image_path = file_path
+		self.image_preview.set_image(file_path)
+		self._update_ui()
+
+	def _clear_image(self):
+		self._image_path = None
+		self.image_preview.clear_image()
+		self._update_ui()
+		self.image_cleared.emit()
 
 	def _setup_empty_widget(self):
 		self.empty_widget = QWidget()
@@ -87,45 +93,6 @@ class ImageUploader(QFrame):
 		uploader_layout.addWidget(self.subtitle_label)
 		uploader_layout.addSpacing(6)
 		uploader_layout.addLayout(chips_layout)
-
-	def _setup_preview_widget(self):
-		self.preview_widget = QWidget()
-		uploader_layout = QVBoxLayout(self.preview_widget)
-		uploader_layout.setContentsMargins(0, 0, 0, 0) 
-		uploader_layout.setSpacing(0)
-
-		image_header_layout = QHBoxLayout()
-		image_header_layout.setContentsMargins(
-			IMAGE_UPLOADER_MARGIN,
-			IMAGE_UPLOADER_MARGIN,
-			IMAGE_UPLOADER_MARGIN,
-			0
-		)
-		self.file_label = QLabel("")
-		self.file_label.setWordWrap(True)
-		self.file_label.setObjectName("fileLabel")
-		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-		self.remove_btn = QPushButton("✕")
-		self.remove_btn.setObjectName("removeBtn")
-		self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-		self.remove_btn.setFixedSize(20, 20)
-		self.remove_btn.clicked.connect(self._clear_image)
-
-		image_header_layout.addWidget(self.file_label, stretch=1)
-		image_header_layout.addWidget(self.remove_btn)
-
-		uploader_layout.addLayout(image_header_layout)
-
-		self.photo_display = QLabel()
-		self.photo_display.setContentsMargins(
-			0,
-			IMAGE_UPLOADER_MARGIN,
-			0,
-			IMAGE_UPLOADER_MARGIN
-		)
-		self.photo_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		uploader_layout.addWidget(self.photo_display)
 		
 	def _update_ui(self):
 		self.setProperty("has_image", self.has_image)
@@ -133,42 +100,9 @@ class ImageUploader(QFrame):
 		self.style().polish(self)
 
 		if self.has_image:
-			self.file_label.setText(Path(self._image_path).name)
-			self._display_scaled_image()
-			self.stacked_layout.setCurrentWidget(self.preview_widget)
+			self.stacked_layout.setCurrentWidget(self.image_preview)
 		else:
 			self.stacked_layout.setCurrentWidget(self.empty_widget)
-
-	def _display_scaled_image(self):
-		if not self._image_path:
-			return
-
-		pix = QPixmap(self._image_path)
-		if pix.isNull():
-			self.photo_display.setText("[ Photo unavailable ]")
-			return
-
-		label_height = self.file_label.fontMetrics().height()
-
-		max_width = self.width() - 16
-		max_height = self.height() - label_height - (IMAGE_UPLOADER_MARGIN*4)
-
-		scaled_pix = pix.scaled(
-			max_width,
-			max_height,
-			Qt.AspectRatioMode.KeepAspectRatio,
-			Qt.TransformationMode.SmoothTransformation
-		)
-		self.photo_display.setPixmap(scaled_pix)
-
-	def _set_image(self, file_path: str | None):
-		self._image_path = file_path
-		self._update_ui()
-
-	def _clear_image(self):
-		self._image_path = None
-		self._update_ui()
-		self.image_cleared.emit()
 
 	def _set_drag_active(self, is_active: bool):
 		self.setProperty("drag_active", is_active)
@@ -176,36 +110,45 @@ class ImageUploader(QFrame):
 		self.style().polish(self)
 
 	def mousePressEvent(self, event: QMousePressEvent):
-		if not self.has_image:
-			if event.button() == Qt.MouseButton.LeftButton:
-				file_name, _ = QFileDialog.getOpenFileName(
-					self, 
-					self.tr("Select Image"), 
-					"/home/", 
-					self.tr("Image Files (*.pgm *.dcm)"),
-				)
-				if file_name and file_name.lower().endswith(('.pgm', '.dcm')):
-					self._set_image(file_name)
-					self.image_dropped.emit(file_name)
-					print(f"Image selected {self._image_path}")
+		super().mousePressEvent(event)
+
+		if not self.has_image and event.button() == Qt.MouseButton.LeftButton:
+			file_name, _ = QFileDialog.getOpenFileName(
+				self, 
+				self.tr("Select Image"), 
+				QDir.homePath(), 
+				self.tr("Image Files (*.pgm *.dcm)"),
+			)
+			if file_name and file_name.lower().endswith(('.pgm', '.dcm')):
+				self._set_image(file_name)
+				self.image_dropped.emit(file_name)
+				print(f"Image selected {self._image_path}")
 
 	def dragEnterEvent(self, event: QDragEnterEvent):
-		if not self.has_image:
+		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
 			if urls and urls[0].toLocalFile().lower().endswith(('.pgm', '.dcm')):
 				event.acceptProposedAction()
 				self._set_drag_active(True)
+				return
+		
+		event.ignore()
 
 	def dragLeaveEvent(self, event: QDragLeaveEvent):
+		super().dragLeaveEvent(event)
 		self._set_drag_active(False)
 
 	def dropEvent(self, event: QDropEvent):
-		if not self.has_image:
-			self._set_drag_active(False)
+		self._set_drag_active(False)
+
+		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
 			if urls:
 				file_name = urls[0].toLocalFile()
 				if file_name.lower().endswith(('.pgm', '.dcm')):
+					event.acceptProposedAction()
 					self._set_image(file_name)
 					self.image_dropped.emit(file_name)
 					print(f"Image selected {self._image_path}")
+
+		event.ignore()
