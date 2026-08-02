@@ -1,6 +1,7 @@
 import numpy as np
 import pyqtgraph as pg
 import cv2
+from pydicom import dcmread
 
 from PySide6.QtWidgets import (
 	QFrame, QWidget, QVBoxLayout, QStackedLayout,
@@ -83,7 +84,9 @@ class Histogram(QFrame):
 		self._set_image(image_path)
 
 		if image_path.lower().endswith(".dcm"):
-			raise NotImplementedError(f"DICOM format support is not implemented yet")
+			dicom = dcmread(self._image_path)
+			image = dicom.pixel_array
+			return image
 
 		image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
@@ -98,12 +101,13 @@ class Histogram(QFrame):
 		image_ndarray = self._transform_image_to_ndarray(image_path)
 		self.plot_widget.clear()
 
-		max_value = 65536 if image_ndarray.dtype == np.uint16 else 256
+		pixel_min = float(image_ndarray.min())
+		pixel_max = float(image_ndarray.max())
 
 		counts, bins = np.histogram(
 			image_ndarray,
 			bins=256,
-			range=(0, max_value) 
+			range=(pixel_min, pixel_max) 
 		)
 
 		histogram_item = pg.PlotCurveItem(
