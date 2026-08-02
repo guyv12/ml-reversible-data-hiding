@@ -28,7 +28,7 @@ class Histogram(QFrame):
 
 
 		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(0, 10, 10, 5)
+		self.main_layout.setContentsMargins(5, 10, 10, 5)
 		
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
@@ -67,6 +67,7 @@ class Histogram(QFrame):
 
 	def _setup_plot_widget(self):
 		self.plot_widget = pg.PlotWidget()
+		
 		self.plot_widget.setBackground("#323232")
 		self.plot_widget.showGrid(x=True, y=True, alpha=0.2)
 
