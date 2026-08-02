@@ -1,10 +1,13 @@
 from pathlib import Path
+from pydicom import dcmread
+import numpy as np
 
 from PySide6.QtWidgets import (
-	QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+	QWidget, QMessageBox, QVBoxLayout, QHBoxLayout,
+	QLabel, QPushButton
 ) 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap, QFontMetrics
+from PySide6.QtGui import QIcon, QPixmap, QImage, QFontMetrics
 
 from frontend.config import IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN
 
@@ -63,12 +66,57 @@ class ImagePreview(QWidget):
 		self.file_label.clear()
 		self.photo_display.clear()
 
+	def _convert_dicom_to_pixmap(self) -> QPixmap:
+		dicom = dcmread(self._image_path)
+		raw_pixels = dicom.pixel_array.astype(np.int16)
+
+		pixel_min = raw_pixels.min()
+		pixel_max = raw_pixels.max()
+	
+		if pixel_min != pixel_max:
+			normalized = ((raw_pixels - pixel_min) / (pixel_max - pixel_min)) * 65535.0
+		else:
+			normalized = np.zeros_like(raw_pixels)
+
+		photometric = dicom.get("PhotometricInterpretation", "MONOCHROME2")
+		if photometric == "MONOCHROME1":
+			normalized = 65535.0 - normalized
+
+		norm_pixels = normalized.astype(np.uint16)
+
+		image = QImage(
+			norm_pixels.data,
+			raw_pixels.shape[1],
+			raw_pixels.shape[0],
+			raw_pixels.shape[1] * 2,
+			QImage.Format.Format_Grayscale16
+		)
+
+		return QPixmap.fromImage(image)
+
 	def _update_photo_display(self):
 		if not self._image_path:
 			return
 
-		pix = QPixmap(self._image_path)
-		if pix.isNull():
+		suffix = Path(self._image_path).suffix
+		pix = None
+
+		if suffix == ".dcm":
+			try:
+				pix = self._convert_dicom_to_pixmap()
+			except Exception as e:
+				QMessageBox.warning(
+					self,
+					"DICOM error",
+					f"Can't read your dicom file: \n{e}"
+				)
+				pix = None
+
+		else:
+			pix = QPixmap(self._image_path)
+
+		if pix is None or pix.isNull():
+			self.photo_display.clear()
 			self.photo_display.setText("[ Photo unavailable ]")
 			return
 
