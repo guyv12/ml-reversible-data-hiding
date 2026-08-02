@@ -140,8 +140,10 @@ class ImagePreview(QWidget):
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
 
+		# Re-elide file name text to fit current label width (fixes first render issue)
 		if self._image_path:
 			self._update_file_label(self._image_path)
 
+		# Avoid redundant update on first load; only recalculate image scale on actual resize
 		if self._cached_pix and not self._cached_pix.isNull():
 			self._update_photo_display()
