@@ -86,7 +86,6 @@ class ImageUploader(QFrame):
 			if file_name and file_name.lower().endswith(('.pgm', '.dcm')):
 				self._set_image(file_name)
 				self.image_dropped.emit(file_name)
-				print(f"Image selected {self._image_path}")
 
 	def dragEnterEvent(self, event: QDragEnterEvent):
 		if not self.has_image and event.mimeData().hasUrls():
@@ -113,6 +112,5 @@ class ImageUploader(QFrame):
 					event.acceptProposedAction()
 					self._set_image(file_name)
 					self.image_dropped.emit(file_name)
-					print(f"Image selected {self._image_path}")
 
 		event.ignore()
