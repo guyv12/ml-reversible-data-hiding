@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt, Signal, QDir
 from PySide6.QtGui import QIcon, QPixmap
 
 from frontend.utils import load_stylesheet
-from frontend.components.image_preview import ImagePreview
+from frontend.components.preview import ImagePreview, EmptyPreview
 from frontend.config import STYLES_DIR
 
 class ImageUploader(QFrame):
@@ -32,10 +32,10 @@ class ImageUploader(QFrame):
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
 
-		self._setup_empty_widget()
+		self.empty_preview = EmptyPreview()
 		self.image_preview = ImagePreview()
 
-		self.stacked_layout.addWidget(self.empty_widget)
+		self.stacked_layout.addWidget(self.empty_preview)
 		self.stacked_layout.addWidget(self.image_preview)
 
 		self.image_preview.remove_requested.connect(self._clear_image)
@@ -57,42 +57,6 @@ class ImageUploader(QFrame):
 		self.image_preview.clear_image()
 		self._update_ui()
 		self.image_cleared.emit()
-
-	def _setup_empty_widget(self):
-		self.empty_widget = QWidget()
-		uploader_layout = QVBoxLayout(self.empty_widget)
-		uploader_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		uploader_layout.setSpacing(8)
-
-		self.image_label = QLabel()
-		icon = QIcon.fromTheme("system-file-manager")
-		self.image_label.setPixmap(icon.pixmap(48, 48))
-		self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		
-		self.title_label = QLabel("Drop Grayscale or DICOM image")
-		self.title_label.setWordWrap(True)
-		self.title_label.setObjectName("titleLabel")
-		self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-		self.subtitle_label = QLabel("or click to browse")
-		self.subtitle_label.setWordWrap(True)
-		self.subtitle_label.setObjectName("subtitleLabel")
-		self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-		chips_layout = QHBoxLayout()
-		chips_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		
-		formats = [".pgm", ".dcm"]
-		for fmt in formats:
-			chip = QLabel(fmt)
-			chip.setObjectName("chipLabel")
-			chips_layout.addWidget(chip)
-
-		uploader_layout.addWidget(self.image_label)
-		uploader_layout.addWidget(self.title_label)
-		uploader_layout.addWidget(self.subtitle_label)
-		uploader_layout.addSpacing(6)
-		uploader_layout.addLayout(chips_layout)
 		
 	def _update_ui(self):
 		self.setProperty("has_image", self.has_image)
@@ -102,7 +66,7 @@ class ImageUploader(QFrame):
 		if self.has_image:
 			self.stacked_layout.setCurrentWidget(self.image_preview)
 		else:
-			self.stacked_layout.setCurrentWidget(self.empty_widget)
+			self.stacked_layout.setCurrentWidget(self.empty_preview)
 
 	def _set_drag_active(self, is_active: bool):
 		self.setProperty("drag_active", is_active)
