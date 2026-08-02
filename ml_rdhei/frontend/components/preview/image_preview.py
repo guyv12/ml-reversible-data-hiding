@@ -17,6 +17,7 @@ class ImagePreview(QWidget):
 	def __init__(self):
 		super().__init__()
 		self._image_path: str | None = None
+		self._cached_pix: QPixmap | None = None
 
 		self.main_layout = QVBoxLayout(self)
 		self.main_layout.setContentsMargins(0, 0, 0, 0) 
@@ -59,10 +60,26 @@ class ImagePreview(QWidget):
 	def set_image(self, file_path: str):
 		self._image_path = file_path
 		self._update_file_label(file_path)
+
+		if Path(self._image_path).suffix == ".dcm":
+			try:
+				self._cached_pix = self._convert_dicom_to_pixmap()
+			except Exception as e:
+				QMessageBox.warning(
+					self,
+					"DICOM error",
+					f"Can't read your dicom file: \n{e}"
+				)
+				self._cached_pix = None
+
+		else:
+			self._cached_pix = QPixmap(self._image_path)
+
 		self._update_photo_display()
 
 	def clear_image(self):
 		self._image_path = None
+		self._cached_pix = None
 		self.file_label.clear()
 		self.photo_display.clear()
 
@@ -98,24 +115,7 @@ class ImagePreview(QWidget):
 		if not self._image_path:
 			return
 
-		suffix = Path(self._image_path).suffix
-		pix = None
-
-		if suffix == ".dcm":
-			try:
-				pix = self._convert_dicom_to_pixmap()
-			except Exception as e:
-				QMessageBox.warning(
-					self,
-					"DICOM error",
-					f"Can't read your dicom file: \n{e}"
-				)
-				pix = None
-
-		else:
-			pix = QPixmap(self._image_path)
-
-		if pix is None or pix.isNull():
+		if self._cached_pix is None or self._cached_pix.isNull():
 			self.photo_display.clear()
 			self.photo_display.setText("[ Photo unavailable ]")
 			return
@@ -128,14 +128,20 @@ class ImagePreview(QWidget):
 		if max_width <= 0 or max_height <= 0:
 			return
 
-		scaled_pix = pix.scaled(
+		scaled_pix = self._cached_pix.scaled(
 			max_width,
 			max_height,
 			Qt.AspectRatioMode.KeepAspectRatio,
 			Qt.TransformationMode.SmoothTransformation
 		)
+
 		self.photo_display.setPixmap(scaled_pix)
 
 	def resizeEvent(self, event):
 		super().resizeEvent(event)
-		self._update_photo_display()
+
+		if self._image_path:
+			self._update_file_label(self._image_path)
+
+		if self._cached_pix and not self._cached_pix.isNull():
+			self._update_photo_display()

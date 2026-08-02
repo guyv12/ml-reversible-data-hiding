@@ -87,9 +87,9 @@ class Histogram(QFrame):
 		if image_path.lower().endswith(".dcm"):
 			dicom = dcmread(self._image_path)
 			image = dicom.pixel_array
-			return image
 
-		image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+		else:
+			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
 
 		if image is None:
 			raise FileNotFoundError(
