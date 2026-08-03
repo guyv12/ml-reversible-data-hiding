@@ -12,8 +12,6 @@ from PySide6.QtGui import QIcon, QPixmap, QImage, QFontMetrics
 from frontend.config import IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN
 
 class ImagePreview(QWidget):
-	remove_requested = Signal()
-
 	def __init__(self):
 		super().__init__()
 		self._image_path: str | None = None
@@ -23,39 +21,18 @@ class ImagePreview(QWidget):
 		self.main_layout.setContentsMargins(0, 0, 0, 0) 
 		self.main_layout.setSpacing(0)
 
-		image_header_layout = QHBoxLayout()
-		image_header_layout.setContentsMargins(*IMAGE_HEADER_MARGIN)
-		self.file_label = QLabel("")
-		self.file_label.setTextFormat(Qt.TextFormat.PlainText)
-		self.file_label.setObjectName("fileLabel")
-		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-		self.remove_btn = QPushButton("✕")
-		self.remove_btn.setObjectName("removeBtn")
-		self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-		self.remove_btn.setFixedSize(20, 20)
-		self.remove_btn.clicked.connect(self.remove_requested)
-
-		image_header_layout.addWidget(self.file_label, stretch=1)
-		image_header_layout.addWidget(self.remove_btn)
+		self.image_header_layout = QHBoxLayout()
+		self.image_header_layout.setContentsMargins(*IMAGE_HEADER_MARGIN)
 
 		self.photo_display = QLabel()
 		self.photo_display.setContentsMargins(*PHOTO_DISPLAY_MARGIN)
 		self.photo_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-		self.main_layout.addLayout(image_header_layout)
+		self.main_layout.addLayout(self.image_header_layout)
 		self.main_layout.addWidget(self.photo_display)
 
 	def _update_file_label(self, file_path: str):
-		file_name = Path(self._image_path).name
-
-		metrics = QFontMetrics(self.file_label.font())
-		content = metrics.elidedText(
-			file_name,
-			Qt.TextElideMode.ElideMiddle,
-			self.file_label.width()
-		)
-		self.file_label.setText(content)
+		pass
 
 	def set_image(self, file_path: str):
 		self._image_path = file_path
@@ -120,10 +97,10 @@ class ImagePreview(QWidget):
 			self.photo_display.setText("[ Photo unavailable ]")
 			return
 
-		label_height = self.file_label.fontMetrics().height()
+		layout_height = self.image_header_layout.sizeHint().height()
 
 		max_width = self.width() - 16
-		max_height = self.height() - label_height - (5 * 4)
+		max_height = self.height() - layout_height - (5 * 4)
 
 		if max_width <= 0 or max_height <= 0:
 			return
@@ -147,3 +124,46 @@ class ImagePreview(QWidget):
 		# Avoid redundant update on first load; only recalculate image scale on actual resize
 		if self._cached_pix and not self._cached_pix.isNull():
 			self._update_photo_display()
+
+
+class InputImagePreview(ImagePreview):
+	delete_requested = Signal()
+	def __init__(self):
+		super().__init__()
+		self.file_label = QLabel("")
+		self.file_label.setTextFormat(Qt.TextFormat.PlainText)
+		self.file_label.setObjectName("fileLabel")
+		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+		self.delete_btn = QPushButton("✕")
+		self.delete_btn.setObjectName("deleteBtn")
+		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		self.delete_btn.setFixedSize(20, 20)
+		self.delete_btn.clicked.connect(self.delete_requested)
+
+		self.image_header_layout.addWidget(self.file_label, stretch=1)
+		self.image_header_layout.addWidget(self.delete_btn)
+
+	def _update_file_label(self, file_path: str):
+		file_name = Path(self._image_path).name
+
+		metrics = QFontMetrics(self.file_label.font())
+		content = metrics.elidedText(
+			file_name,
+			Qt.TextElideMode.ElideMiddle,
+			self.file_label.width()
+		)
+		self.file_label.setText(content)
+
+class OutputImagePreview(ImagePreview):
+	def __init__(self):
+		super().__init__()
+
+		self.download_btn = QPushButton("⭳")
+		self.download_btn.setObjectName("downloadBtn")
+		self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		self.download_btn.setFixedSize(20, 20)
+
+		self.image_header_layout.addWidget(self.download_btn)
+	
+	
