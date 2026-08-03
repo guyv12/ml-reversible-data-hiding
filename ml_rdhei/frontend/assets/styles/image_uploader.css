@@ -12,26 +12,32 @@ ImageUploader[has_image="false"][drag_active="true"]
 	background-color: #323232;
 }
 
-ImageUploader QLabel
+ImageUploader[has_image="true"] 
+{
+    border-radius: 10px;
+    background-color: #323232;
+}
+
+PreviewManager QLabel
 {
     border: none;
     background: transparent;
     color: #aaa;
 }
 
-ImageUploader #titleLabel
+PreviewManager #titleLabel
 {
     font-size: 15px;
     font-weight: bold;
     color: #ececec
 }
 
-ImageUploader #subtitleLabel
+PreviewManager #subtitleLabel
 {
     font-size: 12px;
 }
 
-ImageUploader #chipLabel
+PreviewManager #chipLabel
 {
     border-radius: 5px;
     padding: 3px 8px;
@@ -41,13 +47,7 @@ ImageUploader #chipLabel
     font-weight: bold;
 }
 
-ImageUploader[has_image="true"] 
-{
-    border-radius: 10px;
-    background-color: #323232;
-}
-
-ImageUploader #removeBtn 
+PreviewManager #deleteBtn 
 {
     background-color: transparent;
     border: none;
@@ -58,13 +58,35 @@ ImageUploader #removeBtn
     margin: 0px;
 }
 
-ImageUploader #removeBtn:hover 
+PreviewManager #deleteBtn:hover 
 {
     background-color: transparent;
     color: #e74c3c;
 }
 
-ImageUploader #removeBtn:pressed 
+PreviewManager #deleteBtn:pressed 
 {
     color: #c0392b;
+}
+
+PreviewManager #downloadBtn 
+{
+    background-color: transparent;
+    border: none;
+    color: #888888;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+}
+
+PreviewManager #downloadBtn:hover 
+{
+    background-color: transparent;
+    color: #3498db;
+}
+
+PreviewManager #downloadBtn:pressed 
+{
+    color: #2b7fb7;
 }

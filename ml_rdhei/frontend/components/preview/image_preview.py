@@ -125,7 +125,6 @@ class ImagePreview(QWidget):
 		if self._cached_pix and not self._cached_pix.isNull():
 			self._update_photo_display()
 
-
 class InputImagePreview(ImagePreview):
 	delete_requested = Signal()
 	def __init__(self):
@@ -165,5 +164,4 @@ class OutputImagePreview(ImagePreview):
 		self.download_btn.setFixedSize(20, 20)
 
 		self.image_header_layout.addWidget(self.download_btn)
-	
 	
