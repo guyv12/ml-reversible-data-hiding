@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, Signal, QDir
 from PySide6.QtGui import QIcon, QPixmap
 
 from frontend.utils import load_stylesheet
+from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import InputImagePreview, EmptyPreview
 from frontend.config import STYLES_DIR
 
@@ -23,50 +24,36 @@ class ImageUploader(QFrame):
 
 	def __init__(self):
 		super().__init__()
-		self._image_path: str | None = None
 		self.setAcceptDrops(True)
 		
 		self.main_layout = QVBoxLayout(self)
 		self.main_layout.setContentsMargins(0, 0, 0, 0)
+
+		self.preview_manager = PreviewManager()
+
+		self.main_layout.addWidget(self.preview_manager)
 		
-		self.stacked_layout = QStackedLayout()
-		self.main_layout.addLayout(self.stacked_layout)
-
-		self.empty_preview = EmptyPreview()
-		self.image_preview = InputImagePreview()
-
-		self.stacked_layout.addWidget(self.empty_preview)
-		self.stacked_layout.addWidget(self.image_preview)
-
-		self.image_preview.delete_requested.connect(self._clear_image)
+		self._setup_connections()
 
 		load_stylesheet(self, STYLES_DIR / "image_uploader.css")
-		self._update_ui()
+		self._update_style(has_image=False)
 
 	@property
 	def has_image(self) -> bool:
-		return self._image_path is not None
+		return self.preview_manager.has_image
 
-	def _set_image(self, file_path: str | None):
-		self._image_path = file_path
-		self.image_preview.set_image(file_path)
-		self._update_ui()
-
-	def _clear_image(self):
-		self._image_path = None
-		self.image_preview.clear_image()
-		self._update_ui()
-		self.image_cleared.emit()
+	def _setup_connections(self):
+		self.preview_manager.image_cleared.connect(self.image_cleared)
 		
-	def _update_ui(self):
-		self.setProperty("has_image", self.has_image)
+		self.preview_manager.image_cleared.connect(
+			lambda: self._update_style(has_image=False)
+		)
+	
+	def _update_style(self, has_image: bool):
+		self.setProperty("has_image", "true" if has_image else "false")
+		
 		self.style().unpolish(self)
 		self.style().polish(self)
-
-		if self.has_image:
-			self.stacked_layout.setCurrentWidget(self.image_preview)
-		else:
-			self.stacked_layout.setCurrentWidget(self.empty_preview)
 
 	def _set_drag_active(self, is_active: bool):
 		self.setProperty("drag_active", is_active)
@@ -84,7 +71,8 @@ class ImageUploader(QFrame):
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
 			if file_name and file_name.lower().endswith(('.pgm', '.dcm')):
-				self._set_image(file_name)
+				self.preview_manager.set_image(file_name)
+				self._update_style(has_image=True)
 				self.image_dropped.emit(file_name)
 
 	def dragEnterEvent(self, event: QDragEnterEvent):
@@ -110,7 +98,8 @@ class ImageUploader(QFrame):
 				file_name = urls[0].toLocalFile()
 				if file_name.lower().endswith(('.pgm', '.dcm')):
 					event.acceptProposedAction()
-					self._set_image(file_name)
+					self.preview_manager.set_image(file_name)
+					self._update_style(has_image=True)
 					self.image_dropped.emit(file_name)
 
 		event.ignore()
