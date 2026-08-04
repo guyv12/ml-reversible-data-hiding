@@ -1,16 +1,12 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QFrame, QWidget, QLabel, QFileDialog, QPushButton,
-	QVBoxLayout, QHBoxLayout, QStackedLayout
+	QFrame, QFileDialog, QVBoxLayout
 )
 from PySide6.QtCore import Qt, Signal, QDir
-from PySide6.QtGui import QIcon, QPixmap
 
 from frontend.utils import load_stylesheet
 from frontend.components.preview_manager import PreviewManager
-from frontend.components.preview import InputImagePreview, EmptyPreview
-from frontend.config import STYLES_DIR
 
 class ImageUploader(QFrame):
 	"""
@@ -19,8 +15,8 @@ class ImageUploader(QFrame):
 	Supports selecting or dropping grayscale (PGM) and DICOM images.
 	Manages image preview scaling and emits signals when an image is loaded or cleared.
 	"""
-	image_dropped = Signal(object)
-	image_cleared = Signal()
+	image_uploaded = Signal(object)
+	image_removed = Signal()
 
 	def __init__(self):
 		super().__init__()
@@ -35,7 +31,7 @@ class ImageUploader(QFrame):
 		
 		self._setup_connections()
 
-		load_stylesheet(self, STYLES_DIR / "image_uploader.css")
+		load_stylesheet(self,"image_frames.css")
 		self._update_style(has_image=False)
 
 	@property
@@ -43,14 +39,14 @@ class ImageUploader(QFrame):
 		return self.preview_manager.has_image
 
 	def _setup_connections(self):
-		self.preview_manager.image_cleared.connect(self.image_cleared)
+		self.preview_manager.image_removed.connect(self.image_removed)
 		
-		self.preview_manager.image_cleared.connect(
+		self.preview_manager.image_removed.connect(
 			lambda: self._update_style(has_image=False)
 		)
 	
 	def _update_style(self, has_image: bool):
-		self.setProperty("has_image", "true" if has_image else "false")
+		self.setProperty("has_image", has_image)
 		
 		self.style().unpolish(self)
 		self.style().polish(self)
@@ -64,16 +60,16 @@ class ImageUploader(QFrame):
 		super().mousePressEvent(event)
 
 		if not self.has_image and event.button() == Qt.MouseButton.LeftButton:
-			file_name, _ = QFileDialog.getOpenFileName(
+			file_path, _ = QFileDialog.getOpenFileName(
 				self, 
 				self.tr("Select Image"), 
 				QDir.homePath(), 
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
-			if file_name and file_name.lower().endswith(('.pgm', '.dcm')):
-				self.preview_manager.set_image(file_name)
+			if file_path and file_path.lower().endswith(('.pgm', '.dcm')):
+				self.preview_manager.set_image(file_path)
 				self._update_style(has_image=True)
-				self.image_dropped.emit(file_name)
+				self.image_uploaded.emit(file_path)
 
 	def dragEnterEvent(self, event: QDragEnterEvent):
 		if not self.has_image and event.mimeData().hasUrls():
@@ -95,11 +91,11 @@ class ImageUploader(QFrame):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
 			if urls:
-				file_name = urls[0].toLocalFile()
-				if file_name.lower().endswith(('.pgm', '.dcm')):
+				file_path = urls[0].toLocalFile()
+				if file_path.lower().endswith(('.pgm', '.dcm')):
 					event.acceptProposedAction()
-					self.preview_manager.set_image(file_name)
+					self.preview_manager.set_image(file_path)
 					self._update_style(has_image=True)
-					self.image_dropped.emit(file_name)
+					self.image_uploaded.emit(file_path)
 
 		event.ignore()

@@ -11,7 +11,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from frontend.utils import load_stylesheet
-from frontend.config import STYLES_DIR
 
 class Histogram(QFrame):
 	"""
@@ -39,7 +38,7 @@ class Histogram(QFrame):
 		self.stacked_layout.addWidget(self.empty_widget)
 		self.stacked_layout.addWidget(self.plot_widget)
 
-		load_stylesheet(self, STYLES_DIR / "histogram.css")
+		load_stylesheet(self, "histogram.css")
 		self._update_ui()
 
 	@property

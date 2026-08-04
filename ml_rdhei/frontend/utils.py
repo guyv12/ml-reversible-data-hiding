@@ -1,10 +1,11 @@
 from pathlib import Path
 
-from PySide6.QtWidgets import QApplication
+from frontend.config import STYLES_DIR
 
-def load_stylesheet(target, filename: Path):
+def load_stylesheet(target, file_name: Path):
+    file_path = STYLES_DIR / file_name
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        with open(file_path, "r", encoding="utf-8") as f:
             target.setStyleSheet(f.read())
     except FileNotFoundError:
-        print(f"Cant find {filename.name} styles file")
+        print(f"Cant find {file_path.name} styles file")

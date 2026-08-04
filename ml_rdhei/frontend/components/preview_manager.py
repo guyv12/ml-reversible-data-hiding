@@ -1,18 +1,16 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QFrame, QWidget, QLabel, QFileDialog, QPushButton,
-	QVBoxLayout, QHBoxLayout, QStackedLayout
+	QFrame, QStackedLayout
 )
-from PySide6.QtCore import Qt, Signal, QDir
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import Qt, Signal
 
-from frontend.utils import load_stylesheet
 from frontend.components.preview import InputImagePreview, EmptyPreview
-from frontend.config import STYLES_DIR
+from frontend.utils import load_stylesheet
 
-class PreviewManager(QWidget):
-	image_cleared = Signal()
+class PreviewManager(QFrame):
+	image_loaded = Signal(object)
+	image_removed = Signal()
 
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -27,6 +25,9 @@ class PreviewManager(QWidget):
 		self.stacked_layout.addWidget(self.image_preview)
 
 		self.image_preview.delete_requested.connect(self._clear_image)
+		
+		load_stylesheet(self,"image_frames.css")
+		self.update_ui()
 
 	@property
 	def has_image(self) -> bool:
@@ -36,12 +37,14 @@ class PreviewManager(QWidget):
 		self._image_path = file_path
 		self.image_preview.set_image(file_path)
 		self.update_ui()
+		self.image_loaded.emit(file_path)
+		
 
 	def _clear_image(self):
 		self._image_path = None
 		self.image_preview.clear_image()
 		self.update_ui()
-		self.image_cleared.emit()
+		self.image_removed.emit()
 
 	def update_ui(self):
 		self.setProperty("has_image", self.has_image)

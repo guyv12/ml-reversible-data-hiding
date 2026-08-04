@@ -1,0 +1,22 @@
+
+
+#inputPanel 
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #4A90E2;
+}
+
+#metricsPanel 
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #E74C3C;
+}
+
+#outputPanel 
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #2ECC71;
+}

@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
 	QLabel, QPushButton
 ) 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QIcon, QPixmap, QImage, QFontMetrics
+from PySide6.QtGui import QPixmap, QImage, QFontMetrics
 
 from frontend.config import IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN
 
