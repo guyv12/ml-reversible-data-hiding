@@ -3,7 +3,8 @@ from PySide6.QtCore import Qt
 
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
-from frontend.config import IMAGE_UPLOADER_SIZE
+from frontend.components.preview_manager import PreviewManager
+from frontend.config import PREVIEW_MANAGER_SIZE
 
 class ProcessingView(QWidget):
 	"""
@@ -27,7 +28,8 @@ class ProcessingView(QWidget):
 		input_panel = QFrame()
 		input_panel.setObjectName("inputPanel")
 		input_panel.setStyleSheet("""
-			QFrame#inputPanel {
+			QFrame#inputPanel 
+			{
 				background-color: #2b2b2b;
 				border: 2px solid #4A90E2;
 				border-radius: 8px;
@@ -41,23 +43,28 @@ class ProcessingView(QWidget):
 		input_layout.addWidget(input_subtitle_label)
 
 		image_uploader = ImageUploader()
-		image_uploader.setFixedSize(IMAGE_UPLOADER_SIZE)
+		image_uploader.setFixedSize(PREVIEW_MANAGER_SIZE)
 
 		input_histogram = Histogram()
-		image_uploader.image_dropped.connect(
+		image_uploader.image_uploaded.connect(
 			input_histogram.plot_histogram
 		)
-		image_uploader.image_cleared.connect(
+		image_uploader.image_removed.connect(
 			input_histogram.clear
 		)
 
+		preview_manager = PreviewManager()
+		image_uploader.image_uploaded.connect(
+			preview_manager.set_image
+		)
 		input_layout.addWidget(image_uploader)
 		input_layout.addWidget(input_histogram)
 		
 		metrics_panel = QFrame()
 		metrics_panel.setObjectName("metricsPanel")
 		metrics_panel.setStyleSheet("""
-			QFrame#metricsPanel {
+			QFrame#metricsPanel 
+			{
 				background-color: #2b2b2b;
 				border: 2px solid #E74C3C;
 				border-radius: 8px;
@@ -69,14 +76,31 @@ class ProcessingView(QWidget):
 		output_panel = QFrame()
 		output_panel.setObjectName("outputPanel")
 		output_panel.setStyleSheet("""
-			QFrame#outputPanel {
+			QFrame#outputPanel 
+			{
 				background-color: #2b2b2b;
 				border: 2px solid #2ECC71;
 				border-radius: 8px;
 			}
 		""")
-		output_layout = QVBoxLayout()
-		output_layout.addWidget(output_panel)
+		output_layout = QVBoxLayout(output_panel)
+		output_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+		output_subtitle_label = QLabel("Output")
+		output_subtitle_label.setFixedHeight(20)
+		output_layout.addWidget(output_subtitle_label)
+
+		preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE)
+
+		output_histogram = Histogram()
+		preview_manager.image_loaded.connect(
+			output_histogram.plot_histogram
+		)
+		preview_manager.image_removed.connect(
+			output_histogram.clear
+		)
+
+		output_layout.addWidget(preview_manager)
+		output_layout.addWidget(output_histogram)
 		
 		sections_layout.addWidget(input_panel, stretch=1)
 		sections_layout.addWidget(metrics_panel, stretch=1)

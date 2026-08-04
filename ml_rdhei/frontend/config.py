@@ -6,7 +6,7 @@ APP_VERSION: Final[str] = "1.0"
 APP_SHELL_SIZE: Final[QSize] = QSize(720, 540)
 ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
 MENU_WIDTH: Final[int] = 320
-IMAGE_UPLOADER_SIZE: Final[QSize] = QSize(300, 200)
+PREVIEW_MANAGER_SIZE: Final[QSize] = QSize(300, 200)
 IMAGE_HEADER_MARGIN: Final[tuple[int, int, int, int]] = (5, 5, 5, 0)
 PHOTO_DISPLAY_MARGIN: Final[tuple[int, int, int, int]] = (0, 5, 0, 5)
 
