@@ -1,4 +1,6 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QDialogButtonBox
+from PySide6.QtWidgets import (
+	QDialog, QVBoxLayout, QLabel, QDialogButtonBox
+)
 
 from frontend.config import ABOUT_DIALOG_SIZE, APP_VERSION
 

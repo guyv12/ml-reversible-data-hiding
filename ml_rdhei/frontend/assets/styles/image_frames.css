@@ -12,7 +12,8 @@ ImageUploader[has_image="false"][drag_active="true"]
 	background-color: #323232;
 }
 
-ImageUploader[has_image="true"] 
+ImageUploader[has_image="true"],
+PreviewManager
 {
     border-radius: 10px;
     background-color: #323232;
