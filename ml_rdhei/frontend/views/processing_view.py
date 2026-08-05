@@ -42,7 +42,10 @@ class ProcessingView(QWidget):
 		self.image_uploader = ImageUploader()
 		self.image_uploader.setFixedSize(PREVIEW_MANAGER_SIZE)
 
-		self.input_histogram = Histogram()
+		self.input_histogram = Histogram(
+			"emblem-important",
+			"Upload an image to see the histogram"
+		)
 
 		input_layout.addWidget(self.image_uploader)
 		input_layout.addWidget(self.input_histogram)
@@ -62,7 +65,10 @@ class ProcessingView(QWidget):
 		self.preview_manager = PreviewManager()
 		self.preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE)
 
-		self.output_histogram = Histogram()
+		self.output_histogram = Histogram(
+			"emblem-important",
+			"Upload an image to see the histogram"
+		)
 
 		output_layout.addWidget(self.preview_manager)
 		output_layout.addWidget(self.output_histogram)

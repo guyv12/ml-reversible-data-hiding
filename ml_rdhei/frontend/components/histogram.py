@@ -21,7 +21,11 @@ class Histogram(QFrame):
 	covert an image from image_path to ndarray and
 	update the view dynamically.
     """
-	def __init__(self):
+	def __init__(
+		self,
+		icon_name: str | None = None,
+		title: str | None = None
+		):
 		super().__init__()
 		self._image_path = None
 
@@ -32,7 +36,7 @@ class Histogram(QFrame):
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
 
-		self._setup_empty_widget()
+		self._setup_empty_widget(icon_name, title)
 		self._setup_plot_widget()
 
 		self.stacked_layout.addWidget(self.empty_widget)
@@ -45,24 +49,40 @@ class Histogram(QFrame):
 	def has_image(self) -> bool:
 		return self._image_path is not None
 
-	def _setup_empty_widget(self):
+	def _setup_empty_widget(
+		self,
+		icon_name: str | None = None,
+		title: str | None = None
+		):
 		self.empty_widget = QWidget()
-		uploader_layout = QVBoxLayout(self.empty_widget)
-		uploader_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		uploader_layout.setSpacing(8)
+		self.empty_layout = QVBoxLayout(self.empty_widget)
+		self.empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.empty_layout.setSpacing(8)
 
-		self.image_label = QLabel()
-		icon = QIcon.fromTheme("emblem-important")
-		self.image_label.setPixmap(icon.pixmap(48, 48))
-		self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.icon_label: QLabel | None = None
+		self.title_label: QLabel | None = None
+
+		if icon_name:
+			self._setup_icon(icon_name)
 		
-		self.title_label = QLabel("Upload an image to see the histogram")
+		if title:
+			self._setup_title(title)
+	
+	def _setup_icon(self, icon_name: str):
+		self.icon_label = QLabel()
+		icon = QIcon.fromTheme(icon_name)
+		self.icon_label.setPixmap(icon.pixmap(48, 48))
+		self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		
+		self.empty_layout.addWidget(self.icon_label)
+
+	def _setup_title(self, title: str):
+		self.title_label = QLabel(title)
 		self.title_label.setWordWrap(True)
 		self.title_label.setObjectName("titleLabel")
 		self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-		uploader_layout.addWidget(self.image_label)
-		uploader_layout.addWidget(self.title_label)
+		self.empty_layout.addWidget(self.title_label)
 
 	def _setup_plot_widget(self):
 		self.plot_widget = pg.PlotWidget()
