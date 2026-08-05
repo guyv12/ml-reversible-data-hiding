@@ -18,7 +18,12 @@ class PreviewManager(QFrame):
 		
 		self.stacked_layout = QStackedLayout(self)
 
-		self.empty_preview = EmptyPreview()
+		self.empty_preview = EmptyPreview(
+			"Drop Grayscale or DICOM image",
+			"system-file-manager",
+			"or click to browse",
+			[".pgm", ".dcm"]
+			)
 		self.image_preview = InputImagePreview()
 
 		self.stacked_layout.addWidget(self.empty_preview)
