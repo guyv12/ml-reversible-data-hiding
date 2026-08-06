@@ -7,6 +7,7 @@ from PySide6.QtCore import Qt
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
 from frontend.components.preview_manager import PreviewManager
+from frontend.components.preview import EmptyPreview, InputImagePreview, OutputImagePreview
 from frontend.config import PREVIEW_MANAGER_SIZE
 from frontend.utils import load_stylesheet
 
@@ -39,7 +40,16 @@ class ProcessingView(QWidget):
 		input_subtitle_label.setFixedHeight(20)
 		input_layout.addWidget(input_subtitle_label)
 
-		self.image_uploader = ImageUploader()
+		self.empty_preview_input = EmptyPreview(
+			"Drop Grayscale or DICOM image",
+			"system-file-manager",
+			"or click to browse",
+			[".pgm", ".dcm"]
+		)
+
+		self.image_preview_input = InputImagePreview()
+
+		self.image_uploader = ImageUploader(self.empty_preview_input, self.image_preview_input)
 		self.image_uploader.setFixedSize(PREVIEW_MANAGER_SIZE)
 
 		self.input_histogram = Histogram(
@@ -61,8 +71,14 @@ class ProcessingView(QWidget):
 		output_subtitle_label = QLabel("Output")
 		output_subtitle_label.setFixedHeight(20)
 		output_layout.addWidget(output_subtitle_label)
+
+		self.empty_preview_output = EmptyPreview(
+			"Output image",
+			"insert-image",
+		)
+		self.image_preview_output = OutputImagePreview()
 		
-		self.preview_manager = PreviewManager()
+		self.preview_manager = PreviewManager(self.empty_preview_output, self.image_preview_output)
 		self.preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE)
 
 		self.output_histogram = Histogram(

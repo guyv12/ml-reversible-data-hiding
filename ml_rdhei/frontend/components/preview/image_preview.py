@@ -4,14 +4,16 @@ import numpy as np
 
 from PySide6.QtWidgets import (
 	QWidget, QMessageBox, QVBoxLayout, QHBoxLayout,
-	QLabel, QPushButton
+	QLabel, QPushButton, QFileDialog
 ) 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, QDir
 from PySide6.QtGui import QPixmap, QImage, QFontMetrics
 
 from frontend.config import IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN
 
 class ImagePreview(QWidget):
+	delete_requested = Signal()
+	
 	def __init__(self):
 		super().__init__()
 		self._image_path: str | None = None
@@ -57,7 +59,6 @@ class ImagePreview(QWidget):
 	def clear_image(self):
 		self._image_path = None
 		self._cached_pix = None
-		self.file_label.clear()
 		self.photo_display.clear()
 
 	def _convert_dicom_to_pixmap(self) -> QPixmap:
@@ -126,7 +127,6 @@ class ImagePreview(QWidget):
 			self._update_photo_display()
 
 class InputImagePreview(ImagePreview):
-	delete_requested = Signal()
 	def __init__(self):
 		super().__init__()
 		self.file_label = QLabel("")
@@ -139,7 +139,7 @@ class InputImagePreview(ImagePreview):
 		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.delete_btn.setFixedSize(20, 20)
 		self.delete_btn.clicked.connect(self.delete_requested)
-
+		
 		self.image_header_layout.addWidget(self.file_label, stretch=1)
 		self.image_header_layout.addWidget(self.delete_btn)
 
@@ -154,6 +154,12 @@ class InputImagePreview(ImagePreview):
 		)
 		self.file_label.setText(content)
 
+	def clear_image(self):
+		self._image_path = None
+		self._cached_pix = None
+		self.file_label.clear()
+		self.photo_display.clear()
+
 class OutputImagePreview(ImagePreview):
 	def __init__(self):
 		super().__init__()
@@ -162,6 +168,31 @@ class OutputImagePreview(ImagePreview):
 		self.download_btn.setObjectName("downloadBtn")
 		self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.download_btn.setFixedSize(20, 20)
+		self.download_btn.clicked.connect(self._save_image)
+
+		self.delete_btn = QPushButton("✕")
+		self.delete_btn.setObjectName("deleteBtn")
+		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+		self.delete_btn.setFixedSize(20, 20)
+		self.delete_btn.clicked.connect(self.delete_requested)
 
 		self.image_header_layout.addWidget(self.download_btn)
-	
+		self.image_header_layout.addStretch()
+		self.image_header_layout.addWidget(self.delete_btn)
+
+	def _save_image(self):
+		file_path, _ = QFileDialog.getSaveFileName(
+				self, 
+				self.tr("Save Image"), 
+				QDir.homePath(), 
+				self.tr("Image Files (*.pgm *.dcm)"),
+			)
+
+		if file_path:
+			success = self._cached_pix.save(file_path)
+			if success:
+				print(f"Saved to {file_path}")
+			else:
+				print("Failed to save image.")
+		else:
+			print("File saving canceled")

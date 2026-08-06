@@ -12,7 +12,7 @@ class EmptyPreview(QWidget):
 		icon_name: str | None = None,
 		subtitle: str | None = None,
 		chips: list[str] | None = None
-		):
+	):
 		super().__init__()
 
 		self.main_layout = QVBoxLayout(self)
