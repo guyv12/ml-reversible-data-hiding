@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QFrame, QStackedLayout
+	QFrame, QWidget, QStackedLayout
 )
 from PySide6.QtCore import Qt, Signal
 
@@ -12,19 +12,19 @@ class PreviewManager(QFrame):
 	image_loaded = Signal(object)
 	image_removed = Signal()
 
-	def __init__(self, parent=None):
+	def __init__(
+		self,
+		empty_preview: QWidget,
+		image_preview: QWidget,
+		parent=None
+	):
 		super().__init__(parent)
 		self._image_path: str | None = None
 		
 		self.stacked_layout = QStackedLayout(self)
 
-		self.empty_preview = EmptyPreview(
-			"Drop Grayscale or DICOM image",
-			"system-file-manager",
-			"or click to browse",
-			[".pgm", ".dcm"]
-			)
-		self.image_preview = InputImagePreview()
+		self.empty_preview = empty_preview
+		self.image_preview = image_preview
 
 		self.stacked_layout.addWidget(self.empty_preview)
 		self.stacked_layout.addWidget(self.image_preview)

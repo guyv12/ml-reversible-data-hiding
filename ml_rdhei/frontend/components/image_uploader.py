@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QFrame, QFileDialog, QVBoxLayout
+	QFrame, QWidget, QFileDialog, QVBoxLayout
 )
 from PySide6.QtCore import Qt, Signal, QDir
 
@@ -18,14 +18,18 @@ class ImageUploader(QFrame):
 	image_uploaded = Signal(object)
 	image_removed = Signal()
 
-	def __init__(self):
+	def __init__(
+		self,
+		empty_preview: QWidget,
+		image_preview: QWidget,
+	):
 		super().__init__()
 		self.setAcceptDrops(True)
 		
 		self.main_layout = QVBoxLayout(self)
 		self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-		self.preview_manager = PreviewManager()
+		self.preview_manager = PreviewManager(empty_preview, image_preview)
 
 		self.main_layout.addWidget(self.preview_manager)
 		

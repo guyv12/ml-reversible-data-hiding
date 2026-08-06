@@ -25,7 +25,7 @@ class Histogram(QFrame):
 		self,
 		icon_name: str | None = None,
 		title: str | None = None
-		):
+	):
 		super().__init__()
 		self._image_path = None
 
