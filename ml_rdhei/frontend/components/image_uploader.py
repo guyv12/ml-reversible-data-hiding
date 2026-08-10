@@ -20,8 +20,7 @@ class ImageUploader(QFrame):
 
 	def __init__(
 		self,
-		empty_preview: QWidget,
-		image_preview: QWidget,
+		preview_manager: PreviewManager
 	):
 		super().__init__()
 		self.setAcceptDrops(True)
@@ -29,7 +28,7 @@ class ImageUploader(QFrame):
 		self.main_layout = QVBoxLayout(self)
 		self.main_layout.setContentsMargins(0, 0, 0, 0)
 
-		self.preview_manager = PreviewManager(empty_preview, image_preview)
+		self.preview_manager = preview_manager
 
 		self.main_layout.addWidget(self.preview_manager)
 		
@@ -71,9 +70,10 @@ class ImageUploader(QFrame):
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
 			if file_path and file_path.lower().endswith(('.pgm', '.dcm')):
-				self.preview_manager.set_image(file_path)
-				self._update_style(has_image=True)
+				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
+				self._update_style(has_image=True)
+				
 
 	def dragEnterEvent(self, event: QDragEnterEvent):
 		if not self.has_image and event.mimeData().hasUrls():
@@ -98,8 +98,9 @@ class ImageUploader(QFrame):
 				file_path = urls[0].toLocalFile()
 				if file_path.lower().endswith(('.pgm', '.dcm')):
 					event.acceptProposedAction()
-					self.preview_manager.set_image(file_path)
-					self._update_style(has_image=True)
+					# self.preview_manager.set_image(file_path)
 					self.image_uploaded.emit(file_path)
+					self._update_style(has_image=True)
+					
 
 		event.ignore()

@@ -1,7 +1,5 @@
 import numpy as np
 import pyqtgraph as pg
-import cv2
-from pydicom import dcmread
 
 from PySide6.QtWidgets import (
 	QFrame, QWidget, QVBoxLayout, QStackedLayout,
@@ -27,8 +25,7 @@ class Histogram(QFrame):
 		title: str | None = None
 	):
 		super().__init__()
-		self._image_path = None
-
+		self._image_data: np.ndarray | None = None
 
 		self.main_layout = QVBoxLayout(self)
 		self.main_layout.setContentsMargins(5, 10, 10, 5)
@@ -47,7 +44,7 @@ class Histogram(QFrame):
 
 	@property
 	def has_image(self) -> bool:
-		return self._image_path is not None
+		return self._image_data is not None
 
 	def _setup_empty_widget(
 		self,
@@ -97,36 +94,20 @@ class Histogram(QFrame):
 			self.plot_widget.clear()
 			self.stacked_layout.setCurrentWidget(self.empty_widget)
 
-	def _set_image(self, file_path: str | None):
-		self._image_path = file_path
+	def _set_image(self, image_data: nd.ndarray | None):
+		self._image_data = image_data
 
-	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
-		self._set_image(image_path)
-
-		if image_path.lower().endswith(".dcm"):
-			dicom = dcmread(self._image_path)
-			image = dicom.pixel_array
-		else:
-			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
-		if image is None:
-			raise FileNotFoundError(
-				f"""Failed to load image: File not found or unreadable at '{image_path}'"""
-			)
-
-		return image
-
-	def plot_histogram(self, image_path: str):
-		image_ndarray = self._transform_image_to_ndarray(image_path)
+	def plot_histogram(self, image_data: np.ndarray):
+		self._set_image(image_data)
 		self.plot_widget.clear()
 
-		if image_ndarray.dtype == "uint8":
+		if image_data.dtype == "uint8":
 			_range = (0, 256)
 		else:
-			_range = (float(image_ndarray.min()), float(image_ndarray.max()))
+			_range = (float(image_data.min()), float(image_data.max()))
 
 		counts, bins = np.histogram(
-			image_ndarray,
+			image_data,
 			bins=256,
 			range=_range
 		)
@@ -142,5 +123,5 @@ class Histogram(QFrame):
 		self._update_ui()
 
 	def clear(self):
-		self._image_path = None
+		self._image_data = None
 		self._update_ui()

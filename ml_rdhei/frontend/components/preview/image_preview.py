@@ -17,6 +17,7 @@ class ImagePreview(QWidget):
 	def __init__(self):
 		super().__init__()
 		self._image_path: str | None = None
+		self._image_data: np.ndarray | None = None
 		self._cached_pix: QPixmap | None = None
 
 		self.main_layout = QVBoxLayout(self)
@@ -36,8 +37,9 @@ class ImagePreview(QWidget):
 	def _update_file_label(self, file_path: str):
 		pass
 
-	def set_image(self, file_path: str):
+	def set_image(self, file_path: str, image_data):
 		self._image_path = file_path
+		self._image_data = image_data
 		self._update_file_label(file_path)
 
 		if Path(self._image_path).suffix == ".dcm":
@@ -52,14 +54,75 @@ class ImagePreview(QWidget):
 				self._cached_pix = None
 
 		else:
-			self._cached_pix = QPixmap(self._image_path)
+			image = self._convert_ndarray_to_QImage(self._image_data)
+			self._cached_pix = QPixmap.fromImage(image)
 
 		self._update_photo_display()
 
 	def clear_image(self):
 		self._image_path = None
+		self._image_data = None
 		self._cached_pix = None
 		self.photo_display.clear()
+
+	# def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
+	# 	bytes_per_line = array.strides[0]
+
+	# 	if array.dtype == np.uint8:
+	# 		image_format = QImage.Format.Format_Grayscale8
+
+	# 	elif array.dtype == np.uint16:
+	# 		image_format = QImage.Format.Format_Grayscale16
+			
+	# 	return QImage(
+	# 		array.data,
+	# 		array.shape[1],
+	# 		array.shape[0],
+	# 		bytes_per_line,
+	# 		image_format
+	# 	).copy()
+
+	def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
+		bytes_per_line = array.strides[0]
+		
+		if array.ndim == 2:
+			if array.dtype == np.uint8:
+				image_format = QImage.Format.Format_Grayscale8
+
+			elif array.dtype == np.uint16:
+				image_format = QImage.Format.Format_Grayscale16
+				
+			else:
+				image_format = QImage.Format.Format_Grayscale8
+
+		elif array.ndim == 3:
+			channels = array.shape[2]
+
+			if channels == 1:
+				array = array.squeeze(axis=2)
+				return self._convert_ndarray_to_QImage(array)
+
+			elif channels == 3:
+				if array.dtype == np.uint8:
+					image_format = QImage.Format.Format_BGR888
+				else:
+					image_format = QImage.Format.Format_Grayscale8
+
+			elif channels == 4:
+				if array.dtype == np.uint8:
+					image_format = QImage.Format.Format_ARGB32
+				else:
+					image_format = QImage.Format.Format_Grayscale8
+			else:
+				return QImage()
+
+		return QImage(
+			array.data,
+			array.shape[1],
+			array.shape[0],
+			bytes_per_line,
+			image_format
+		).copy()
 
 	def _convert_dicom_to_pixmap(self) -> QPixmap:
 		dicom = dcmread(self._image_path)
@@ -79,20 +142,11 @@ class ImagePreview(QWidget):
 
 		norm_pixels = normalized.astype(np.uint16)
 
-		image = QImage(
-			norm_pixels.data,
-			raw_pixels.shape[1],
-			raw_pixels.shape[0],
-			raw_pixels.shape[1] * 2,
-			QImage.Format.Format_Grayscale16
-		)
+		image = self._convert_ndarray_to_QImage(norm_pixels)
 
-		return QPixmap.fromImage(image)
+		return QPixmap.fromImage(image).copy()
 
 	def _update_photo_display(self):
-		if not self._image_path:
-			return
-
 		if self._cached_pix is None or self._cached_pix.isNull():
 			self.photo_display.clear()
 			self.photo_display.setText("[ Photo unavailable ]")
@@ -101,7 +155,7 @@ class ImagePreview(QWidget):
 		layout_height = self.image_header_layout.sizeHint().height()
 
 		max_width = self.width() - 16
-		max_height = self.height() - layout_height - (5 * 4)
+		max_height = self.height() - layout_height - 20
 
 		if max_width <= 0 or max_height <= 0:
 			return
@@ -156,6 +210,7 @@ class InputImagePreview(ImagePreview):
 
 	def clear_image(self):
 		self._image_path = None
+		self._image_data = None
 		self._cached_pix = None
 		self.file_label.clear()
 		self.photo_display.clear()
