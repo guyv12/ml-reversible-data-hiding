@@ -65,23 +65,6 @@ class ImagePreview(QWidget):
 		self._cached_pix = None
 		self.photo_display.clear()
 
-	# def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
-	# 	bytes_per_line = array.strides[0]
-
-	# 	if array.dtype == np.uint8:
-	# 		image_format = QImage.Format.Format_Grayscale8
-
-	# 	elif array.dtype == np.uint16:
-	# 		image_format = QImage.Format.Format_Grayscale16
-			
-	# 	return QImage(
-	# 		array.data,
-	# 		array.shape[1],
-	# 		array.shape[0],
-	# 		bytes_per_line,
-	# 		image_format
-	# 	).copy()
-
 	def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
 		bytes_per_line = array.strides[0]
 		
