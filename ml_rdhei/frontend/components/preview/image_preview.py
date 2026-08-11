@@ -1,5 +1,7 @@
 from pathlib import Path
 from pydicom import dcmread
+from pydicom.uid import ExplicitVRLittleEndian
+import cv2
 import numpy as np
 
 from PySide6.QtWidgets import (
@@ -66,6 +68,9 @@ class ImagePreview(QWidget):
 		self.photo_display.clear()
 
 	def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
+		if array is None or array.size == 0:
+			return QImage()
+		
 		bytes_per_line = array.strides[0]
 		
 		if array.ndim == 2:
@@ -98,6 +103,9 @@ class ImagePreview(QWidget):
 					image_format = QImage.Format.Format_Grayscale8
 			else:
 				return QImage()
+
+		else:
+			return QImage()
 
 		return QImage(
 			array.data,
@@ -219,18 +227,58 @@ class OutputImagePreview(ImagePreview):
 		self.image_header_layout.addWidget(self.delete_btn)
 
 	def _save_image(self):
+		file_name = Path(self._image_path).name
+
 		file_path, _ = QFileDialog.getSaveFileName(
 				self, 
 				self.tr("Save Image"), 
-				QDir.homePath(), 
+				str(Path.home() / f"processed_{str(file_name)}"), 
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
 
-		if file_path:
-			success = self._cached_pix.save(file_path)
-			if success:
-				print(f"Saved to {file_path}")
+		if not file_path:
+			return
+		
+		data_to_save = self._image_data
+
+		if self._image_path.lower().endswith(".pgm"):
+			if data_to_save.ndim == 3:
+				channels = data_to_save.shape[2]
+
+				if channels == 1:
+					data_to_save = data_to_save.squeeze(axis=2)
+				
+				elif channels == 3:
+					data_to_save = data_to_save[:, :, 0]
+
+				elif channels in (2, 4):
+					QMessageBox.critical(
+						self,
+						"Write Error",
+						f"Failed to save the image:\npmg format does not support transparency."
+					)
+					return
+
+			try:
+				success = cv2.imwrite(file_path, data_to_save)
+			except Exception as e:
+				QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
 			else:
-				print("Failed to save image.")
-		else:
-			print("File saving canceled")
+				QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
+
+		elif self._image_path.lower().endswith(".dcm"):
+			dicom = dcmread(self._image_path)
+			array = data_to_save.astype(dicom.pixel_array.dtype)
+			dicom.PixelData = array.tobytes()
+
+			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+			dicom.is_little_endian = True
+			dicom.is_implicit_VR = False
+
+			try:
+				dicom.save_as(file_path)
+			except (OSError, PermissionError, Exception) as e:
+				QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
+			else:
+				QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
+		
