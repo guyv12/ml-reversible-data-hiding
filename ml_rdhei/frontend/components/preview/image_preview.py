@@ -226,6 +226,52 @@ class OutputImagePreview(ImagePreview):
 		self.image_header_layout.addStretch()
 		self.image_header_layout.addWidget(self.delete_btn)
 
+	def _save_pgm(self, file_path: str):
+		data_to_save = self._image_data
+			
+		if data_to_save.ndim == 3:
+			channels = data_to_save.shape[2]
+
+			if channels == 1:
+				data_to_save = data_to_save.squeeze(axis=2)
+			
+			elif channels == 3:
+				data_to_save = data_to_save[:, :, 0]
+
+			elif channels in (2, 4):
+				QMessageBox.critical(
+					self,
+					"Write Error",
+					f"Failed to save the image:\npmg format does not support transparency."
+				)
+				return
+
+		try:
+			success = cv2.imwrite(file_path, data_to_save)
+		except Exception as e:
+			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
+		else:
+			QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
+
+	def _save_dicom(self, file_path: str):
+		data_to_save = self._image_data
+
+		dicom = dcmread(self._image_path)
+		array = data_to_save.astype(dicom.pixel_array.dtype)
+		dicom.PixelData = array.tobytes()
+
+		dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+		dicom.is_little_endian = True
+		dicom.is_implicit_VR = False
+
+		try:
+			dicom.save_as(file_path)
+		except (OSError, PermissionError, Exception) as e:
+			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
+		else:
+			QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
+		
+
 	def _save_image(self):
 		file_name = Path(self._image_path).name
 
@@ -239,46 +285,8 @@ class OutputImagePreview(ImagePreview):
 		if not file_path:
 			return
 		
-		data_to_save = self._image_data
-
 		if self._image_path.lower().endswith(".pgm"):
-			if data_to_save.ndim == 3:
-				channels = data_to_save.shape[2]
-
-				if channels == 1:
-					data_to_save = data_to_save.squeeze(axis=2)
-				
-				elif channels == 3:
-					data_to_save = data_to_save[:, :, 0]
-
-				elif channels in (2, 4):
-					QMessageBox.critical(
-						self,
-						"Write Error",
-						f"Failed to save the image:\npmg format does not support transparency."
-					)
-					return
-
-			try:
-				success = cv2.imwrite(file_path, data_to_save)
-			except Exception as e:
-				QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
-			else:
-				QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
+			self._save_pgm(file_path)
 
 		elif self._image_path.lower().endswith(".dcm"):
-			dicom = dcmread(self._image_path)
-			array = data_to_save.astype(dicom.pixel_array.dtype)
-			dicom.PixelData = array.tobytes()
-
-			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
-			dicom.is_little_endian = True
-			dicom.is_implicit_VR = False
-
-			try:
-				dicom.save_as(file_path)
-			except (OSError, PermissionError, Exception) as e:
-				QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
-			else:
-				QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
-		
+			self._save_dicom(file_path)
