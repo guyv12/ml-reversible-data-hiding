@@ -26,7 +26,7 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
                             counter +=1
                     prediction = np.sum(feature_vector) / counter
 
-                original_val = int(round(prediction)) + error_map[error_idx]
+                original_val = int(prediction) + error_map[error_idx]
                 #if original_val < 0:
                 #    print(f"{original_val}: [{r},{c}]")
                 error_idx += 1
