@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QDir
 
 from frontend.utils import load_stylesheet
+from frontend.config import ZERO_MARGINS
 from frontend.components.preview_manager import PreviewManager
 
 class ImageUploader(QFrame):
@@ -26,7 +27,7 @@ class ImageUploader(QFrame):
 		self.setAcceptDrops(True)
 		
 		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(0, 0, 0, 0)
+		self.main_layout.setContentsMargins(*ZERO_MARGINS)
 
 		self.preview_manager = preview_manager
 
