@@ -285,7 +285,7 @@ class OutputImagePreview(ImagePreview):
 		file_path, _ = QFileDialog.getSaveFileName(
 				self, 
 				self.tr("Save Image"), 
-				str(Path.home() / f"processed_{str(file_name)}"), 
+				str(Path.home() / str(file_name)), 
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
 

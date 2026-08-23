@@ -2,6 +2,7 @@ import cv2
 from pydicom import dcmread
 import torch
 from  numpy import newaxis
+from pathlib import Path
 
 import backend.predictor.predict as ppredict
 import backend.compressor.compress as ccompress
@@ -124,13 +125,17 @@ class ProcessingView(QWidget):
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
+	def _get_processed_path(self, image_path: str) -> str:
+		path = Path(image_path)
+		return str(path.parent / f"processed_{path.name}")
+
 	def _on_image_uploaded(self, image_path: str):
 		image_data = self._transform_image_to_ndarray(image_path)
 
 		reconstructed = self._predict_bytes(image_data)
 		
 		self.in_preview_manager.set_image(image_path, image_data)
-		self.out_preview_manager.set_image(image_path, reconstructed)
+		self.out_preview_manager.set_image(self._get_processed_path(image_path) , reconstructed)
 		self.in_histogram.plot_histogram(image_data)
 
 	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
