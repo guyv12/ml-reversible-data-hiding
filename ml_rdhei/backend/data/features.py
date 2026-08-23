@@ -27,7 +27,6 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K) -> tuple[torch.
     y = batch.view(B, H * W)[:, ~mask.flatten()]
     return X, y, ref_p
 
-
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     if batch.is_floating_point():
         raise TypeError("Left-Right Decomposition requires (u)int16/int32")
