@@ -5,7 +5,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal
 
-from frontend.components.preview import InputImagePreview, EmptyPreview
 from frontend.utils import load_stylesheet
 
 class PreviewManager(QFrame):
