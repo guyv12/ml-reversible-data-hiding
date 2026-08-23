@@ -9,6 +9,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from frontend.utils import load_stylesheet
+from frontend.config import (
+	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE
+)
 
 class Histogram(QFrame):
 	"""
@@ -28,7 +31,7 @@ class Histogram(QFrame):
 		self._image_data: np.ndarray | None = None
 
 		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(5, 10, 10, 5)
+		self.main_layout.setContentsMargins(*HISTOGRAM_MARGIN)
 		
 		self.stacked_layout = QStackedLayout()
 		self.main_layout.addLayout(self.stacked_layout)
@@ -54,7 +57,7 @@ class Histogram(QFrame):
 		self.empty_widget = QWidget()
 		self.empty_layout = QVBoxLayout(self.empty_widget)
 		self.empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-		self.empty_layout.setSpacing(8)
+		self.empty_layout.setSpacing(EMPTY_LAYOUT_SPACING)
 
 		self.icon_label: QLabel | None = None
 		self.title_label: QLabel | None = None
@@ -68,7 +71,7 @@ class Histogram(QFrame):
 	def _setup_icon(self, icon_name: str):
 		self.icon_label = QLabel()
 		icon = QIcon.fromTheme(icon_name)
-		self.icon_label.setPixmap(icon.pixmap(48, 48))
+		self.icon_label.setPixmap(icon.pixmap(*ICON_SIZE))
 		self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 		
 		self.empty_layout.addWidget(self.icon_label)

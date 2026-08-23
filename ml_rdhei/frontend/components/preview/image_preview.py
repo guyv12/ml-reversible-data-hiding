@@ -11,7 +11,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QDir
 from PySide6.QtGui import QPixmap, QImage, QFontMetrics
 
-from frontend.config import IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN
+from frontend.config import (
+	IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN,
+	ZERO_MARGINS, LABEL_BUTTON_SIZE
+)
 
 class ImagePreview(QWidget):
 	delete_requested = Signal()
@@ -23,7 +26,7 @@ class ImagePreview(QWidget):
 		self._cached_pix: QPixmap | None = None
 
 		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(0, 0, 0, 0) 
+		self.main_layout.setContentsMargins(*ZERO_MARGINS) 
 		self.main_layout.setSpacing(0)
 
 		self.image_header_layout = QHBoxLayout()
@@ -145,8 +148,12 @@ class ImagePreview(QWidget):
 
 		layout_height = self.image_header_layout.sizeHint().height()
 
-		max_width = self.width() - 16
-		max_height = self.height() - layout_height - 20
+		margins = self.layout().contentsMargins()
+		horizontal_margin = margins.left() + margins.right()
+		vertical_margin = margins.top() + margins.bottom()
+
+		max_width = self.width() - horizontal_margin
+		max_height = self.height() - layout_height - vertical_margin
 
 		if max_width <= 0 or max_height <= 0:
 			return
@@ -182,7 +189,7 @@ class InputImagePreview(ImagePreview):
 		self.delete_btn = QPushButton("✕")
 		self.delete_btn.setObjectName("deleteBtn")
 		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-		self.delete_btn.setFixedSize(20, 20)
+		self.delete_btn.setFixedSize(*LABEL_BUTTON_SIZE)
 		self.delete_btn.clicked.connect(self.delete_requested)
 		
 		self.image_header_layout.addWidget(self.file_label, stretch=1)
@@ -213,13 +220,13 @@ class OutputImagePreview(ImagePreview):
 		self.download_btn = QPushButton("⭳")
 		self.download_btn.setObjectName("downloadBtn")
 		self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-		self.download_btn.setFixedSize(20, 20)
+		self.download_btn.setFixedSize(*LABEL_BUTTON_SIZE)
 		self.download_btn.clicked.connect(self._save_image)
 
 		self.delete_btn = QPushButton("✕")
 		self.delete_btn.setObjectName("deleteBtn")
 		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-		self.delete_btn.setFixedSize(20, 20)
+		self.delete_btn.setFixedSize(*LABEL_BUTTON_SIZE)
 		self.delete_btn.clicked.connect(self.delete_requested)
 
 		self.image_header_layout.addWidget(self.download_btn)

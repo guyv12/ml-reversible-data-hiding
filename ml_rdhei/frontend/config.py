@@ -8,9 +8,14 @@ ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
 MENU_WIDTH: Final[int] = 320
 SECTIONS_LABEL_HEIGHT: Final[int] = 20
 PREVIEW_MANAGER_SIZE: Final[QSize] = QSize(300, 200)
-IMAGE_HEADER_MARGIN: Final[tuple[int, int, int, int]] = (5, 5, 5, 0)
-PHOTO_DISPLAY_MARGIN: Final[tuple[int, int, int, int]] = (0, 5, 0, 5)
+BORDER_PADDING: Final[int] = 5
+IMAGE_HEADER_MARGIN: Final[tuple[int, int, int, int]] = (BORDER_PADDING, BORDER_PADDING, BORDER_PADDING, 0)
+PHOTO_DISPLAY_MARGIN: Final[tuple[int, int, int, int]] = (0, BORDER_PADDING, 0, BORDER_PADDING)
+HISTOGRAM_MARGIN: Final[tuple[int, int, int, int]] = (BORDER_PADDING, 10, 10, BORDER_PADDING)
 ZERO_MARGINS: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
+EMPTY_LAYOUT_SPACING: Final[int] = 8
+ICON_SIZE: Final[tuple[int, int]] = (48, 48)
+LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 

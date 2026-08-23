@@ -75,7 +75,6 @@ class ImageUploader(QFrame):
 				self.image_uploaded.emit(file_path)
 				self._update_style(has_image=True)
 				
-
 	def dragEnterEvent(self, event: QDragEnterEvent):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
@@ -99,9 +98,7 @@ class ImageUploader(QFrame):
 				file_path = urls[0].toLocalFile()
 				if file_path.lower().endswith(('.pgm', '.dcm')):
 					event.acceptProposedAction()
-					# self.preview_manager.set_image(file_path)
 					self.image_uploaded.emit(file_path)
 					self._update_style(has_image=True)
 					
-
 		event.ignore()
