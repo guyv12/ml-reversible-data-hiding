@@ -11,7 +11,7 @@ from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
 from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import EmptyPreview, InputImagePreview, OutputImagePreview
-from frontend.config import PREVIEW_MANAGER_SIZE
+from frontend.config import PREVIEW_MANAGER_SIZE, SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
 class ProcessingView(QWidget):
@@ -39,9 +39,9 @@ class ProcessingView(QWidget):
 		in_panel.setObjectName("inputPanel")
 		in_layout = QVBoxLayout(in_panel)
 		in_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-		in_subtitle_label = QLabel("Input")
-		in_subtitle_label.setFixedHeight(20)
-		in_layout.addWidget(in_subtitle_label)
+		in_title_label = QLabel("Input")
+		in_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
+		in_layout.addWidget(in_title_label)
 
 		self.in_empty_preview = EmptyPreview(
 			"Drop Grayscale or DICOM image",
@@ -74,9 +74,9 @@ class ProcessingView(QWidget):
 		out_panel.setObjectName("outputPanel")
 		out_layout = QVBoxLayout(out_panel)
 		out_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-		out_subtitle_label = QLabel("Output")
-		out_subtitle_label.setFixedHeight(20)
-		out_layout.addWidget(out_subtitle_label)
+		out_title_label = QLabel("Output")
+		out_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
+		out_layout.addWidget(out_title_label)
 
 		self.out_empty_preview = EmptyPreview(
 			"Output image",
