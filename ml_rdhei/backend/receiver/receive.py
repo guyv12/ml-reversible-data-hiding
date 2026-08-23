@@ -1,5 +1,5 @@
-from ml_rdhei.receiver.extraction import ad_extraction, msg_extraction
-from ml_rdhei.receiver.recovery import recovery
+from backend.receiver.extraction import ad_extraction, msg_extraction
+from backend.receiver.recovery import recovery
 
 
 def receive(image, key_ad, key_msg, n_ref):
