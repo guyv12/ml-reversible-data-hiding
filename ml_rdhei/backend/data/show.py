@@ -13,13 +13,15 @@ def show_image(bytes, width=512, height=512):
     plt.axis('off')
     plt.show()
 
-def check_images(original: bytes, reconstructed: bytes):
-    if original == reconstructed:
+def check_images(original: np.ndarray, reconstructed: np.ndarray):
+    if np.equal(original, reconstructed).all():
         print("ZGODNOSC 100%")
     else:
         print("BŁĄD")
-        byte_errors = 0
-        for b1, b2 in zip(original, reconstructed):
-            xor_byte = b1 ^ b2
-            if xor_byte == 1: byte_errors += 1
+        b1 = original.view(np.uint8).ravel()
+        b2 = reconstructed.view(np.uint8).ravel()
+
+        xor_bytes = b1 ^ b2
+        byte_errors = np.count_nonzero(xor_bytes)
+
         print(byte_errors)

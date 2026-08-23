@@ -1,5 +1,15 @@
 import cv2
 from pydicom import dcmread
+import torch
+from  numpy import newaxis
+
+import backend.predictor.predict as ppredict
+import backend.compressor.compress as ccompress
+import backend.compressor.encryption as encryption
+from backend.data.show import show_image, check_images
+from backend.receiver.receive import receive
+from backend.compressor.hiding import hider
+
 
 from PySide6.QtWidgets import (
 	QWidget, QFrame, QHBoxLayout,
@@ -10,8 +20,12 @@ from PySide6.QtCore import Qt, QSize
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
 from frontend.components.preview_manager import PreviewManager
-from frontend.components.preview import EmptyPreview, InputImagePreview, OutputImagePreview
-from frontend.config import PREVIEW_MANAGER_SIZE, SECTIONS_LABEL_HEIGHT
+from frontend.components.preview import (
+	EmptyPreview, InputImagePreview, OutputImagePreview
+)
+from frontend.config import (
+	PREVIEW_MANAGER_SIZE, SECTIONS_LABEL_HEIGHT, BORDER_PADDING
+)
 from frontend.utils import load_stylesheet
 
 class ProcessingView(QWidget):
@@ -53,7 +67,7 @@ class ProcessingView(QWidget):
 		self.in_image_preview = InputImagePreview()
 
 		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
-		self.in_preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE - QSize(5, 5))
+		self.in_preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE - QSize(BORDER_PADDING, BORDER_PADDING))
 
 		self.image_uploader = ImageUploader(self.in_preview_manager)
 		self.image_uploader.setFixedSize(PREVIEW_MANAGER_SIZE)
@@ -113,8 +127,10 @@ class ProcessingView(QWidget):
 	def _on_image_uploaded(self, image_path: str):
 		image_data = self._transform_image_to_ndarray(image_path)
 
+		reconstructed = self._predict_bytes(image_data)
+		
 		self.in_preview_manager.set_image(image_path, image_data)
-		self.out_preview_manager.set_image(image_path, image_data)
+		self.out_preview_manager.set_image(image_path, reconstructed)
 		self.in_histogram.plot_histogram(image_data)
 
 	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
@@ -133,3 +149,36 @@ class ProcessingView(QWidget):
 			)
 
 		return image
+
+
+	def _predict_bytes(self, image: np.ndarray) -> np.ndarray:
+		shape = image.shape[:2]
+		image_batch = image[newaxis, :]
+
+		pixels = shape[0] * shape[1]
+		bpp = 8
+		bits_per_image = pixels * bpp
+		K_e = "password"
+		K_h = "password"
+
+
+		image_tensor = torch.from_numpy(image_batch).float()
+		raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
+		kernel_weights, ref_pixels, error_map, original = next(raw_ad)
+
+		ad = ccompress.compress_pgm_ad(shape, kernel_weights, ref_pixels, error_map)
+		ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
+
+		available_bits = bits_per_image - len(ad)
+		emb_rate = available_bits / pixels
+
+		print(f"Ad Length: {len(ad)}")
+		print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
+
+		encrypted_image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
+		reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
+		check_images(image, reconstructed)
+		print(image[:100])
+		print(reconstructed[:100])
+
+		return reconstructed
