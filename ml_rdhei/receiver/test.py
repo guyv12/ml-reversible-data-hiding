@@ -50,3 +50,17 @@ def test_reconstruction_region(original: bytes, reconstructed: bytes):
     print("\nRegion 16x16:")
     for row in region:
         print(" ".join(f"{value:+3d}" for value in row))
+
+def test_reference_pixels(original, reconstructed):
+    original_np = np.frombuffer(original, dtype=np.uint8).reshape(512, 512)
+    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).reshape(512, 512)
+
+    reference_mask = np.zeros((512, 512), dtype=bool)
+    reference_mask[::2, ::2] = True
+
+    errors = original_np[reference_mask] != reconstructed_np[reference_mask]
+    error_count = np.count_nonzero(errors)
+
+    assert error_count == 0, (
+        f"Reference pixels errors: {error_count}"
+    )
