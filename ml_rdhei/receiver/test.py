@@ -51,7 +51,7 @@ def test_reconstruction_region(original: bytes, reconstructed: bytes):
     for row in region:
         print(" ".join(f"{value:+3d}" for value in row))
 
-def test_reference_pixels(original, reconstructed):
+def test_reference_pixels(original: bytes, reconstructed: bytes):
     original_np = np.frombuffer(original, dtype=np.uint8).reshape(512, 512)
     reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).reshape(512, 512)
 
@@ -64,3 +64,18 @@ def test_reference_pixels(original, reconstructed):
     assert error_count == 0, (
         f"Reference pixels errors: {error_count}"
     )
+
+def test_psnr(original: bytes, reconstructed: bytes):
+    original_np = np.frombuffer(original, dtype=np.uint8).astype(np.float64)
+    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).astype(np.float64)
+
+    mse = np.mean((original_np - reconstructed_np) ** 2)
+    if mse == 0:
+        psnr = float("inf")
+    else:
+        psnr = 10 * np.log10((255 ** 2) / mse)
+
+    print(f"\nMSE: {mse:.4f}")
+    print(f"PSNR: {psnr:.4f} dB")
+
+    assert mse == 0, f"Reconstruction is not lossless - MSE={mse:.4f}"
