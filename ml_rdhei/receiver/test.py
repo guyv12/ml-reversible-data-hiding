@@ -2,7 +2,7 @@ import numpy as np
 
 def test_image_reconstruction(original: bytes, reconstructed: bytes):
     assert len(original) == len(reconstructed), (
-        f"Róźna długość obrazów: "
+        f"Images have different length: "
         f"original={len(original)}, reconstructed={len(reconstructed)}"
     )
 
@@ -14,8 +14,8 @@ def test_image_reconstruction(original: bytes, reconstructed: bytes):
     error_count = np.count_nonzero(different)
 
     assert error_count == 0, (
-        f"Rekonstrukcja niepoprawna: "
-        f"{error_count}/{len(original_np)} pikseli różni się "
+        f"Reconstruction FAILED: "
+        f"{error_count}/{len(original_np)} of pixels differ "
         f"({100 * error_count / len(original_np):.4f}%)"
     )
 
@@ -30,11 +30,11 @@ def test_error_statistics(original: bytes, reconstructed: bytes):
     if len(nonzero) == 0:
         return
 
-    print(f"\nLiczba błędnych pikseli: {len(nonzero)}")
-    print(f"Minimalny błąd: {nonzero.min()}")
-    print(f"Maksymalny błąd: {nonzero.max()}")
-    print(f"Średni błąd: {nonzero.mean():.4f}")
-    print("Rozkład błędów:")
+    print(f"\nNumber of pixel errors: {len(nonzero)}")
+    print(f"Min error: {nonzero.min()}")
+    print(f"Max error: {nonzero.max()}")
+    print(f"Average error: {nonzero.mean():.4f}")
+    print("Error distribution:")
     for value, count in zip(values, counts):
         print(f"{value:+3d}: {count}")
 
