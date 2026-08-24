@@ -38,3 +38,15 @@ def test_error_statistics(original: bytes, reconstructed: bytes):
     for value, count in zip(values, counts):
         print(f"{value:+3d}: {count}")
 
+
+def test_reconstruction_region(original: bytes, reconstructed: bytes):
+    original_np = np.frombuffer(original, dtype=np.uint8).reshape(512,512)
+    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).reshape(512,512)
+
+    diff = (original_np.astype(np.int16) - reconstructed_np.astype(np.int16))
+
+    region = diff[:16, :16]
+
+    print("\nRegion 16x16:")
+    for row in region:
+        print(" ".join(f"{value:+3d}" for value in row))
