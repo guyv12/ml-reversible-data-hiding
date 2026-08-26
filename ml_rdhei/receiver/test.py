@@ -45,7 +45,8 @@ def test_reconstruction_region(original: bytes, reconstructed: bytes):
 
     diff = (original_np.astype(np.int16) - reconstructed_np.astype(np.int16))
 
-    region = diff[:16, :16]
+    #region = diff[:16, :16]
+    region = diff[200:216, 200:216]
 
     print("\nRegion 16x16:")
     for row in region:

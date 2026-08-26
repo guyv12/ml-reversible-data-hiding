@@ -39,7 +39,7 @@ def get_feature_vector(r: int, c: int, reconstructed_img, k: int = 5):
     feature_vector = []
     for i in range(-(k//2), k//2+1):
         for j in range(-(k//2), k//2+1):
-            if 0 <= r - i < 512 and 0 <= c - j < 512 :
-                feature_vector.append(reconstructed_img[r-i, c-j])
+            if 0 <= r + i < 512 and 0 <= c + j < 512 :
+                feature_vector.append(reconstructed_img[r+i, c+j])
 
     return feature_vector
