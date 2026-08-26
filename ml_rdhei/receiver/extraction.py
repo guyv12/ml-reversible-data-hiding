@@ -6,9 +6,6 @@ from ml_rdhei.compressor.encryption import encrypt_data
 
 
 def ad_extraction(bitstream: bitarray, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):
-    #ba = bitarray()
-    #ba.frombytes(bitstream)
-
     # AD length
     length = math.ceil(math.log2(n * bpp))
     ad_length = bitstream[:length]
