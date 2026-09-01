@@ -24,9 +24,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.config import (
-	PREVIEW_MANAGER_SIZE, SECTIONS_LABEL_HEIGHT, BORDER_PADDING
-)
+from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
 class ProcessingView(QWidget):
@@ -68,10 +66,7 @@ class ProcessingView(QWidget):
 		self.in_image_preview = InputImagePreview()
 
 		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
-		self.in_preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE - QSize(BORDER_PADDING, BORDER_PADDING))
-
 		self.image_uploader = ImageUploader(self.in_preview_manager)
-		self.image_uploader.setFixedSize(PREVIEW_MANAGER_SIZE)
 
 		self.in_histogram = Histogram(
 			"emblem-important",
@@ -84,6 +79,10 @@ class ProcessingView(QWidget):
 		metrics_panel = QFrame()
 		metrics_panel.setObjectName("metricsPanel")
 		metrics_layout = QVBoxLayout(metrics_panel)
+		metrics_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+		metrics_title_label = QLabel("Metrics")
+		metrics_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
+		metrics_layout.addWidget(metrics_title_label)
 
 		out_panel = QFrame()
 		out_panel.setObjectName("outputPanel")
@@ -100,7 +99,6 @@ class ProcessingView(QWidget):
 		self.out_image_preview = OutputImagePreview()
 		
 		self.out_preview_manager = PreviewManager(self.out_empty_preview, self.out_image_preview)
-		self.out_preview_manager.setFixedSize(PREVIEW_MANAGER_SIZE)
 
 		self.out_histogram = Histogram(
 			"emblem-important",
@@ -131,11 +129,12 @@ class ProcessingView(QWidget):
 
 	def _on_image_uploaded(self, image_path: str):
 		image_data = self._transform_image_to_ndarray(image_path)
+		processed_path = self._get_processed_path(image_path)
 
-		reconstructed = self._predict_bytes(image_data)
+		reconstructed = self._predict_bytes(processed_path, image_data)
 		
 		self.in_preview_manager.set_image(image_path, image_data)
-		self.out_preview_manager.set_image(self._get_processed_path(image_path) , reconstructed)
+		self.out_preview_manager.set_image(processed_path, reconstructed)
 		self.in_histogram.plot_histogram(image_data)
 
 	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
@@ -155,8 +154,7 @@ class ProcessingView(QWidget):
 
 		return image
 
-
-	def _predict_bytes(self, image: np.ndarray) -> np.ndarray:
+	def _predict_bytes(self, image_path: str, image: np.ndarray) -> np.ndarray:
 		shape = image.shape[:2]
 		image_batch = image[newaxis, :]
 
@@ -184,6 +182,7 @@ class ProcessingView(QWidget):
 		reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
 		check_images(image, reconstructed)
 		print(image[:100])
+		print()
 		print(reconstructed[:100])
 
 		return reconstructed
