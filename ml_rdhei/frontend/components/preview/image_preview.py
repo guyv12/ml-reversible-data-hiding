@@ -146,14 +146,18 @@ class ImagePreview(QWidget):
 			self.photo_display.setText("[ Photo unavailable ]")
 			return
 
-		layout_height = self.image_header_layout.sizeHint().height()
+		header_height = self.image_header_layout.sizeHint().height()
 
-		margins = self.layout().contentsMargins()
+		margins = self.photo_display.contentsMargins()
+		print(margins)
 		horizontal_margin = margins.left() + margins.right()
 		vertical_margin = margins.top() + margins.bottom()
 
 		max_width = self.width() - horizontal_margin
-		max_height = self.height() - layout_height - vertical_margin
+		max_height = self.height() - header_height - vertical_margin
+
+		print(max_width)
+		print(max_height)
 
 		if max_width <= 0 or max_height <= 0:
 			return

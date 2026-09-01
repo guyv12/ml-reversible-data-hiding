@@ -22,6 +22,7 @@ class PreviewManager(QFrame):
 		self._image_data: np.ndarray | None = None
 		
 		self.stacked_layout = QStackedLayout(self)
+		self.stacked_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 		self.empty_preview = empty_preview
 		self.image_preview = image_preview
