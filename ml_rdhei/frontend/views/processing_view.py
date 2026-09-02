@@ -24,6 +24,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
+from frontend.components.quality_metrics import QualityMetrics
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
@@ -37,7 +38,7 @@ class ProcessingView(QWidget):
 	def __init__(self):
 		super().__init__()
 
-		load_stylesheet(self, "panels.css")
+		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
 		self.title_label = QLabel("Image Processing View")
@@ -48,9 +49,9 @@ class ProcessingView(QWidget):
 		sections_layout = QHBoxLayout()
 		layout.addLayout(sections_layout)
 
-		in_panel = QFrame()
-		in_panel.setObjectName("inputPanel")
-		in_layout = QVBoxLayout(in_panel)
+		in_section = QFrame()
+		in_section.setObjectName("inputSection")
+		in_layout = QVBoxLayout(in_section)
 		in_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 		in_title_label = QLabel("Input")
 		in_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
@@ -75,18 +76,21 @@ class ProcessingView(QWidget):
 
 		in_layout.addWidget(self.image_uploader)
 		in_layout.addWidget(self.in_histogram)
-		
-		metrics_panel = QFrame()
-		metrics_panel.setObjectName("metricsPanel")
-		metrics_layout = QVBoxLayout(metrics_panel)
+
+		metrics_section = QFrame()
+		metrics_section.setObjectName("metricsSection")
+		metrics_layout = QVBoxLayout(metrics_section)
 		metrics_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 		metrics_title_label = QLabel("Metrics")
 		metrics_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
 		metrics_layout.addWidget(metrics_title_label)
 
-		out_panel = QFrame()
-		out_panel.setObjectName("outputPanel")
-		out_layout = QVBoxLayout(out_panel)
+		self.quality_metrics = QualityMetrics()
+		metrics_layout.addWidget(self.quality_metrics)
+
+		out_section = QFrame()
+		out_section.setObjectName("outputSection")
+		out_layout = QVBoxLayout(out_section)
 		out_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 		out_title_label = QLabel("Output")
 		out_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
@@ -97,7 +101,7 @@ class ProcessingView(QWidget):
 			"insert-image",
 		)
 		self.out_image_preview = OutputImagePreview()
-		
+
 		self.out_preview_manager = PreviewManager(self.out_empty_preview, self.out_image_preview)
 
 		self.out_histogram = Histogram(
@@ -107,10 +111,10 @@ class ProcessingView(QWidget):
 
 		out_layout.addWidget(self.out_preview_manager)
 		out_layout.addWidget(self.out_histogram)
-		
-		sections_layout.addWidget(in_panel, stretch=1)
-		sections_layout.addWidget(metrics_panel, stretch=1)
-		sections_layout.addWidget(out_panel, stretch=1)
+
+		sections_layout.addWidget(in_section, stretch=1)
+		sections_layout.addWidget(metrics_section, stretch=1)
+		sections_layout.addWidget(out_section, stretch=1)
 
 		layout.addWidget(self.return_btn)
 
@@ -119,6 +123,7 @@ class ProcessingView(QWidget):
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
 		self.image_uploader.image_removed.connect(self.in_histogram.clear)
+		self.image_uploader.image_removed.connect(self.quality_metrics.update_metrics)
 
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
@@ -132,7 +137,7 @@ class ProcessingView(QWidget):
 		processed_path = self._get_processed_path(image_path)
 
 		reconstructed = self._predict_bytes(processed_path, image_data)
-		
+
 		self.in_preview_manager.set_image(image_path, image_data)
 		self.out_preview_manager.set_image(processed_path, reconstructed)
 		self.in_histogram.plot_histogram(image_data)
@@ -164,7 +169,6 @@ class ProcessingView(QWidget):
 		K_e = "password"
 		K_h = "password"
 
-
 		image_tensor = torch.from_numpy(image_batch).float()
 		raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
 		kernel_weights, ref_pixels, error_map, original = next(raw_ad)
@@ -174,6 +178,8 @@ class ProcessingView(QWidget):
 
 		available_bits = bits_per_image - len(ad)
 		emb_rate = available_bits / pixels
+
+		self.quality_metrics.update_metrics(None, None, available_bits, emb_rate)
 
 		print(f"Ad Length: {len(ad)}")
 		print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
