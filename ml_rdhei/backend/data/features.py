@@ -3,6 +3,13 @@ import torch
 
 
 def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Extracts features via sliding window operation on a padded image.
+    Works on a batched input. Requires no channel dimension.
+
+    :return: X, y, ref_p
+    :rtype: torch.Tensor, torch.Tensor, torch.Tensor - image's dtype
+    """
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires single channel images")
 
