@@ -29,7 +29,7 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[t
 
 
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    if batch.is_floating_point():
+    if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
         raise TypeError("Left-Right Decomposition requires (u)int16/int32")
 
     image1_batch = (batch >> 8).to(torch.uint8) # left
@@ -40,7 +40,7 @@ def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
 def oe_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     raise NotImplementedError("Odd-Even Decomposition is not implemented yet...")
 
-    if batch.is_floating_point():
+    if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
         raise TypeError("Odd-Even Decomposition requires (u)int16/int32")
     
     pass
