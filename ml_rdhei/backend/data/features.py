@@ -5,25 +5,21 @@ import torch
 def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires single channel images")
-    
-    batch = batch.float()   # absolute garbage, but PyTorch requires floats for nn.unfold...
-                            # if they fix that we can too  
+
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
     # apply mask to all images in the batch
-    masked_batch = torch.zeros((B, H, W), dtype=batch.dtype).contiguous()
+    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
-    # X_all shape = (B, K*K, H*W)
-    X_all = fn.unfold(
-        masked_batch.unsqueeze(1), # !GS: assumes grayscale .pgm - insert channel dimension
-        kernel_size=K,
-        stride=1,
-        padding=(K // 2, K // 2)
-    )
+    pad = K // 2 # Last 2 dimensions padded with K // 2 0s
+    padded_batch = fn.pad(masked_batch, (pad, pad, pad, pad))
 
-    X = X_all[:, :, ~mask.flatten()].permute(0, 2, 1) # get rid of refs and transform to (B, L, K*K)
+    # patches shape = (B, H, W, K, K)
+    patches = padded_batch.unfold(1, K, 1).unfold(2, K, step=1)
+
+    X = patches.reshape(B, H * W, K * K)[:, ~mask.flatten(), :]
     y = batch.view(B, H * W)[:, ~mask.flatten()]
     return X, y, ref_p
 

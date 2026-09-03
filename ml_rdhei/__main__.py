@@ -9,7 +9,7 @@ from backend.compressor.hiding import hider
 
 def pgm_main():
     ## sklearn model -- we use yield in torch there would be 1 loop
-    BOSSBase_loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
 
     rates = 0
     counter = 0
