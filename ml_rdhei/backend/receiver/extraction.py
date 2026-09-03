@@ -2,7 +2,7 @@ import math
 import struct
 
 from bitarray import bitarray
-from ml_rdhei.compressor.encryption import encrypt_data
+from backend.compressor.encryption import encrypt_data
 
 
 def ad_extraction(bitstream: bitarray, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):

@@ -1,5 +1,5 @@
 from .models import sklearn_ridge, torch_ridge
-from ml_rdhei.data.features import extract_features, lr_decompose
+from backend.data.features import extract_features, lr_decompose
 import torch
 from collections.abc import Iterator
 

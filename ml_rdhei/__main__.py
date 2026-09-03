@@ -1,10 +1,10 @@
-import data.loader as dloader
-import predictor.predict as ppredict
-import compressor.compress as ccompress
-import compressor.encryption as encryption
-from ml_rdhei.data.show import show_image, check_images
-from ml_rdhei.receiver.receive import receive
-from ml_rdhei.compressor.hiding import hider
+import backend.data.loader as dloader
+import backend.predictor.predict as ppredict
+import backend.compressor.compress as ccompress
+import backend.compressor.encryption as encryption
+from backend.data.show import show_image, check_images
+from backend.receiver.receive import receive
+from backend.compressor.hiding import hider
 
 
 def pgm_main():
@@ -44,7 +44,7 @@ def pgm_main():
     return
 
 def dicom_main():
-    DICOM_loader, _ = dloader.get_dicom_loader("datasets/DICOM")
+    DICOM_loader, _ = dloader.get_dicom_loader("../datasets/DICOM")
 
     rates = 0
     counter = 0

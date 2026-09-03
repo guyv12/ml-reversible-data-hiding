@@ -1,5 +1,5 @@
-import ml_rdhei.data.loader as loader
-from ml_rdhei.data.features import extract_features
+import backend.data.loader as loader
+from backend.data.features import extract_features
 from sklearn.linear_model import Ridge
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 import torch
