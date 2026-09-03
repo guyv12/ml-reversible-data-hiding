@@ -43,10 +43,9 @@ def get_huffman_codes(node: HuffmanNode | None, code="", huffman_codes=None):
     return huffman_codes
 
 def delta_encode(ref_pixels: torch.Tensor):
-    ref_pixels = ref_pixels.to(torch.int16)
+    ref_pixels = ref_pixels.to(torch.int16) + 255 # offset
 
     deltas = torch.diff(ref_pixels)
-    deltas += 255 # offset
     encoded_deltas = torch.cat((ref_pixels[0].unsqueeze(0), deltas))
 
     return encoded_deltas
