@@ -14,6 +14,9 @@ class TorchRidge:
         self.weights = torch.linalg.solve(X.T @ X + self.L * I, X.T @ y)
 
     def predict(self, X: torch.Tensor) -> torch.Tensor:
+        if self.weights is None:
+            raise TypeError("Model weights need to be set first")
+
         return self.weights @ X
 
 
