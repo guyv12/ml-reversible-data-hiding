@@ -9,3 +9,4 @@ def load_stylesheet(target, file_name: Path):
             target.setStyleSheet(f.read())
     except FileNotFoundError:
         print(f"Cant find {file_path.name} styles file")
+
