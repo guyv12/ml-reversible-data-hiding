@@ -1,16 +1,15 @@
 import backend.data.loader as dloader
-import backend.predictor.predict as ppredict
+import ml_rdhei.backend.predictor.ad as ppredict
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
-from backend.predictor.predict import ADRidge, ADRidgeDicom
 from backend.data.show import show_image, check_images
 from backend.receiver.receive import receive
 from backend.compressor.hiding import hider
 
 
 def pgm_main():
-    ## sklearn model -- we use yield in torch there would be 1 loop
-    BOSSBase_loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
+    predictor = ppredict.RidgePredictor()
 
     rates = 0
     counter = 0
@@ -21,7 +20,7 @@ def pgm_main():
     K_h = "password"
 
     for i, batch in enumerate(BOSSBase_loader):
-        for raw_ad in ADRidge.get_ad(batch):
+        for raw_ad in predictor.get_ad(batch):
             kernel_weights, ref_pixels, error_map, original = raw_ad
             original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
             show_image(original_bytes)
@@ -46,7 +45,8 @@ def pgm_main():
     return
 
 def dicom_main():
-    DICOM_loader, _ = dloader.get_dicom_loader("../datasets/DICOM")
+    DICOM_loader, _ = dloader.get_dicom_loader("datasets/dicom library 300")
+    predictor = ppredict.RidgePredictorDicom()
 
     rates = 0
     counter = 0
@@ -57,7 +57,7 @@ def dicom_main():
     for i, batch in enumerate(DICOM_loader):
         H, W = batch.shape[-2:]
 
-        for raw_ad in ADRidgeDicom.get_ad(batch):
+        for raw_ad in predictor.get_ad(batch):
             img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map = raw_ad
             
             ad = ccompress.compress_dicom_ad((H, W), img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map)
@@ -76,8 +76,8 @@ def dicom_main():
     return
 
 def main() -> None:
-    pgm_main()
-    #dicom_main()
+    #pgm_main()
+    dicom_main()
 
 
 if __name__ == "__main__":

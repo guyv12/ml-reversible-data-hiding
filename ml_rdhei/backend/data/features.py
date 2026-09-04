@@ -2,7 +2,7 @@ import torch.nn.functional as fn
 import torch
 
 
-def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires single channel images")
     
