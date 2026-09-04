@@ -1,11 +1,18 @@
 import torch.nn.functional as fn
 import torch
-from backend.models import get_MobileNet_v2_model
+from backend.models import get_torch_unet_model
 
 
 def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Extracts features via sliding window operation on a padded image.
+    Works on a batched input. Requires no channel dimension.
+
+    :return: X, y, ref_p
+    :rtype: torch.Tensor, torch.Tensor, torch.Tensor - image's dtype
+    """
     if batch.dim() != 3:
-        raise TypeError("Feature extraction requires single channel images")
+        raise TypeError("Feature extraction requires a batch of single-channel images (B, H, W)")
 
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
@@ -25,68 +32,38 @@ def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[to
     return X, y, ref_p
 
 
-def extract_features_cnn(batch: torch.Tensor, mask: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    raise NotImplementedError("Not implemented")
+def cnn_features(batch: torch.Tensor, mask: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Extracts features through CNN pass.
+    Works on a batched input. Requires no channel dimension.
+    
+    :return: X, y, ref_p
+    :rtype: torch.Tensor, torch.Tensor, torch.Tensor - image's dtype
+    """
     if batch.dim() != 3:
         raise TypeError("Feature extraction requires a batch of single-channel images (B, H, W)")
         
     B, H, W = batch.shape
-    
-    # 1. Extract reference pixels from the checkerboard mask
-    flat_mask = mask.flatten()
-    ref_p = batch.view(B, H * W)[:, flat_mask]
-    
-    # 2. Apply mask to create the masked input batch
-    masked_batch = torch.zeros((B, H, W), dtype=batch.dtype, device=batch.device)
-    masked_batch.view(B, H * W)[:, flat_mask] = ref_p
+    ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
-    # 3. MobileNetV2 expects 3-channel RGB inputs scaled/normalized for pretrained weights
-    # Expand (B, H, W) -> (B, 1, H, W) -> (B, 3, H, W)
-    x_input = masked_batch.unsqueeze(1).repeat(1, 3, 1, 1).float() / 255.0
-    
-    # Standard ImageNet normalization expected by MobileNetV2 weights
-    mean = torch.tensor([0.485, 0.456, 0.406], device=batch.device).view(1, 3, 1, 1)
-    std = torch.tensor([0.229, 0.224, 0.225], device=batch.device).view(1, 3, 1, 1)
-    x_input = (x_input - mean) / std
+    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
-    # 4. Pass through CNN backbone to get dense feature maps: shape (B, C, H', W')
-    model = get_MobileNet_v2_model().to(batch.device)
+    # Add channel dimension and normalize to <0, 1>
+    X_pre = masked_batch.unsqueeze(1).float() / 255.0
+
+    model = get_torch_unet_model(classes=25)
     model.eval()
-    
-    with torch.no_grad():
-        feature_map = model(x_input)
-        
-    _, C, H_feat, W_feat = feature_map.shape
 
-    # 5. Downscale or interpolate the mask to match the CNN output spatial dimensions 
-    # (MobileNet downsamples resolution by a factor of 32 across its layers)
-    resized_mask = torch.nn.functional.interpolate(
-        mask.float().unsqueeze(0).unsqueeze(0), 
-        size=(H_feat, W_feat), 
-        mode='nearest'
-    ).squeeze().bool().flatten()
+    with torch.inference_mode():
+        # (B,H,C,W), change have it in sklearn [samples[features]] format because C are the features
+        feature_map = model(X_pre).permute(0, 2, 3, 1)
+        _, _, _, C = feature_map.shape
 
-    # 6. Extract target and feature vectors dynamically
-    # Reshape feature map from (B, C, H_feat, W_feat) -> (B, H_feat * W_feat, C)
-    features_flat = feature_map.permute(0, 2, 3, 1).reshape(B, H_feat * W_feat, C)
-    image_flat = batch.unsqueeze(1).float() # or corresponding target downsampled layout
-    
-    # For a direct dense spatial match, slice features at target indices
-    # (Note: If dimensions match your grid, extract target pixels y similarly)
-    target_mask_flat = ~resized_mask
-    X = features_flat[:, target_mask_flat, :]  # Shape: (B, Num_Targets, C)
-    
-    # Downsample target image to match feature map spatial grid if shapes differ, 
-    # or use standard un-downsampled alignment. Here we align with feature spatial dims:
-    y_downsampled = torch.nn.functional.interpolate(
-        batch.unsqueeze(1).float(), 
-        size=(H_feat, W_feat), 
-        mode='nearest'
-    ).squeeze(1).view(B, H_feat * W_feat)
-    
-    y = y_downsampled[:, target_mask_flat]    # Shape: (B, Num_Targets)
-
+    X = feature_map.reshape(B, H * W, C)[:, ~mask.flatten(), :]
+    y = batch.view(B, H * W)[:, ~mask.flatten()]
     return X, y, ref_p
+
 
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):

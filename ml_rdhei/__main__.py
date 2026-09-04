@@ -5,11 +5,12 @@ import backend.compressor.encryption as encryption
 from backend.data.show import show_image, check_images
 from backend.receiver.receive import receive
 from backend.compressor.hiding import hider
+from backend.data.features import cnn_features
 
 
 def pgm_main():
     BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
-    predictor = ppredict.RidgePredictor()
+    predictor = ppredict.RidgePredictor(feat_func=cnn_features)
 
     rates = 0
     counter = 0
@@ -76,8 +77,8 @@ def dicom_main():
     return
 
 def main() -> None:
-    #pgm_main()
-    dicom_main()
+    pgm_main()
+    #dicom_main()
 
 
 if __name__ == "__main__":

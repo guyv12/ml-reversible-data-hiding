@@ -1,6 +1,7 @@
 from sklearn.linear_model import Ridge
 import torch
-import torchvision
+import segmentation_models_pytorch as smp
+
 
 def get_sklearn_ridge_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
@@ -8,9 +9,13 @@ def get_sklearn_ridge_model():
 def get_torch_ridge_model():
     raise NotImplementedError("Torch model is not implemented yet...")
 
-def get_MobileNet_v2_model():
-    return torchvision.models.mobilenet_v2(weights=torchvision.models.MobileNet_V2_Weights.DEFAULT, progress=True)
-
+def get_torch_unet_model(in_channels: int = 1, classes: int = 1):
+    return smp.Unet(
+            encoder_name="mobilenet_v2", 
+            encoder_weights="imagenet", 
+            in_channels=in_channels,
+            classes=classes
+        )
 
 class TorchRidge:
     def __init__(self, lambda_: float = 1e-1) -> None:

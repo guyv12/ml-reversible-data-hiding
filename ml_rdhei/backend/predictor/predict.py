@@ -48,11 +48,4 @@ def torch_mobilenet_v2(X: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
     :return: kernel weights, error map
     :rtype: torch.Tensor[i16]
     """
-    model = get_MobileNet_v2_model()
-
-    ## model.fit(X, y) # TODO: finish
-    
-    ## y_pred = torch.round(model.predict(X))
-    ## error_map = y_pred.to(torch.int16) - y.to(torch.int16) 
-
-    # return error_map
+    pass
