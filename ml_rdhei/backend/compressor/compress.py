@@ -6,7 +6,12 @@ from bitarray import bitarray
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode, huffman_codebook_to_bits
 
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
-    return t.contiguous().cpu().numpy().astype('>f8').tobytes()
+    t = t.detach().contiguous().cpu()
+    
+    if t.is_floating_point():
+        return t.numpy().astype('>f8').tobytes()
+    else:
+        return t.numpy().astype('>i8').tobytes()
 
 def __bits_to_bytes(bits):
     padding = (8 - len(bits) % 8) % 8
