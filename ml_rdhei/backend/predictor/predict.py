@@ -1,5 +1,5 @@
 import torch
-from ml_rdhei.backend.models import *
+from backend.models import *
 
 
 def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
