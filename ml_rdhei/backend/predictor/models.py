@@ -23,11 +23,9 @@ class TorchRidge:
 def __get_sklearn_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
 
+
 def __get_torch_model():
     raise NotImplementedError("Torch model is not implemented yet...")
-
-def __get_MobileNet_v2_model():
-    return torch.hub.load('pytorch/vision:v0.10.0', 'mobilenet_v2', pretrained=True)
 
 
 def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
