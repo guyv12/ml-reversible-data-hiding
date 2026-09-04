@@ -1,6 +1,6 @@
 from sklearn.linear_model import Ridge
 import torch
-
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 class TorchRidge:
 
@@ -42,7 +42,7 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch
     error_map = (y.to(torch.int16) - y_pred.to(torch.int16)) # convert to int16 for accurate output 
 
     kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
-
+    
     return kernel_weights, error_map
 
 def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:

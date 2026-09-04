@@ -3,12 +3,15 @@ from backend.data.features import extract_features, lr_decompose
 import torch
 from collections.abc import Iterator
 
+def reference_mask(H: int, W: int) -> torch.Tensor:
+    mask = torch.zeros((H, W), dtype=torch.bool)
+    mask[::2, ::2] = True
+    return mask
 
 def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
 
@@ -20,8 +23,7 @@ def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.
 def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
     kernel_weights_batch, error_map_batch = torch_ridge(X_batch, y_batch)
@@ -32,8 +34,7 @@ def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, tor
 def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     img1_batch, img2_batch = lr_decompose(batch)
 
@@ -51,8 +52,7 @@ def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torc
 def dicom_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     img1_batch, img2_batch = lr_decompose(batch)
 

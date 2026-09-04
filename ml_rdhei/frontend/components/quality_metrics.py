@@ -37,7 +37,7 @@ class QualityMetrics(QFrame):
         payload_capacity: int | None = None,
         embedding_rate: float | None = None
     ):
-        self.psnr_label.setText("-" if psnr is None else str(psnr))
-        self.ssim_label.setText("-" if ssim is None else str(ssim))
+        self.psnr_label.setText("-" if psnr is None else f"{psnr:.2f} dB")
+        self.ssim_label.setText("-" if ssim is None else f"{ssim:.4f}")
         self.payload_capacity_label.setText("-" if payload_capacity is None else f"{payload_capacity} b")
         self.embedding_rate_label.setText("-" if embedding_rate is None else f"{embedding_rate:.4f} bpp")

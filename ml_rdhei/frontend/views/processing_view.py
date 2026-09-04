@@ -1,8 +1,15 @@
 import cv2
 from pydicom import dcmread
 import torch
-from  numpy import newaxis
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
+import numpy as np
 from pathlib import Path
+
+from PySide6.QtWidgets import (
+	QWidget, QFrame, QHBoxLayout,
+	QVBoxLayout, QLabel, QPushButton
+)
+from PySide6.QtCore import Qt, QSize
 
 import backend.predictor.predict as ppredict
 import backend.compressor.compress as ccompress
@@ -10,13 +17,6 @@ import backend.compressor.encryption as encryption
 from backend.data.show import show_image, check_images
 from backend.receiver.receive import receive
 from backend.compressor.hiding import hider
-
-
-from PySide6.QtWidgets import (
-	QWidget, QFrame, QHBoxLayout,
-	QVBoxLayout, QLabel, QPushButton
-)
-from PySide6.QtCore import Qt, QSize
 
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
@@ -161,10 +161,11 @@ class ProcessingView(QWidget):
 
 	def _predict_bytes(self, image_path: str, image: np.ndarray) -> np.ndarray:
 		shape = image.shape[:2]
-		image_batch = image[newaxis, :]
+		image_batch = image[np.newaxis, :]
 
 		pixels = shape[0] * shape[1]
 		bpp = 8
+		data_range = 2 ** bpp -1
 		bits_per_image = pixels * bpp
 		K_e = "password"
 		K_h = "password"
@@ -173,22 +174,25 @@ class ProcessingView(QWidget):
 		raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
 		kernel_weights, ref_pixels, error_map, original = next(raw_ad)
 
+		mask = ppredict.reference_mask(shape[0], shape[1])
+		y = original.flatten()[~mask.flatten()].numpy().astype(np.float32)
+		y_pred = y - error_map.numpy().astype(np.float32)
+
+		psnr = peak_signal_noise_ratio(y, y_pred, data_range=data_range)
+		ssim = structural_similarity(y, y_pred, data_range=data_range)
+
 		ad = ccompress.compress_pgm_ad(shape, kernel_weights, ref_pixels, error_map)
 		ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
 
 		available_bits = bits_per_image - len(ad)
 		emb_rate = available_bits / pixels
 
-		self.quality_metrics.update_metrics(None, None, available_bits, emb_rate)
-
-		print(f"Ad Length: {len(ad)}")
-		print(f"Current embedding rate[bpp]: {emb_rate:.4f}")
+		self.quality_metrics.update_metrics(psnr, ssim, available_bits, emb_rate)
 
 		encrypted_image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
 		reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
 		check_images(image, reconstructed)
-		print(image[:100])
-		print()
-		print(reconstructed[:100])
 
 		return reconstructed
+
+		
