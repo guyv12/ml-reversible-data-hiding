@@ -28,41 +28,55 @@ def __get_torch_model():
     raise NotImplementedError("Torch model is not implemented yet...")
 
 
-def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Creates a ridge model prediction and error map. Assumes 8bit image.
-    Works on a single image input
+    Creates a ridge model prediction and error map.
+    Works on a single image input.
 
     :return: kernel weights, error map
-    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    :rtype: torch.Tensor[f64] | torch.Tensor[i64], torch.Tensor[i16]
     """
     model = __get_sklearn_model()
     
-    X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
+    X_np, y_np = X.double().numpy(), y.double().numpy() # sklearn requires float & numpy
     model.fit(X_np, y_np)
 
-    y_pred = torch.from_numpy(model.predict(X_np))
-    error_map = (y.to(torch.int16) - y_pred.to(torch.int16)) # convert to int16 for accurate output 
+    W = torch.from_numpy(model.coef_)
 
-    kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
+    if not quantization:
+        kernel_weights = W.to(torch.float64)
+    else:
+        kernel_weights = torch.round(W).to(torch.int64) # cut to int
+
+    y_pred = torch.round(X.to(kernel_weights.dtype) @ kernel_weights)
+    y_pred = y_pred.clamp(0, 255) # cut the vals to avoid big errors
+
+    error_map = y.to(torch.int16) - y_pred.to(torch.int16) # convert to int16, error in <-255, 255>
 
     return kernel_weights, error_map
 
-def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Creates a ridge model prediction and error map. Assumes 8bit image.
+    Creates a ridge model prediction and error map.
     Works on a batched input.
     
     :return: kernel weights, error map
-    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    :rtype: torch.Tensor[f64] | torch.Tensor[i64], torch.Tensor[i16]
     """
     model = __get_torch_model()
     
     model.fit(X_batch, y_batch)
 
-    y_pred_batch = model.predict(X_batch)
-    error_map_batch = (y_batch.to(torch.int16) - y_pred_batch.to(torch.int16))
+    W = model.weights
+    
+    if not quantization:
+        kernel_weights_batch = W.to(torch.float64)
+    else:
+        kernel_weights_batch = torch.round(W).to(torch.int64)
 
-    kernel_weights_batch = torch.from_numpy(model.coef_).to(torch.float64)
+    y_pred_batch = torch.round(X_batch.to(kernel_weights_batch.dtype) @ kernel_weights_batch)
+    y_pred_batch = y_pred_batch.clamp(0, 255) # cut the vals to avoid big errors
+
+    error_map_batch = y_batch.to(torch.int16) - y_pred_batch.to(torch.int16)
 
     return kernel_weights_batch, error_map_batch
