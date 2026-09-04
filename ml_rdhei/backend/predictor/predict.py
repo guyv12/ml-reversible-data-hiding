@@ -1,80 +1,58 @@
-from .models import sklearn_ridge, torch_ridge, torch_mobilenet_v2
-from backend.data.features import extract_features, lr_decompose
 import torch
-from collections.abc import Iterator
+from ml_rdhei.backend.models import *
 
 
-class ADRidge:
-    def get_ad(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
-        _, H, W = batch.shape
+def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Creates a ridge model prediction and error map. Assumes 8bit image.
+    Works on a single image input
 
-        mask = torch.zeros((H, W), dtype=torch.bool)
-        mask[::2, ::2] = True
-
-        X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
-
-        for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
-            kernel_weights, error_map = sklearn_ridge(X, y)
-
-            yield kernel_weights, ref_pixels, error_map, batch[i]
-
-    def get_ad_batch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        _, H, W = batch.shape
-
-        mask = torch.zeros((H, W), dtype=torch.bool)
-        mask[::2, ::2] = True
-
-        X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
-        kernel_weights_batch, error_map_batch = torch_ridge(X_batch, y_batch)
-
-        return kernel_weights_batch, ref_pixels_batch, error_map_batch
-
-
-class ADRidgeDicom:
-    def get_ad(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
-        _, H, W = batch.shape
-
-        mask = torch.zeros((H, W), dtype=torch.bool)
-        mask[::2, ::2] = True
-
-        img1_batch, img2_batch = lr_decompose(batch)
-        X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
-
-        for img1, img2_X, img2_y, img2_ref_pixels in zip(img1_batch, X_img2_batch, y_img2_batch, ref_pixels_img2_batch):
-            # image1 -> fixed prediction
-            img1_error_map = (15 - img1.flatten()).to(torch.int8)
-            
-            # image2 -> classic approach
-            img2_kernel_weights, img2_error_map = sklearn_ridge(img2_X, img2_y)
-
-            yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
-
-    def get_ad_batch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        _, H, W = batch.shape
-
-        mask = torch.zeros((H, W), dtype=torch.bool)
-        mask[::2, ::2] = True
-
-        img1_batch, img2_batch = lr_decompose(batch)
-
-        img1_error_map_batch = (15 - img1_batch.flatten()).to(torch.int8)
-
-        X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
-        kernel_weights_img2_batch, error_map_img2_batch = torch_ridge(X_img2_batch, y_img2_batch)
-
-        return img1_error_map_batch, kernel_weights_img2_batch, ref_pixels_img2_batch, error_map_img2_batch
-
-
-class ADCNN:
-    def get_ad(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
-        _, H, W = batch.shape
+    :return: kernel weights, error map
+    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    """
+    model = get_sklearn_ridge_model()
     
-        mask = torch.zeros((H, W), dtype=torch.bool)
-        mask[::2, ::2] = True
+    X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
+    model.fit(X_np, y_np)
+
+    y_pred = torch.from_numpy(model.predict(X_np))
+    error_map = (y.to(torch.int16) - y_pred.to(torch.int16)) # convert to int16 for accurate output 
+
+    kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
+
+    return kernel_weights, error_map
+
+def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Creates a ridge model prediction and error map. Assumes 8bit image.
+    Works on a batched input.
     
-        X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
+    :return: kernel weights, error map
+    :rtype: torch.Tensor[f64], torch.Tensor[i16]
+    """
+    model = get_torch_ridge_model()
     
-        for image, X, y, ref_pixels in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
-            error_map = torch_mobilenet_v2(X, y)
+    model.fit(X_batch, y_batch)
+
+    y_pred_batch = model.predict(X_batch)
+    error_map_batch = (y_batch.to(torch.int16) - y_pred_batch.to(torch.int16))
+
+    kernel_weights_batch = torch.from_numpy(model.coef_).to(torch.float64)
+
+    return kernel_weights_batch, error_map_batch
+
+def torch_mobilenet_v2(X: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    """
+    Creates a mobilenet_v2 model prediction.
+
+    :return: kernel weights, error map
+    :rtype: torch.Tensor[i16]
+    """
+    model = get_MobileNet_v2_model()
+
+    ## model.fit(X, y) # TODO: finish
     
-            yield ref_pixels, error_map, image
+    ## y_pred = torch.round(model.predict(X))
+    ## error_map = y_pred.to(torch.int16) - y.to(torch.int16) 
+
+    # return error_map

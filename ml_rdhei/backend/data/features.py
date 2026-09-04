@@ -28,6 +28,21 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[t
     return X, y, ref_p
 
 
+def extact_features_cnn(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    raise NotImplementedError("Not implemented yet")
+
+    if batch.dim() != 3:
+        raise TypeError("Feature extraction requires single channel images")
+        
+    B, H, W = batch.shape
+    ref_p = batch.view(B, H * W)[:, mask.flatten()]
+    
+    # apply mask to all images in the batch
+    masked_batch = torch.zeros((B, H, W), dtype=batch.dtype).contiguous()
+    masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
+    
+    return X, y, ref_p
+
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
         raise TypeError("Left-Right Decomposition requires (u)int16/int32")
