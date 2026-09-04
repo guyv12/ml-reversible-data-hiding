@@ -51,6 +51,8 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) 
         kernel_weights = torch.round(W).to(torch.int64) # cut to int
 
     y_pred = torch.round(X.to(kernel_weights.dtype) @ kernel_weights)
+    y_pred = torch.clamp(y_pred, 0, 255) # cut the vals to avoid big errors
+
     error_map = y.to(torch.int16) - y_pred.to(torch.int16) # convert to int16, error in <-255, 255>
 
     return kernel_weights, error_map
@@ -75,6 +77,8 @@ def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, quantization: bool
         kernel_weights_batch = torch.round(W).to(torch.int64)
 
     y_pred_batch = torch.round(X_batch.to(kernel_weights_batch.dtype) @ kernel_weights_batch)
+    y_pred_batch = torch.clamp(y_pred_batch, 0, 255) # cut the vals to avoid big errors
+
     error_map_batch = y_batch.to(torch.int16) - y_pred_batch.to(torch.int16)
 
     return kernel_weights_batch, error_map_batch
