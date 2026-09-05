@@ -51,7 +51,6 @@ class ImageUploader(QFrame):
 	
 	def _update_style(self, has_image: bool):
 		self.setProperty("has_image", has_image)
-		
 		self.style().unpolish(self)
 		self.style().polish(self)
 

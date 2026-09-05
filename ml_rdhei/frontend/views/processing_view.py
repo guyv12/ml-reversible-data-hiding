@@ -18,7 +18,8 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.components.quality_metrics import QualityMetricsPanel
+from frontend.components.quality_metrics_panel import QualityMetricsPanel
+from frontend.components.encryption_panel import EncryptionPanel
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
@@ -31,6 +32,8 @@ class ProcessingView(QWidget):
 
 	def __init__(self):
 		super().__init__()
+		
+		self._prediction: Prediction | None = None
 
 		load_stylesheet(self, "sections.css")
 
@@ -80,7 +83,10 @@ class ProcessingView(QWidget):
 		metrics_layout.addWidget(metrics_title_label)
 
 		self.quality_metrics_panel = QualityMetricsPanel()
+		self.encryption_panel = EncryptionPanel()
+		
 		metrics_layout.addWidget(self.quality_metrics_panel)
+		metrics_layout.addWidget(self.encryption_panel)
 
 		out_section = QFrame()
 		out_section.setObjectName("outputSection")
@@ -116,9 +122,8 @@ class ProcessingView(QWidget):
 
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
-		self.image_uploader.image_removed.connect(self.in_histogram.clear)
-		self.image_uploader.image_removed.connect(self.quality_metrics_panel.clear)
-
+		self.image_uploader.image_removed.connect(self._on_image_removed)
+		
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
@@ -130,12 +135,19 @@ class ProcessingView(QWidget):
 		image_data = self._transform_image_to_ndarray(image_path)
 		processed_path = self._get_processed_path(image_path)
 
-		prediction = predict(image_data)
-		self.quality_metrics_panel.set_metrics(prediction.metrics)
+		self._prediction = predict(image_data)
+		self.quality_metrics_panel.set_metrics(self._prediction.metrics)
+		self.encryption_panel.enable_panel(self._prediction.metrics.payload_capacity)
 
 		self.in_preview_manager.set_image(image_path, image_data)
 		self.out_preview_manager.set_image(image_path, image_data)
 		self.in_histogram.plot_histogram(image_data)
+
+	def _on_image_removed(self):
+		self._prediction = None
+		self.in_histogram.clear()
+		self.quality_metrics_panel.clear()
+		self.encryption_panel.clear()
 
 	def _transform_image_to_ndarray(self, image_path: str) -> ndarray:
 		if image_path.lower().endswith(".dcm"):
