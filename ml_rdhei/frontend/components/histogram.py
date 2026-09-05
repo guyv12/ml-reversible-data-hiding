@@ -29,12 +29,9 @@ class Histogram(QFrame):
 	):
 		super().__init__()
 		self._image_data: np.ndarray | None = None
-
-		self.main_layout = QVBoxLayout(self)
-		self.main_layout.setContentsMargins(*HISTOGRAM_MARGIN)
 		
-		self.stacked_layout = QStackedLayout()
-		self.main_layout.addLayout(self.stacked_layout)
+		self.setContentsMargins(*HISTOGRAM_MARGIN)
+		self.stacked_layout = QStackedLayout(self)
 
 		self._setup_empty_widget(icon_name, title)
 		self._setup_plot_widget()
