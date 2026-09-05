@@ -43,7 +43,7 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor, n_ref: int) -> str:
 def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset: bool = True) -> str:
     # huffman compression (error map)
     if add_offset:
-        error_map += 255 # offset
+        error_map = error_map + 255 # offset
 
     error_map_list = error_map.flatten().tolist()
 

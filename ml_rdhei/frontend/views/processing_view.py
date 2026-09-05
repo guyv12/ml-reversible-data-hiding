@@ -1,8 +1,7 @@
 import cv2
 from pydicom import dcmread
 import torch
-from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-import numpy as np
+from numpy import ndarray
 from pathlib import Path
 
 from PySide6.QtWidgets import (
@@ -11,12 +10,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize
 
-import backend.predictor.predict as ppredict
-import backend.compressor.compress as ccompress
-import backend.compressor.encryption as encryption
-from backend.data.show import show_image, check_images
-from backend.receiver.receive import receive
-from backend.compressor.hiding import hider
+from backend.pipeline import predict
 
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
@@ -24,7 +18,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.components.quality_metrics import QualityMetrics
+from frontend.components.quality_metrics import QualityMetricsPanel
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
@@ -85,8 +79,8 @@ class ProcessingView(QWidget):
 		metrics_title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
 		metrics_layout.addWidget(metrics_title_label)
 
-		self.quality_metrics = QualityMetrics()
-		metrics_layout.addWidget(self.quality_metrics)
+		self.quality_metrics_panel = QualityMetricsPanel()
+		metrics_layout.addWidget(self.quality_metrics_panel)
 
 		out_section = QFrame()
 		out_section.setObjectName("outputSection")
@@ -123,7 +117,7 @@ class ProcessingView(QWidget):
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
 		self.image_uploader.image_removed.connect(self.in_histogram.clear)
-		self.image_uploader.image_removed.connect(self.quality_metrics.update_metrics)
+		self.image_uploader.image_removed.connect(self.quality_metrics_panel.clear)
 
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
@@ -136,13 +130,14 @@ class ProcessingView(QWidget):
 		image_data = self._transform_image_to_ndarray(image_path)
 		processed_path = self._get_processed_path(image_path)
 
-		reconstructed = self._predict_bytes(processed_path, image_data)
+		prediction = predict(image_data)
+		self.quality_metrics_panel.set_metrics(prediction.metrics)
 
 		self.in_preview_manager.set_image(image_path, image_data)
-		self.out_preview_manager.set_image(processed_path, reconstructed)
+		self.out_preview_manager.set_image(image_path, image_data)
 		self.in_histogram.plot_histogram(image_data)
 
-	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
+	def _transform_image_to_ndarray(self, image_path: str) -> ndarray:
 		if image_path.lower().endswith(".dcm"):
 			try:
 				dicom = dcmread(image_path)
@@ -159,40 +154,49 @@ class ProcessingView(QWidget):
 
 		return image
 
-	def _predict_bytes(self, image_path: str, image: np.ndarray) -> np.ndarray:
-		shape = image.shape[:2]
-		image_batch = image[np.newaxis, :]
+	# def _predict_bytes(self, image: np.ndarray) -> np.ndarray:
+	# 	shape = image.shape[:2]
+	# 	image_batch = image[np.newaxis, :]
 
-		pixels = shape[0] * shape[1]
-		bpp = 8
-		data_range = 2 ** bpp -1
-		bits_per_image = pixels * bpp
-		K_e = "password"
-		K_h = "password"
+	# 	pixels = shape[0] * shape[1]
+	# 	bpp = 8
+	# 	data_range = 2 ** bpp -1
+	# 	bits_per_image = pixels * bpp
+	# 	K_e = "password"
+	# 	K_h = "password"
 
-		image_tensor = torch.from_numpy(image_batch).float()
-		raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
-		kernel_weights, ref_pixels, error_map, original = next(raw_ad)
+	# 	image_tensor = torch.from_numpy(image_batch).float()
+	# 	raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
+	# 	kernel_weights, ref_pixels, error_map, original = next(raw_ad)
 
-		mask = ppredict.reference_mask(shape[0], shape[1])
-		y = original.flatten()[~mask.flatten()].numpy().astype(np.float32)
-		y_pred = y - error_map.numpy().astype(np.float32)
+	# 	mask = ppredict.reference_mask(shape[0], shape[1])
+	# 	y = original.flatten()[~mask.flatten()].numpy().astype(np.float32)
+	# 	y_pred = y - error_map.numpy().astype(np.float32)
 
-		psnr = peak_signal_noise_ratio(y, y_pred, data_range=data_range)
-		ssim = structural_similarity(y, y_pred, data_range=data_range)
+	# 	psnr = peak_signal_noise_ratio(y, y_pred, data_range=data_range)
+	# 	ssim = structural_similarity(y, y_pred, data_range=data_range)
 
-		ad = ccompress.compress_pgm_ad(shape, kernel_weights, ref_pixels, error_map)
-		ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
+	# 	ad = ccompress.compress_pgm_ad(shape, kernel_weights, ref_pixels, error_map)
+	# 	ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
 
-		available_bits = bits_per_image - len(ad)
-		emb_rate = available_bits / pixels
+	# 	available_bits = bits_per_image - len(ad)
+	# 	emb_rate = available_bits / pixels
 
-		self.quality_metrics.update_metrics(psnr, ssim, available_bits, emb_rate)
+	# 	self.quality_metrics.update_metrics(psnr, ssim, available_bits, emb_rate)
 
-		encrypted_image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-		reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
-		check_images(image, reconstructed)
+	# 	print(len(ref_pixels))
+	# 	print(mask.sum().item())
 
-		return reconstructed
+	# 	encrypted_image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
+	# 	reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
+	# 	check_images(image, reconstructed)
 
-		
+	# 	return reconstructed
+
+	# def _reconstruct_bytes():
+	# 	pass
+
+	# # hider powinien wyladowac w osobnej funkcji, tak samo receive.
+	# # Przydałby sie moze jakis compute_manager, który trzyma czesc z wartosci i ma pod soba te funkcje
+	# # Tak samo jakas klasa qframe, ktora by trzymala haslo oraz wiadomosc do szyfrowania (moze ten  compute_manager)
+	# # Wtedy moglibysmy nałożyć style css na to.
