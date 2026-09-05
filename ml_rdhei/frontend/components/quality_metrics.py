@@ -1,43 +1,39 @@
 from PySide6.QtWidgets import QFrame, QLabel, QFormLayout
 from PySide6.QtCore import Qt
 
+from backend.predictor.results import QualityMetrics
+
 from frontend.utils import load_stylesheet
 
-class QualityMetrics(QFrame):
-    psnr: float | None = None
-    ssim: float | None = None
-    payload_capacity: int | None = None
-    embedding_rate: float | None = None
-    
+class QualityMetricsPanel(QFrame):
+    _ROWS = (
+        ("PSNR", "psnr", "{:.2f} dB"),
+        ("SSIM", "ssim", "{:.4f}"),
+        ("Payload capacity", "payload_capacity", "{} b"),
+        ("Embedding rate", "embedding_rate", "{:.4f} bpp"),
+    )
+
     def __init__(self):
         super().__init__()
-
         layout = QFormLayout(self)
-        self.psnr_label = self._create_label()
-        self.ssim_label = self._create_label()
-        self.payload_capacity_label = self._create_label()
-        self.embedding_rate_label = self._create_label()
+        self._labels: dict[str, QLabel] = {}
 
-        layout.addRow(QLabel("PSNR "), self.psnr_label)
-        layout.addRow(QLabel("SSIM "), self.ssim_label)
-        layout.addRow(QLabel("Payload capacity "), self.payload_capacity_label)
-        layout.addRow(QLabel("Embedding rate "), self.embedding_rate_label)
+        for title, attr, _ in self._ROWS:
+            self._labels[attr] = self._create_label()
+            layout.addRow(QLabel(f"{title} "), self._labels[attr])
 
         load_stylesheet(self, "metrics.css")
 
     def _create_label(self) -> QLabel:
         label = QLabel("-")
         label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
         return label
 
-    def update_metrics(
-        self,
-        psnr: float | None = None,
-        ssim: float | None = None,
-        payload_capacity: int | None = None,
-        embedding_rate: float | None = None
-    ):
-        self.psnr_label.setText("-" if psnr is None else f"{psnr:.2f} dB")
-        self.ssim_label.setText("-" if ssim is None else f"{ssim:.4f}")
-        self.payload_capacity_label.setText("-" if payload_capacity is None else f"{payload_capacity} b")
-        self.embedding_rate_label.setText("-" if embedding_rate is None else f"{embedding_rate:.4f} bpp")
+    def set_metrics(self, metrics: QualityMetrics) -> None:
+        for _, attr, fmt in self._ROWS:
+            self._labels[attr].setText(fmt.format(getattr(metrics, attr)))
+
+    def clear(self) -> None:
+        for label in self._labels.values():
+            label.setText("-")
