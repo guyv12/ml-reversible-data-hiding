@@ -79,6 +79,7 @@ class ProcessingView(QWidget):
 		in_layout.addWidget(self.in_histogram)
 
 		metrics_section = QFrame()
+		metrics_section.setObjectName("metricsSection")
 		metrics_layout = QVBoxLayout(metrics_section)
 		metrics_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 		metrics_title_label = QLabel("Metrics")
