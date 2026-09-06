@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 import numpy as np
+from bitarray import bitarray
 
 @dataclass(frozen=True)
 class QualityMetrics:
