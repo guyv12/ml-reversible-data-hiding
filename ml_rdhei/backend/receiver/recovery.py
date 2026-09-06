@@ -1,21 +1,30 @@
 import numpy as np
 
-def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], k: int = 5):
-    reconstructed_img = np.zeros((512,512), dtype=np.uint8)
+def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
+             img_size: tuple[int, int], k: int = 5):
+
+    H, W = img_size
+    if len(ref_pixels) != n_ref or len(error_map) != H * W - n_ref:
+        raise ValueError(
+            f"Extracted data does not match a {H}x{W} image: "
+            f"{len(ref_pixels)} reference pixels, {len(error_map)} error values"
+        )
+        
+    reconstructed_img = np.zeros((H, W), dtype=np.uint8)
 
     ref_idx = 0
-    for r in range(512):
-        for c in range(512):
+    for r in range(H):
+        for c in range(W):
             if r % 2 == 0 and c % 2 == 0:
                 reconstructed_img[r,c] = ref_pixels[ref_idx]
                 ref_idx += 1
 
     only_ref_pixels = reconstructed_img.copy()
     error_idx = 0
-    for r in range(512):
-        for c in range(512):
+    for r in range(H):
+        for c in range(W):
             if r % 2 != 0 or c % 2 != 0:
-                feature_vector = get_feature_vector(r, c, only_ref_pixels)
+                feature_vector = get_feature_vector(r, c, only_ref_pixels, k)
 
                 if len(feature_vector) == k**2:
                     prediction = np.dot(feature_vector, weights)
@@ -36,10 +45,11 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
 
 
 def get_feature_vector(r: int, c: int, reconstructed_img, k: int = 5):
+    H, W = reconstructed_img.shape
     feature_vector = []
     for i in range(-(k//2), k//2+1):
         for j in range(-(k//2), k//2+1):
-            if 0 <= r - i < 512 and 0 <= c - j < 512 :
+            if 0 <= r - i < H and 0 <= c - j < W :
                 feature_vector.append(reconstructed_img[r-i, c-j])
 
     return feature_vector
