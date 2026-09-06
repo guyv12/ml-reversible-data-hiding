@@ -1,9 +1,12 @@
 import numpy as np
+from backend.predictor.predict import reference_mask
 
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
              img_size: tuple[int, int], k: int = 5):
 
     H, W = img_size
+    n_ref = int(reference_mask(H, W).sum().item())
+    
     if len(ref_pixels) != n_ref or len(error_map) != H * W - n_ref:
         raise ValueError(
             f"Extracted data does not match a {H}x{W} image: "
