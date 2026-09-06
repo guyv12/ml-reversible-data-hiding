@@ -3,12 +3,17 @@ import struct
 
 from bitarray import bitarray
 from backend.compressor.encryption import encrypt_data
+from backend.predictor.predict import reference_mask
 
 
-def ad_extraction(bitstream: bitarray, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):
+def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 8, k: int = 5):
     #ba = bitarray()
     #ba.frombytes(bitstream)
 
+    H, W = image_size
+    n = H * W
+    n_ref = int(reference_mask(H, W).sum().item())
+    
     # AD length
     length = math.ceil(math.log2(n * bpp))
     ad_length = bitstream[:length]

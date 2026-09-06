@@ -9,7 +9,7 @@ class QualityMetricsPanel(QFrame):
     _ROWS = (
         ("PSNR", "psnr", "{:.2f} dB"),
         ("SSIM", "ssim", "{:.4f}"),
-        ("Payload capacity", "payload_capacity", "{} b"),
+        ("Payload capacity", "payload_capacity", "{} B"),
         ("Embedding rate", "embedding_rate", "{:.4f} bpp"),
     )
 

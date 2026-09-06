@@ -36,7 +36,7 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            reconstructed = receive(image, K_e, K_h, len(ref_pixels)).tobytes()
+            reconstructed = receive(image, K_e, K_h, (512, 512)).tobytes()
             check_images(original_bytes, reconstructed)
             print()
             print()

@@ -1,8 +1,9 @@
 import cv2
 from pydicom import dcmread
 import torch
-from numpy import ndarray
+import numpy as np
 from pathlib import Path
+from bitarray import bitarray
 
 from PySide6.QtWidgets import (
 	QWidget, QFrame, QHBoxLayout,
@@ -10,7 +11,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize
 
-from backend.pipeline import predict
+from backend.pipeline import predict, hide
+from backend.predictor.results import Prediction
 
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
@@ -20,6 +22,7 @@ from frontend.components.preview import (
 )
 from frontend.components.quality_metrics_panel import QualityMetricsPanel
 from frontend.components.encryption_panel import EncryptionPanel
+from frontend.session import HideSession
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
@@ -33,7 +36,8 @@ class ProcessingView(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		self._prediction: Prediction | None = None
+		# self._prediction: Prediction | None = None
+		self._session: HideSession | None = None
 
 		load_stylesheet(self, "sections.css")
 
@@ -75,7 +79,6 @@ class ProcessingView(QWidget):
 		in_layout.addWidget(self.in_histogram)
 
 		metrics_section = QFrame()
-		metrics_section.setObjectName("metricsSection")
 		metrics_layout = QVBoxLayout(metrics_section)
 		metrics_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 		metrics_title_label = QLabel("Metrics")
@@ -123,33 +126,34 @@ class ProcessingView(QWidget):
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
 		self.image_uploader.image_removed.connect(self._on_image_removed)
+
+		self.encryption_panel.hide_request.connect(self._on_hide_request)
 		
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
-	def _get_processed_path(self, image_path: str) -> str:
-		path = Path(image_path)
-		return str(path.parent / f"processed_{path.name}")
-
 	def _on_image_uploaded(self, image_path: str):
 		image_data = self._transform_image_to_ndarray(image_path)
-		processed_path = self._get_processed_path(image_path)
 
-		self._prediction = predict(image_data)
-		self.quality_metrics_panel.set_metrics(self._prediction.metrics)
-		self.encryption_panel.enable_panel(self._prediction.metrics.payload_capacity)
+		self._session = HideSession(image_path, image_data)
+		self._session.prediction = predict(image_data)
 
+		self.quality_metrics_panel.set_metrics(self._session.prediction.metrics)	
+		self.encryption_panel.enable_panel(self._session.prediction.metrics.payload_capacity)
 		self.in_preview_manager.set_image(image_path, image_data)
-		self.out_preview_manager.set_image(image_path, image_data)
 		self.in_histogram.plot_histogram(image_data)
 
 	def _on_image_removed(self):
-		self._prediction = None
+		self._session = None
 		self.in_histogram.clear()
 		self.quality_metrics_panel.clear()
 		self.encryption_panel.clear()
 
-	def _transform_image_to_ndarray(self, image_path: str) -> ndarray:
+	def _on_hide_request(self, key: str, message: str):
+		self._session.marked_image = hide(self._session.prediction, key, message)
+		self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image)
+
+	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
 		if image_path.lower().endswith(".dcm"):
 			try:
 				dicom = dcmread(image_path)
@@ -165,50 +169,3 @@ class ProcessingView(QWidget):
 			)
 
 		return image
-
-	# def _predict_bytes(self, image: np.ndarray) -> np.ndarray:
-	# 	shape = image.shape[:2]
-	# 	image_batch = image[np.newaxis, :]
-
-	# 	pixels = shape[0] * shape[1]
-	# 	bpp = 8
-	# 	data_range = 2 ** bpp -1
-	# 	bits_per_image = pixels * bpp
-	# 	K_e = "password"
-	# 	K_h = "password"
-
-	# 	image_tensor = torch.from_numpy(image_batch).float()
-	# 	raw_ad = ppredict.pgm_raw_ad_sklearn(image_tensor)
-	# 	kernel_weights, ref_pixels, error_map, original = next(raw_ad)
-
-	# 	mask = ppredict.reference_mask(shape[0], shape[1])
-	# 	y = original.flatten()[~mask.flatten()].numpy().astype(np.float32)
-	# 	y_pred = y - error_map.numpy().astype(np.float32)
-
-	# 	psnr = peak_signal_noise_ratio(y, y_pred, data_range=data_range)
-	# 	ssim = structural_similarity(y, y_pred, data_range=data_range)
-
-	# 	ad = ccompress.compress_pgm_ad(shape, kernel_weights, ref_pixels, error_map)
-	# 	ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
-
-	# 	available_bits = bits_per_image - len(ad)
-	# 	emb_rate = available_bits / pixels
-
-	# 	self.quality_metrics.update_metrics(psnr, ssim, available_bits, emb_rate)
-
-	# 	print(len(ref_pixels))
-	# 	print(mask.sum().item())
-
-	# 	encrypted_image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-	# 	reconstructed = receive(encrypted_image, K_e, K_h, len(ref_pixels))
-	# 	check_images(image, reconstructed)
-
-	# 	return reconstructed
-
-	# def _reconstruct_bytes():
-	# 	pass
-
-	# # hider powinien wyladowac w osobnej funkcji, tak samo receive.
-	# # Przydałby sie moze jakis compute_manager, który trzyma czesc z wartosci i ma pod soba te funkcje
-	# # Tak samo jakas klasa qframe, ktora by trzymala haslo oraz wiadomosc do szyfrowania (moze ten  compute_manager)
-	# # Wtedy moglibysmy nałożyć style css na to.

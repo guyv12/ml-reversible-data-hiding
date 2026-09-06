@@ -25,7 +25,7 @@ def compute_metrics(
 	return QualityMetrics(
 		psnr=peak_signal_noise_ratio(y, y_pred, data_range=data_range),
 		ssim=structural_similarity(y, y_pred, data_range=data_range),
-		payload_capacity=capacity,
+		payload_capacity=capacity//8,
 		embedding_rate=capacity / pixels,
 	)
 	
@@ -33,3 +33,9 @@ def compute_metrics(
 class Prediction:
 	ad: bitarray
 	metrics: QualityMetrics
+	bpp: int
+	shape: tuple[int, int]
+
+	@property
+	def pixels(self) -> int:
+		return self.shape[0] * self.shape[1]
