@@ -150,8 +150,12 @@ class ProcessingView(QWidget):
 		self.encryption_panel.clear()
 
 	def _on_hide_request(self, key: str, message: str):
-		self._session.marked_image = hide(self._session.prediction, key, message)
-		self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image)
+		self.encryption_panel.set_busy(True)
+		try:
+			self._session.marked_image = hide(self._session.prediction, key, message)
+			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image)
+		finally:
+			self.encryption_panel.set_busy(False)
 
 	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
 		if image_path.lower().endswith(".dcm"):

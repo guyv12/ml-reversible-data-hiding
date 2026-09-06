@@ -13,8 +13,9 @@ class EncryptionPanel(QFrame):
 		super().__init__()
 		
 		self._capacity_bytes: int = 0
-		
-		self.layout = QVBoxLayout(self)
+		self._message_bytes: int = 0
+
+		layout = QVBoxLayout(self)
 		
 		self.encryption_key = QLineEdit()
 		self.encryption_key.setEnabled(False)
@@ -34,49 +35,25 @@ class EncryptionPanel(QFrame):
 		self.hide_button = QPushButton("Hide")
 		self.hide_button.setEnabled(False)
 
-		self.layout.addWidget(QLabel("Encryption key"))
-		self.layout.addWidget(self.encryption_key)
-		self.layout.addWidget(QLabel("Message to hide"))
-		self.layout.addWidget(self.message)
-		self.layout.addWidget(self.message_count_label)
-		self.layout.addWidget(self.hide_button)
+		layout.addWidget(QLabel("Encryption key"))
+		layout.addWidget(self.encryption_key)
+		layout.addWidget(QLabel("Message to hide"))
+		layout.addWidget(self.message)
+		layout.addWidget(self.message_count_label)
+		layout.addWidget(self.hide_button)
 
-		self.message.textChanged.connect(self._message_changed)
+		self.message.textChanged.connect(self._on_message_changed)
+		self.encryption_key.textChanged.connect(self._update_button)
 		self.hide_button.clicked.connect(self._on_button_pressed)
-		
-		load_stylesheet(self,"metrics.css")
 
-	def _message_changed(self):
-		text = self.message.toPlainText()
-		bytes_count = len(text.encode("utf-8"))
-		exceeded =  bytes_count > self._capacity_bytes
-		
-		self.message_count_label.setText(f"{bytes_count} / {self._capacity_bytes} B")
-
-		for widget in (self.message, self.message_count_label):
-			if widget.property("limit_exceeded") != exceeded:
-				widget.setProperty("limit_exceeded", exceeded)
-				widget.style().unpolish(widget)
-				widget.style().polish(widget)
-				widget.update()
-
-		self.hide_button.setEnabled(not exceeded and bool(text))
-
-	def _set_capacity(self, bytes: int):
-		self._capacity_bytes = bytes
-		self._message_changed()
-
-	def _on_button_pressed(self):
-		self.disable_panel()
-		self.hide_request.emit(
-			self.encryption_key.text(),
-			self.message.toPlainText()
-		)
+		load_stylesheet(self, "metrics.css")
+		self._update_button()
 
 	def enable_panel(self, bytes: int):
 		self.encryption_key.setEnabled(True)
 		self.message.setEnabled(True)
 		self._set_capacity(bytes)
+		self._on_message_changed()
 
 	def disable_panel(self):
 		self.encryption_key.setEnabled(False)
@@ -89,5 +66,56 @@ class EncryptionPanel(QFrame):
 		self.encryption_key.clear()
 
 		self._capacity_bytes = 0
+		self._message_bytes = 0
 		self.message_count_label.setText("-")
+		self._set_limit_exceeded(False)
+
+	def set_busy(self, busy: bool):
+		"""Lock inputs while the owner runs the hide step; unlock afterwards."""
+		self.encryption_key.setEnabled(not busy)
+		self.message.setEnabled(not busy)
+		if busy:
+			self.hide_button.setEnabled(False)
+		else:
+			self._update_button()
+
+	@property
+	def _limit_exceeded(self) -> bool:
+		return self._message_bytes > self._capacity_bytes
+
+	def _on_message_changed(self):
+		text = self.message.toPlainText()
+		self._message_bytes = len(text.encode("utf-8"))
+		
+		self.message_count_label.setText(f"{self._message_bytes} / {self._capacity_bytes} B")
+
+		self._set_limit_exceeded(self._limit_exceeded)
+		self._update_button()
+
+	def _set_limit_exceeded(self, exceeded: bool):
+		for widget in (self.message, self.message_count_label):
+			if widget.property("limit_exceeded") == exceeded:
+				continue
+			widget.setProperty("limit_exceeded", exceeded)
+			widget.style().unpolish(widget)
+			widget.style().polish(widget)
+			widget.update()
+
+	def _set_capacity(self, bytes_: int):
+		self._capacity_bytes = bytes_
+		self._on_message_changed()
+
+	def _on_button_pressed(self):
+		self.hide_request.emit(
+			self.encryption_key.text(),
+			self.message.toPlainText()
+		)
+
+	def _update_button(self):
+		self.hide_button.setEnabled(
+			self.message.isEnabled()
+			and not self._limit_exceeded
+			and self._message_bytes > 0
+			and bool(self.encryption_key.text())
+		)
 
