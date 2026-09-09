@@ -42,12 +42,13 @@ class ImagePreview(QWidget):
 	def _update_file_label(self, file_path: str):
 		pass
 
-	def set_image(self, file_path: str, image_data):
+	def set_image(self, file_path: str, image_data, template_path: str | None = None):
 		self._image_path = file_path
 		self._image_data = image_data
+		self._template_path = template_path or file_path
 		self._update_file_label(file_path)
 
-		if Path(self._image_path).suffix == ".dcm":
+		if Path(self._image_path).suffix.lower() == ".dcm":
 			try:
 				self._cached_pix = self._convert_dicom_to_pixmap()
 			except Exception as e:
@@ -68,6 +69,7 @@ class ImagePreview(QWidget):
 		self._image_path = None
 		self._image_data = None
 		self._cached_pix = None
+		self._template_path = None
 		self.photo_display.clear()
 
 	def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
@@ -119,8 +121,7 @@ class ImagePreview(QWidget):
 		).copy()
 
 	def _convert_dicom_to_pixmap(self) -> QPixmap:
-		dicom = dcmread(self._image_path)
-		raw_pixels = dicom.pixel_array.astype(np.int16)
+		raw_pixels = self._image_data.astype(np.int32)
 
 		pixel_min = raw_pixels.min()
 		pixel_max = raw_pixels.max()
@@ -130,7 +131,8 @@ class ImagePreview(QWidget):
 		else:
 			normalized = np.zeros_like(raw_pixels)
 
-		photometric = dicom.get("PhotometricInterpretation", "MONOCHROME2")
+		dicom_template = dcmread(self._template_path, stop_before_pixels=True)
+		photometric = dicom_template.get("PhotometricInterpretation", "MONOCHROME2")
 		if photometric == "MONOCHROME1":
 			normalized = 65535.0 - normalized
 
@@ -210,6 +212,7 @@ class InputImagePreview(ImagePreview):
 		self._image_path = None
 		self._image_data = None
 		self._cached_pix = None
+		self._template_path = None
 		self.file_label.clear()
 		self.photo_display.clear()
 
@@ -263,16 +266,17 @@ class OutputImagePreview(ImagePreview):
 	def _save_dicom(self, file_path: str):
 		data_to_save = self._image_data
 
-		dicom = dcmread(self._image_path)
-		array = data_to_save.astype(dicom.pixel_array.dtype)
-		dicom.PixelData = array.tobytes()
-
-		dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
-		dicom.is_little_endian = True
-		dicom.is_implicit_VR = False
-
 		try:
+			dicom = dcmread(self._image_path)
+			array = data_to_save.astype(dicom.pixel_array.dtype)
+			dicom.PixelData = array.tobytes()
+
+			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+			dicom.is_little_endian = True
+			dicom.is_implicit_VR = False
+
 			dicom.save_as(file_path)
+
 		except (OSError, PermissionError, Exception) as e:
 			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
 		else:

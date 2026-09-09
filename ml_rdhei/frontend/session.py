@@ -15,3 +15,8 @@ class HideSession:
     def output_path(self) -> str:
         path = Path(self.source_path)
         return str(path.parent / f"processed_{path.name}")
+
+    @property
+    def image_format(self) -> str:
+        path = Path(self.source_path)
+        return str(path.suffix)
