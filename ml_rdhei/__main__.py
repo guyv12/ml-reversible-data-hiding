@@ -63,7 +63,7 @@ def dicom_main():
             pixels = H * W
             bits_per_image = pixels * bpp
 
-            available_bits = bits_per_image - (len(ad) * 8)
+            available_bits = bits_per_image - len(ad)
             emb_rate = available_bits / pixels
             rates += emb_rate
             counter += 1

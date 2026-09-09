@@ -83,7 +83,7 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
 
     return ad_bits
 
-def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bytes:
+def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 16
@@ -99,6 +99,7 @@ def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, i
     ad = format(len(ad), f'0{header_width}b') + ad
 
     # change bits string to bytes
-    ad_bytes = __bits_to_bytes(ad)
+    ad_bits = bitarray(ad)
+    # ad_bytes = __bits_to_bytes(ad)
 
-    return ad_bytes
+    return ad_bits

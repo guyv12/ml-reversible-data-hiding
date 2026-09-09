@@ -137,7 +137,7 @@ class ProcessingView(QWidget):
 		image_data = self._transform_image_to_ndarray(image_path)
 
 		self._session = HideSession(image_path, image_data)
-		self._session.prediction = predict(image_data)
+		self._session.prediction = predict(image_data, self._session.image_format)
 
 		metrics = self._session.prediction.metrics
 		self.quality_metrics_panel.set_metrics(metrics)	
@@ -147,7 +147,7 @@ class ProcessingView(QWidget):
 		else:
 			self.encryption_panel.clear()
 			QMessageBox.warning(self,
-			"This image cannot hide a message",
+			"No usable capacity",
 			"Restoring the image afterwards would require more data than the "
         	"image itself can hold. This happens with images that are already "
         	"encrypted or contain very little detail."
@@ -166,7 +166,7 @@ class ProcessingView(QWidget):
 		self.encryption_panel.set_busy(True)
 		try:
 			self._session.marked_image = hide(self._session.prediction, key, message)
-			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image)
+			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
 		finally:
 			self.encryption_panel.set_busy(False)
 

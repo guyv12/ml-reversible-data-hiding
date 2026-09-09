@@ -39,10 +39,10 @@ class PreviewManager(QFrame):
 	def has_image(self) -> bool:
 		return self._image_path is not None
 
-	def set_image(self, file_path: str | None, image_data: np.ndarray | None):
+	def set_image(self, file_path: str | None, image_data: np.ndarray | None, template_path: str | None = None):
 		self._image_path = file_path
 		self._image_data = image_data
-		self.image_preview.set_image(file_path, image_data)
+		self.image_preview.set_image(file_path, image_data, template_path)
 		self.update_ui()
 		self.image_loaded.emit(image_data)
 		
