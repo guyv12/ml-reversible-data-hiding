@@ -49,19 +49,19 @@ class EncryptionPanel(QFrame):
 		load_stylesheet(self, "metrics.css")
 		self._update_button()
 
-	def enable_panel(self, bytes: int):
+	def enable(self, bytes: int):
 		self.encryption_key.setEnabled(True)
 		self.message.setEnabled(True)
 		self._set_capacity(bytes)
 		self._on_message_changed()
 
-	def disable_panel(self):
+	def disable(self):
 		self.encryption_key.setEnabled(False)
 		self.message.setEnabled(False)
 		self.hide_button.setEnabled(False)
 
 	def clear(self):
-		self.disable_panel()
+		self.disable()
 		self.message.clear()
 		self.encryption_key.clear()
 
