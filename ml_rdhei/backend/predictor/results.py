@@ -10,6 +10,10 @@ class QualityMetrics:
 	payload_capacity: int
 	embedding_rate: float
 
+	@property
+	def allow_embedding(self) -> bool:
+		return self.payload_capacity > 0
+
 def compute_metrics(
 	original,
 	error_map,

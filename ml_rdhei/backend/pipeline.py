@@ -30,7 +30,6 @@ def predict(image: np.ndarray, bpp: int = 8) -> Prediction:
 
     ad = ccompress.compress_pgm_ad((H, W), kernel_weights, ref_pixels, error_map)
     metrics = compute_metrics(original, error_map, mask, len(ad), bpp)
-    pixels = (metrics.payload_capacity + len(ad)) // bpp
     return Prediction(ad, metrics, bpp, (H, W))
 
 def hide(prediction: Prediction, key: str, message: str) -> np.ndarray:

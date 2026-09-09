@@ -6,7 +6,7 @@ from pathlib import Path
 from bitarray import bitarray
 
 from PySide6.QtWidgets import (
-	QWidget, QFrame, QHBoxLayout,
+	QWidget, QFrame, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
 from PySide6.QtCore import Qt, QSize
@@ -139,8 +139,20 @@ class ProcessingView(QWidget):
 		self._session = HideSession(image_path, image_data)
 		self._session.prediction = predict(image_data)
 
-		self.quality_metrics_panel.set_metrics(self._session.prediction.metrics)	
-		self.encryption_panel.enable_panel(self._session.prediction.metrics.payload_capacity)
+		metrics = self._session.prediction.metrics
+		self.quality_metrics_panel.set_metrics(metrics)	
+
+		if metrics.allow_embedding:
+			self.encryption_panel.enable(metrics.payload_capacity)
+		else:
+			self.encryption_panel.clear()
+			QMessageBox.warning(self,
+			"This image cannot hide a message",
+			"Restoring the image afterwards would require more data than the "
+        	"image itself can hold. This happens with images that are already "
+        	"encrypted or contain very little detail."
+			)
+
 		self.in_preview_manager.set_image(image_path, image_data)
 		self.in_histogram.plot_histogram(image_data)
 
