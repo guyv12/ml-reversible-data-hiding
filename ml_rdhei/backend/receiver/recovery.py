@@ -29,14 +29,7 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
             if r % 2 != 0 or c % 2 != 0:
                 feature_vector = get_feature_vector(r, c, only_ref_pixels, k)
 
-                if len(feature_vector) == k**2:
-                    prediction = np.dot(feature_vector, weights)
-                else:
-                    counter = 0
-                    for f in feature_vector:
-                        if f > 0:
-                            counter +=1
-                    prediction = np.sum(feature_vector) / counter
+                prediction = np.dot(feature_vector, weights)
 
                 original_val = int(round(prediction)) + error_map[error_idx]
                 #if original_val < 0:
@@ -50,9 +43,13 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
 def get_feature_vector(r: int, c: int, reconstructed_img, k: int = 5):
     H, W = reconstructed_img.shape
     feature_vector = []
-    for i in range(-(k//2), k//2+1):
-        for j in range(-(k//2), k//2+1):
-            if 0 <= r - i < H and 0 <= c - j < W :
-                feature_vector.append(reconstructed_img[r-i, c-j])
+    half = k // 2
+    for i in range(-half, half + 1):
+        for j in range(-half, half + 1):
+            row, col = r + i, c + j
+            if 0 <= row < H and 0 <= col < W:
+                feature_vector.append(int(reconstructed_img[row, col]))
+            else:
+                feature_vector.append(0)
 
     return feature_vector
