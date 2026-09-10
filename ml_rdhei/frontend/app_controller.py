@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from frontend.config import APP_SHELL_SIZE
-from frontend.views import MainView, ProcessingView, AboutDialog
+from frontend.views import MenuView, HidingView, AboutDialog
 
 class AppController:
 	"""
@@ -19,21 +19,21 @@ class AppController:
 		self.stack = QStackedWidget()
 		self.app_shell.setCentralWidget(self.stack)
 
-		self.main_view = MainView()
-		self.processing_view = ProcessingView()
+		self.menu_view = MenuView()
+		self.hiding_view = HidingView()
 		self.about_dialog = AboutDialog()
 
-		self.stack.addWidget(self.main_view)
-		self.stack.addWidget(self.processing_view)
+		self.stack.addWidget(self.menu_view)
+		self.stack.addWidget(self.hiding_view)
 		
-		self.main_view.processing_view_btn.clicked.connect(
-			lambda: self.stack.setCurrentWidget(self.processing_view)
+		self.menu_view.hiding_view_btn.clicked.connect(
+			lambda: self.stack.setCurrentWidget(self.hiding_view)
 		)
 		
-		self.main_view.about_dialog_btn.clicked.connect(self.about_dialog.exec)
+		self.menu_view.about_dialog_btn.clicked.connect(self.about_dialog.exec)
 
-		self.processing_view.return_btn.clicked.connect(
-			lambda: self.stack.setCurrentWidget(self.main_view)
+		self.hiding_view.return_btn.clicked.connect(
+			lambda: self.stack.setCurrentWidget(self.menu_view)
 		)
 		
 	def run(self):

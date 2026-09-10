@@ -16,8 +16,8 @@ class AboutDialog(QDialog):
 
 		layout = QVBoxLayout(self)
 		layout.addWidget(QLabel(f"<b>RDHEI Version {APP_VERSION}</b>"))
-		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Processing"))
-		layout.addWidget(QLabel("Jakub Wiśniewski: Image Processing"))
+		layout.addWidget(QLabel("Igor Sitko-Bajorski: DICOM Hiding"))
+		layout.addWidget(QLabel("Jakub Wiśniewski: Image Hiding"))
 		layout.addWidget(QLabel("Konrad Machura: User Interface"))
 
 		self.close_btn = QDialogButtonBox(QDialogButtonBox.Close)

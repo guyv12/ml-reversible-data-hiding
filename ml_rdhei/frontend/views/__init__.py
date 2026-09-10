@@ -1,3 +1,3 @@
-from frontend.views.main_view import MainView
-from frontend.views.processing_view import ProcessingView
+from frontend.views.menu_view import MenuView
+from frontend.views.hiding_view import HidingView
 from frontend.views.about_dialog import AboutDialog

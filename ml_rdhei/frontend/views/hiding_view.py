@@ -26,9 +26,9 @@ from frontend.session import HideSession
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
-class ProcessingView(QWidget):
+class HidingView(QWidget):
 	"""
-	Processing screen view for RDHEI operations.
+	Hiding screen view for RDHEI operations.
 
 	Provides workspace and UI controls for RDHEI operations.
 	"""
@@ -42,7 +42,7 @@ class ProcessingView(QWidget):
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
-		self.title_label = QLabel("Image Processing View")
+		self.title_label = QLabel("Image Hiding View")
 		self.title_label.setFixedHeight(30)
 		self.return_btn = QPushButton("Return to main window")
 		layout.addWidget(self.title_label)
