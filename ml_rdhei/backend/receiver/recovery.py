@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], k: int = 5):
 
     h, w = 512, 512
