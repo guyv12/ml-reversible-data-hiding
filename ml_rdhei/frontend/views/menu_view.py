@@ -5,12 +5,12 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 
 from frontend.config import (
-	MENU_WIDTH, ZERO_MARGINS, PROCESSING_VIEW_IMAGE_PATH,
+	MENU_WIDTH, ZERO_MARGINS, HIDING_VIEW_IMAGE_PATH,
 	ABOUT_DIALOG_IMAGE_PATH, STARTING_IMAGE_PATH
 )
 from frontend.components.hover_button import HoverButton
 	
-class MainView(QWidget):
+class MenuView(QWidget):
 	"""
 	Main application landing view.
 	
@@ -26,14 +26,14 @@ class MainView(QWidget):
 		self.photo_display.setContentsMargins(*ZERO_MARGINS)
 		self.update_image(STARTING_IMAGE_PATH)
 
-		self.processing_view_btn = HoverButton("Image", PROCESSING_VIEW_IMAGE_PATH)
+		self.hiding_view_btn = HoverButton("Image", HIDING_VIEW_IMAGE_PATH)
 		self.about_dialog_btn = HoverButton("About", ABOUT_DIALOG_IMAGE_PATH)
 
-		self.processing_view_btn.hovered.connect(self.update_image)
+		self.hiding_view_btn.hovered.connect(self.update_image)
 		self.about_dialog_btn.hovered.connect(self.update_image)
 
 		menu_layout = QVBoxLayout(self)
-		menu_layout.addWidget(self.processing_view_btn)
+		menu_layout.addWidget(self.hiding_view_btn)
 		menu_layout.addWidget(self.about_dialog_btn)
 
 		menu_container = QWidget()

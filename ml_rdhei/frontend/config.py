@@ -22,5 +22,5 @@ ASSETS_DIR = FRONTEND_DIR / "assets"
 STYLES_DIR = ASSETS_DIR / "styles"
 
 STARTING_IMAGE_PATH = str(ASSETS_DIR / "start.webp")
-PROCESSING_VIEW_IMAGE_PATH = str(ASSETS_DIR / "processing.webp")
+HIDING_VIEW_IMAGE_PATH = str(ASSETS_DIR / "hiding.webp")
 ABOUT_DIALOG_IMAGE_PATH = str(ASSETS_DIR / "about.webp")
