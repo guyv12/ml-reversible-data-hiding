@@ -267,10 +267,14 @@ class OutputImagePreview(ImagePreview):
 		data_to_save = self._image_data
 
 		try:
-			dicom = dcmread(self._image_path)
+			dicom = dcmread(self._template_path)
 			array = data_to_save.astype(dicom.pixel_array.dtype)
 			dicom.PixelData = array.tobytes()
 
+			dicom.BitsAllocated = 16
+			dicom.BitsStored = 16
+			dicom.HighBit = 15
+			dicom.PixelRepresentation = 0
 			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
 			dicom.is_little_endian = True
 			dicom.is_implicit_VR = False
