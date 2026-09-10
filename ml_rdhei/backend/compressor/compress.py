@@ -93,7 +93,7 @@ def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, i
 
     ad += __compress_kernel_weights(img2_kernel_weights)
     ad += __compress_ref_pixels(img2_ref_pixels)
-    ad += __compress_error_map(img2_error_map, N, len(img2_ref_pixels))
+    ad += __compress_error_map(img2_error_map, N, 0)
 
     # add len(ad) at the beggining
     ad = format(len(ad), f'0{header_width}b') + ad
