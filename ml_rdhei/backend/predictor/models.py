@@ -24,6 +24,15 @@ def __get_sklearn_model():
 def __get_torch_model():
     raise NotImplementedError("Torch model is not implemented yet...")
 
+WEIGHT_FRACTION_BITS = 20
+
+def fixed_point_round(accumulator):
+    scale = 1 << WEIGHT_FRACTION_BITS
+    return (accumulator + scale // 2) // scale
+
+def quantize_weights(weights: torch.Tensor) -> torch.Tensor:
+    scaled = weights.to(torch.float64) * (1 << WEIGHT_FRACTION_BITS)
+    return torch.round(scaled).to(torch.int64)
 
 def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     """
@@ -38,11 +47,11 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch
     X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
     model.fit(X_np, y_np)
 
-    kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
+    kernel_weights = quantize_weights(torch.from_numpy(model.coef_))
     
-    y_pred = X.to(torch.float64) @ kernel_weights
-    
-    error_map = (y.to(torch.int16) - torch.round(y_pred).to(torch.int16))
+    y_pred = fixed_point_round(X.to(torch.int64) @ kernel_weights)
+
+    error_map = (y.to(torch.int64) - y_pred).to(torch.int16)
 
     return kernel_weights, error_map
 

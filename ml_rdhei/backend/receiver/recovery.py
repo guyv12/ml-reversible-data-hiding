@@ -1,11 +1,17 @@
 import numpy as np
 from backend.predictor.predict import reference_mask
+from backend.predictor.models import fixed_point_round
 
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
              img_size: tuple[int, int], k: int = 5):
 
     H, W = img_size
     n_ref = int(reference_mask(H, W).sum().item())
+
+    if any(w != int(w) for w in weights):
+        raise ValueError(
+            "Kernel weights must arrive as fixed point integers"
+        )
     
     if len(ref_pixels) != n_ref or len(error_map) != H * W - n_ref:
         raise ValueError(
@@ -29,9 +35,12 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
             if r % 2 != 0 or c % 2 != 0:
                 feature_vector = get_feature_vector(r, c, only_ref_pixels, k)
 
-                prediction = np.dot(feature_vector, weights)
+                accumulator = sum(
+                    int(w) * value for w, value in zip(weights, feature_vector)
+                )
+                prediction = fixed_point_round(accumulator)
 
-                original_val = int(round(prediction)) + error_map[error_idx]
+                original_val = prediction + error_map[error_idx]
                 #if original_val < 0:
                 #    print(f"{original_val}: [{r},{c}]")
                 error_idx += 1
