@@ -38,11 +38,12 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor) -> tuple[torch.Tensor, torch
     X_np, y_np = X.float().numpy(), y.float().numpy() # sklearn requires float & numpy
     model.fit(X_np, y_np)
 
-    y_pred = torch.from_numpy(model.predict(X_np))
-    error_map = (y.to(torch.int16) - y_pred.to(torch.int16)) # convert to int16 for accurate output 
-
     kernel_weights = torch.from_numpy(model.coef_).to(torch.float64) # stored as float64 to ensure full image recovery
     
+    y_pred = X.to(torch.float64) @ kernel_weights
+    
+    error_map = (y.to(torch.int16) - torch.round(y_pred).to(torch.int16))
+
     return kernel_weights, error_map
 
 def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
