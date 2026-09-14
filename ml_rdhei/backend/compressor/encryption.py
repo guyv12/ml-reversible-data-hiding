@@ -24,6 +24,11 @@ def encrypt_data(data_bits: bitarray, key: str) -> bitarray:
 
 def encrypt_ad(ad: bitarray, n: int, bpp: int, key: str) -> bitarray:
     header = int(math.ceil(math.log2(n * bpp)))
+<<<<<<< HEAD:ml_rdhei/compressor/encryption.py
+=======
+    #ad_bits = bitarray()
+    #ad_bits.frombytes(ad)
+>>>>>>> development_2:ml_rdhei/backend/compressor/encryption.py
     ad_header = ad[:header]
     ad_rest = encrypt_data(ad[header:], key)
     return ad_header + ad_rest
