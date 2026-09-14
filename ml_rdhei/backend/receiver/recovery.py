@@ -26,7 +26,8 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
     feature_matrix = windows.reshape(-1, k * k)
     feature_matrix = feature_matrix[interior_mask.ravel()]
 
-    predictions = feature_matrix @ weights
+    predictions = np.round(feature_matrix @ weights)
+    predictions = predictions.clip(0, 255)
 
     errors = error_img[half:h-half,half:w-half][interior_mask]
 
