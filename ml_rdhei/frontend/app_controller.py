@@ -1,7 +1,10 @@
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from frontend.config import APP_SHELL_SIZE
-from frontend.views import MenuView, HidingView, AboutDialog
+from frontend.views import (
+	MenuView, HidingView, 
+	ExtractingView, AboutDialog
+)
 
 class AppController:
 	"""
@@ -21,18 +24,28 @@ class AppController:
 
 		self.menu_view = MenuView()
 		self.hiding_view = HidingView()
+		self.extracting_view = ExtractingView()
 		self.about_dialog = AboutDialog()
 
 		self.stack.addWidget(self.menu_view)
 		self.stack.addWidget(self.hiding_view)
+		self.stack.addWidget(self.extracting_view)
 		
 		self.menu_view.hiding_view_btn.clicked.connect(
 			lambda: self.stack.setCurrentWidget(self.hiding_view)
+		)
+
+		self.menu_view.extracting_view_btn.clicked.connect(
+			lambda: self.stack.setCurrentWidget(self.extracting_view)
 		)
 		
 		self.menu_view.about_dialog_btn.clicked.connect(self.about_dialog.exec)
 
 		self.hiding_view.return_btn.clicked.connect(
+			lambda: self.stack.setCurrentWidget(self.menu_view)
+		)
+
+		self.extracting_view.return_btn.clicked.connect(
 			lambda: self.stack.setCurrentWidget(self.menu_view)
 		)
 		
