@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QDir
 
 from frontend.utils import load_stylesheet
-from frontend.config import ZERO_MARGINS
+from frontend.config import ZERO_MARGINS, ACCEPTED_FORMATS
 from frontend.components.preview_manager import PreviewManager
 
 class ImageUploader(QFrame):
@@ -69,7 +69,7 @@ class ImageUploader(QFrame):
 				QDir.homePath(), 
 				self.tr("Image Files (*.pgm *.dcm)"),
 			)
-			if file_path and file_path.lower().endswith(('.pgm', '.dcm')):
+			if file_path and file_path.lower().endswith(ACCEPTED_FORMATS):
 				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
 				self._update_style(has_image=True)
@@ -77,7 +77,7 @@ class ImageUploader(QFrame):
 	def dragEnterEvent(self, event: QDragEnterEvent):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
-			if urls and urls[0].toLocalFile().lower().endswith(('.pgm', '.dcm')):
+			if urls and urls[0].toLocalFile().lower().endswith(ACCEPTED_FORMATS):
 				event.acceptProposedAction()
 				self._set_drag_active(True)
 				return
@@ -95,7 +95,7 @@ class ImageUploader(QFrame):
 			urls = event.mimeData().urls()
 			if urls:
 				file_path = urls[0].toLocalFile()
-				if file_path.lower().endswith(('.pgm', '.dcm')):
+				if file_path.lower().endswith(ACCEPTED_FORMATS):
 					event.acceptProposedAction()
 					self.image_uploaded.emit(file_path)
 					self._update_style(has_image=True)
