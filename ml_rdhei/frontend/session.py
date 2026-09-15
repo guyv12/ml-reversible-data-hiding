@@ -6,17 +6,15 @@ from backend.predictor.results import Prediction
 
 @dataclass
 class HideSession:
-    source_path: str
+    source_path: Path
     source_image: ndarray
     prediction: Prediction | None = None
     marked_image: ndarray | None = None
 
     @property
-    def output_path(self) -> str:
-        path = Path(self.source_path)
-        return str(path.parent / f"processed_{path.name}")
+    def output_path(self) -> Path:
+        return self.source_path.with_name(f"processed_{self.source_path.name}")
 
     @property
     def image_format(self) -> str:
-        path = Path(self.source_path)
-        return str(path.suffix)
+        return self.source_path.suffix.lower()

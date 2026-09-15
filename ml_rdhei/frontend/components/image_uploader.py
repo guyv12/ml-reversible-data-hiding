@@ -16,7 +16,7 @@ class ImageUploader(QFrame):
 	Supports selecting or dropping grayscale (PGM) and DICOM images.
 	Manages image preview scaling and emits signals when an image is loaded or cleared.
 	"""
-	image_uploaded = Signal(object)
+	image_uploaded = Signal(Path)
 	image_removed = Signal()
 
 	def __init__(
@@ -63,13 +63,17 @@ class ImageUploader(QFrame):
 		super().mousePressEvent(event)
 
 		if not self.has_image and event.button() == Qt.MouseButton.LeftButton:
-			file_path, _ = QFileDialog.getOpenFileName(
+			path, _ = QFileDialog.getOpenFileName(
 				self, 
 				self.tr("Select Image"), 
 				QDir.homePath(), 
 				self.tr(IMAGE_FILE_FILTER),
 			)
-			if file_path and file_path.lower().endswith(ACCEPTED_FORMATS):
+			if not path:
+				return
+
+			file_path = Path(path)
+			if file_path.suffix.lower() in ACCEPTED_FORMATS:
 				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
 				self._update_style(has_image=True)
@@ -77,7 +81,7 @@ class ImageUploader(QFrame):
 	def dragEnterEvent(self, event):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
-			if urls and urls[0].toLocalFile().lower().endswith(ACCEPTED_FORMATS):
+			if urls and Path(urls[0].toLocalFile()).suffix.lower() in ACCEPTED_FORMATS:
 				event.acceptProposedAction()
 				self._set_drag_active(True)
 				return
@@ -94,8 +98,8 @@ class ImageUploader(QFrame):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
 			if urls:
-				file_path = urls[0].toLocalFile()
-				if file_path.lower().endswith(ACCEPTED_FORMATS):
+				file_path = Path(urls[0].toLocalFile())
+				if file_path.suffix.lower() in ACCEPTED_FORMATS:
 					event.acceptProposedAction()
 					self.image_uploaded.emit(file_path)
 					self._update_style(has_image=True)

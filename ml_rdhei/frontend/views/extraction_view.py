@@ -101,7 +101,7 @@ class ExtractionView(QWidget):
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
-	def _on_image_uploaded(self, image_path: str):
+	def _on_image_uploaded(self, image_path: Path):
 		image_data = transform_image_to_ndarray(image_path)
 
 		self.in_preview_manager.set_image(image_path, image_data)
