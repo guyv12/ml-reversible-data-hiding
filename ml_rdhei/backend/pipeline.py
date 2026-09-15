@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from pydicom import dcmread
 from bitarray import bitarray
 
 import backend.predictor.predict as ppredict
@@ -22,6 +23,24 @@ def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int
 
     dtype = {8: np.uint8, 16: np.dtype(">u2")}[bpp]
     return np.frombuffer(padded.tobytes(), dtype=dtype).reshape(H, W)
+
+def transform_image_to_ndarray(image_path: str) -> np.ndarray:
+		if image_path.lower().endswith(".dcm"):
+			try:
+				dicom = dcmread(image_path)
+				image = dicom.pixel_array
+			except Exception as e:
+				raise ValueError(f"Failed to decode DICOM file '{path}': {e}") from e
+		else:
+			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+
+		if image is None:
+			raise FileNotFoundError(
+				f"""Failed to load image: File not found or unreadable at '{image_path}'"""
+			)
+
+		return image
+
 
 def predict(image: np.ndarray, fmt: str) -> Prediction:
     H, W = image.shape[:2]
