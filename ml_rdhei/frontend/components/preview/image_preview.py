@@ -13,7 +13,7 @@ from PySide6.QtGui import QPixmap, QImage, QFontMetrics
 
 from frontend.config import (
 	IMAGE_HEADER_MARGIN, PHOTO_DISPLAY_MARGIN,
-	ZERO_MARGINS, LABEL_BUTTON_SIZE
+	ZERO_MARGINS, LABEL_BUTTON_SIZE, IMAGE_FILE_FILTER
 )
 
 class ImagePreview(QWidget):
@@ -296,7 +296,7 @@ class OutputImagePreview(ImagePreview):
 				self, 
 				self.tr("Save Image"), 
 				str(Path.home() / str(file_name)), 
-				self.tr("Image Files (*.pgm *.dcm)"),
+				self.tr(IMAGE_FILE_FILTER),
 			)
 
 		if not file_path:

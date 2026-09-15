@@ -15,7 +15,8 @@ ZERO_MARGINS: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
 EMPTY_LAYOUT_SPACING: Final[int] = 8
 ICON_SIZE: Final[tuple[int, int]] = (48, 48)
 LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
-ACCEPTED_FORMATS: Final[tuple[str, str]] = ('.pgm', '.dcm')
+ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
+IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 

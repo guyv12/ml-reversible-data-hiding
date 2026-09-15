@@ -1,11 +1,9 @@
 from PySide6.QtWidgets import (
-	QWidget, QFrame, QHBoxLayout, QMessageBox,
+	QWidget, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
-from PySide6.QtCore import Qt, QSize
 
 from backend.pipeline import predict, hide, transform_image_to_ndarray
-from backend.predictor.results import Prediction
 
 from frontend.components.section_frame import SectionFrame
 from frontend.components.image_uploader import ImageUploader
@@ -17,7 +15,7 @@ from frontend.components.preview import (
 from frontend.components.quality_metrics_panel import QualityMetricsPanel
 from frontend.components.encryption_panel import EncryptionPanel
 from frontend.session import HideSession
-from frontend.config import SECTIONS_LABEL_HEIGHT
+from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
 
 class ExtractionView(QWidget):
@@ -49,7 +47,7 @@ class ExtractionView(QWidget):
 			"Drop Grayscale or DICOM image",
 			"system-file-manager",
 			"or click to browse",
-			[".pgm", ".dcm"]
+			ACCEPTED_FORMATS
 		)
 		self.in_image_preview = InputImagePreview()
 		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
@@ -59,16 +57,16 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.layout.addWidget(self.image_uploader)
-		in_section.layout.addWidget(self.in_histogram)
+		in_section.add_widget(self.image_uploader)
+		in_section.add_widget(self.in_histogram)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
 		self.quality_metrics_panel = QualityMetricsPanel()
 		self.encryption_panel = EncryptionPanel()
 	
-		metrics_section.layout.addWidget(self.quality_metrics_panel)
-		metrics_section.layout.addWidget(self.encryption_panel)
+		metrics_section.add_widget(self.quality_metrics_panel)
+		metrics_section.add_widget(self.encryption_panel)
 
 		out_section = SectionFrame("Output", "outputSection")
 
@@ -83,8 +81,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.layout.addWidget(self.out_preview_manager)
-		out_section.layout.addWidget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager)
+		out_section.add_widget(self.out_histogram)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
