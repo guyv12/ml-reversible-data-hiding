@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from cv2 import imread, IMREAD_UNCHANGED
 from pydicom import dcmread
 from bitarray import bitarray
 
@@ -21,7 +22,7 @@ def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int
     padded = bitarray(bits)
     padded.extend([0] * (total_bits - len(bits)))
 
-    dtype = {8: np.uint8, 16: np.dtype(">u2")}[bpp]
+    dtype = {8: np.uint8, 16: np.uint16}[bpp]
     return np.frombuffer(padded.tobytes(), dtype=dtype).reshape(H, W)
 
 def transform_image_to_ndarray(image_path: str) -> np.ndarray:
@@ -30,9 +31,9 @@ def transform_image_to_ndarray(image_path: str) -> np.ndarray:
 				dicom = dcmread(image_path)
 				image = dicom.pixel_array
 			except Exception as e:
-				raise ValueError(f"Failed to decode DICOM file '{path}': {e}") from e
+				raise ValueError(f"Failed to decode DICOM file '{image_path}': {e}")
 		else:
-			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+			image = imread(image_path, IMREAD_UNCHANGED)
 
 		if image is None:
 			raise FileNotFoundError(
@@ -46,7 +47,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
     H, W = image.shape[:2]
     mask = ppredict.reference_mask(H, W)
 
-    if fmt == ".pgm":
+    if fmt.lower() == ".pgm":
         bpp = 8
         tensor = torch.from_numpy(image[np.newaxis]).float()
         raw_ad = ppredict.pgm_raw_ad_sklearn(tensor)
@@ -56,7 +57,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         metrics = compute_metrics(tensor, error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
-    elif fmt == ".dcm":
+    elif fmt.lower() == ".dcm":
         bpp = 16
         tensor = torch.from_numpy(image[np.newaxis]).int()
         raw_ad = ppredict.dicom_raw_ad_sklearn(tensor)
@@ -67,7 +68,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         return Prediction(ad, metrics, bpp, (H, W))
 
     else:
-        raise ValueError(f"Unsupported image format: '{ext}'")
+        raise ValueError(f"Unsupported image format: '{fmt}'")
     
 
 def hide(prediction: Prediction, key: str, message: str) -> np.ndarray:

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
 	QWidget, QMessageBox, QVBoxLayout, QHBoxLayout,
 	QLabel, QPushButton, QFileDialog
 ) 
-from PySide6.QtCore import Qt, Signal, QDir
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QImage, QFontMetrics
 
 from frontend.config import (
@@ -50,7 +50,10 @@ class ImagePreview(QWidget):
 
 		if Path(self._image_path).suffix.lower() == ".dcm":
 			try:
-				self._cached_pix = self._convert_dicom_to_pixmap()
+				self._cached_pix = convert_dicom_to_pixmap(
+					self._image_data,
+					self._template_path
+				)
 			except Exception as e:
 				QMessageBox.warning(
 					self,
@@ -60,7 +63,7 @@ class ImagePreview(QWidget):
 				self._cached_pix = None
 
 		else:
-			image = self._convert_ndarray_to_QImage(self._image_data)
+			image = convert_ndarray_to_QImage(self._image_data)
 			self._cached_pix = QPixmap.fromImage(image)
 
 		self._update_photo_display()
@@ -71,76 +74,6 @@ class ImagePreview(QWidget):
 		self._cached_pix = None
 		self._template_path = None
 		self.photo_display.clear()
-
-	def _convert_ndarray_to_QImage(self, array: np.ndarray) -> QImage:
-		if array is None or array.size == 0:
-			return QImage()
-		
-		bytes_per_line = array.strides[0]
-		
-		if array.ndim == 2:
-			if array.dtype == np.uint8:
-				image_format = QImage.Format.Format_Grayscale8
-
-			elif array.dtype == np.uint16:
-				image_format = QImage.Format.Format_Grayscale16
-				
-			else:
-				image_format = QImage.Format.Format_Grayscale8
-
-		elif array.ndim == 3:
-			channels = array.shape[2]
-
-			if channels == 1:
-				array = array.squeeze(axis=2)
-				return self._convert_ndarray_to_QImage(array)
-
-			elif channels == 3:
-				if array.dtype == np.uint8:
-					image_format = QImage.Format.Format_BGR888
-				else:
-					image_format = QImage.Format.Format_Grayscale8
-
-			elif channels == 4:
-				if array.dtype == np.uint8:
-					image_format = QImage.Format.Format_ARGB32
-				else:
-					image_format = QImage.Format.Format_Grayscale8
-			else:
-				return QImage()
-
-		else:
-			return QImage()
-
-		return QImage(
-			array.data,
-			array.shape[1],
-			array.shape[0],
-			bytes_per_line,
-			image_format
-		).copy()
-
-	def _convert_dicom_to_pixmap(self) -> QPixmap:
-		raw_pixels = self._image_data.astype(np.int32)
-
-		pixel_min = raw_pixels.min()
-		pixel_max = raw_pixels.max()
-	
-		if pixel_min != pixel_max:
-			normalized = ((raw_pixels - pixel_min) / (pixel_max - pixel_min)) * 65535.0
-		else:
-			normalized = np.zeros_like(raw_pixels)
-
-		dicom_template = dcmread(self._template_path, stop_before_pixels=True)
-		photometric = dicom_template.get("PhotometricInterpretation", "MONOCHROME2")
-		if photometric == "MONOCHROME1":
-			normalized = 65535.0 - normalized
-
-		norm_pixels = normalized.astype(np.uint16)
-
-		image = self._convert_ndarray_to_QImage(norm_pixels)
-
-		return QPixmap.fromImage(image).copy()
 
 	def _update_photo_display(self):
 		if self._cached_pix is None or self._cached_pix.isNull():
@@ -179,6 +112,76 @@ class ImagePreview(QWidget):
 		# Avoid redundant update on first load; only recalculate image scale on actual resize
 		if self._cached_pix and not self._cached_pix.isNull():
 			self._update_photo_display()
+
+def convert_ndarray_to_QImage(array: np.ndarray) -> QImage:
+		if array is None or array.size == 0:
+			return QImage()
+		
+		bytes_per_line = array.strides[0]
+		
+		if array.ndim == 2:
+			if array.dtype == np.uint8:
+				image_format = QImage.Format.Format_Grayscale8
+
+			elif array.dtype == np.uint16:
+				image_format = QImage.Format.Format_Grayscale16
+				
+			else:
+				image_format = QImage.Format.Format_Grayscale8
+
+		elif array.ndim == 3:
+			channels = array.shape[2]
+
+			if channels == 1:
+				array = array.squeeze(axis=2)
+				return convert_ndarray_to_QImage(array)
+
+			elif channels == 3:
+				if array.dtype == np.uint8:
+					image_format = QImage.Format.Format_BGR888
+				else:
+					image_format = QImage.Format.Format_Grayscale8
+
+			elif channels == 4:
+				if array.dtype == np.uint8:
+					image_format = QImage.Format.Format_ARGB32
+				else:
+					image_format = QImage.Format.Format_Grayscale8
+			else:
+				return QImage()
+
+		else:
+			return QImage()
+
+		return QImage(
+			array.data,
+			array.shape[1],
+			array.shape[0],
+			bytes_per_line,
+			image_format
+		).copy()
+
+def convert_dicom_to_pixmap(image_data: np.ndarray, template_path: str) -> QPixmap:
+	raw_pixels = image_data.astype(np.int32)
+
+	pixel_min = raw_pixels.min()
+	pixel_max = raw_pixels.max()
+
+	if pixel_min != pixel_max:
+		normalized = ((raw_pixels - pixel_min) / (pixel_max - pixel_min)) * 65535.0
+	else:
+		normalized = np.zeros_like(raw_pixels)
+
+	dicom_template = dcmread(template_path, stop_before_pixels=True)
+	photometric = dicom_template.get("PhotometricInterpretation", "MONOCHROME2")
+	if photometric == "MONOCHROME1":
+		normalized = 65535.0 - normalized
+
+	norm_pixels = normalized.astype(np.uint16)
+
+	image = convert_ndarray_to_QImage(norm_pixels)
+
+	return QPixmap.fromImage(image).copy()
 
 class InputImagePreview(ImagePreview):
 	def __init__(self):
@@ -252,36 +255,35 @@ class OutputImagePreview(ImagePreview):
 				QMessageBox.critical(
 					self,
 					"Write Error",
-					f"Failed to save the image:\npmg format does not support transparency."
+					f"Failed to save the image:\npgm format does not support transparency."
 				)
 				return
 
 		try:
-			success = cv2.imwrite(file_path, data_to_save)
+			if not cv2.imwrite(file_path, data_to_save):
+				raise OSError(f"OpenCV could not write {file_path} (unsupported extension or unwritable path)")
 		except Exception as e:
-			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
+			QMessageBox.critical(self, "Write Error", f"Failed to save the image\n{e}")
 		else:
 			QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
 
 	def _save_dicom(self, file_path: str):
-		data_to_save = self._image_data
-
 		try:
 			dicom = dcmread(self._template_path)
-			array = data_to_save.astype(dicom.pixel_array.dtype)
-			dicom.PixelData = array.tobytes()
 
-			dicom.BitsAllocated = 16
-			dicom.BitsStored = 16
-			dicom.HighBit = 15
-			dicom.PixelRepresentation = 0
+			if self._image_data.dtype != dicom.pixel_array.dtype:
+				raise ValueError(
+					f"Pipeline produced {self._image_data.dtype} but the source DICOM is "
+					f"{dicom.pixel_array.dtype}. Saving would alter the pixel values and "
+					f"the hidden message could not be extracted."
+				)
+
+			dicom.PixelData = self._image_data.tobytes()
+
+			dicom.Rows, dicom.Columns = self._image_data.shape[:2]
 			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
-			dicom.is_little_endian = True
-			dicom.is_implicit_VR = False
-
 			dicom.save_as(file_path)
-
-		except (OSError, PermissionError, Exception) as e:
+		except Exception as e:
 			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
 		else:
 			QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
@@ -300,8 +302,8 @@ class OutputImagePreview(ImagePreview):
 		if not file_path:
 			return
 		
-		if self._image_path.lower().endswith(".pgm"):
+		if Path(file_path).suffix.lower() == ".pgm":
 			self._save_pgm(file_path)
 
-		elif self._image_path.lower().endswith(".dcm"):
+		elif Path(file_path).suffix.lower() == ".dcm":
 			self._save_dicom(file_path)
