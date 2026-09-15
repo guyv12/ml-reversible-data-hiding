@@ -1,3 +1,4 @@
+from numpy import ndarray
 from pathlib import Path
 
 from PySide6.QtWidgets import (
@@ -19,7 +20,7 @@ class PreviewManager(QFrame):
 	):
 		super().__init__(parent)
 		self._image_path: str | None = None
-		self._image_data: np.ndarray | None = None
+		self._image_data: ndarray | None = None
 		
 		self.stacked_layout = QStackedLayout(self)
 		self.stacked_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -39,7 +40,7 @@ class PreviewManager(QFrame):
 	def has_image(self) -> bool:
 		return self._image_path is not None
 
-	def set_image(self, file_path: str | None, image_data: np.ndarray | None, template_path: str | None = None):
+	def set_image(self, file_path: str | None, image_data: ndarray | None, template_path: str | None = None):
 		self._image_path = file_path
 		self._image_data = image_data
 		self.image_preview.set_image(file_path, image_data, template_path)

@@ -94,7 +94,7 @@ class Histogram(QFrame):
 			self.plot_widget.clear()
 			self.stacked_layout.setCurrentWidget(self.empty_widget)
 
-	def _set_image(self, image_data: nd.ndarray | None):
+	def _set_image(self, image_data: np.ndarray | None):
 		self._image_data = image_data
 
 	def plot_histogram(self, image_data: np.ndarray):

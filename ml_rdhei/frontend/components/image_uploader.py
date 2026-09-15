@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QDir
 
 from frontend.utils import load_stylesheet
-from frontend.config import ZERO_MARGINS, ACCEPTED_FORMATS
+from frontend.config import ZERO_MARGINS, ACCEPTED_FORMATS, IMAGE_FILE_FILTER
 from frontend.components.preview_manager import PreviewManager
 
 class ImageUploader(QFrame):
@@ -59,7 +59,7 @@ class ImageUploader(QFrame):
 		self.style().unpolish(self)
 		self.style().polish(self)
 
-	def mousePressEvent(self, event: QMousePressEvent):
+	def mousePressEvent(self, event):
 		super().mousePressEvent(event)
 
 		if not self.has_image and event.button() == Qt.MouseButton.LeftButton:
@@ -67,14 +67,14 @@ class ImageUploader(QFrame):
 				self, 
 				self.tr("Select Image"), 
 				QDir.homePath(), 
-				self.tr("Image Files (*.pgm *.dcm)"),
+				self.tr(IMAGE_FILE_FILTER),
 			)
 			if file_path and file_path.lower().endswith(ACCEPTED_FORMATS):
 				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
 				self._update_style(has_image=True)
 				
-	def dragEnterEvent(self, event: QDragEnterEvent):
+	def dragEnterEvent(self, event):
 		if not self.has_image and event.mimeData().hasUrls():
 			urls = event.mimeData().urls()
 			if urls and urls[0].toLocalFile().lower().endswith(ACCEPTED_FORMATS):
@@ -84,11 +84,11 @@ class ImageUploader(QFrame):
 		
 		event.ignore()
 
-	def dragLeaveEvent(self, event: QDragLeaveEvent):
+	def dragLeaveEvent(self, event):
 		super().dragLeaveEvent(event)
 		self._set_drag_active(False)
 
-	def dropEvent(self, event: QDropEvent):
+	def dropEvent(self, event):
 		self._set_drag_active(False)
 
 		if not self.has_image and event.mimeData().hasUrls():
