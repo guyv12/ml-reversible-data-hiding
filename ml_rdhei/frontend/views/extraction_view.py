@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize
 
-from backend.pipeline import predict, hide
+from backend.pipeline import predict, hide, transform_image_to_ndarray
 from backend.predictor.results import Prediction
 
 from frontend.components.image_uploader import ImageUploader
@@ -26,9 +26,9 @@ from frontend.session import HideSession
 from frontend.config import SECTIONS_LABEL_HEIGHT
 from frontend.utils import load_stylesheet
 
-class ExtractingView(QWidget):
+class ExtractionView(QWidget):
 	"""
-	Extracting screen view for RDHEI operations.
+	Extraction screen view for RDHEI operations.
 
 	Provides workspace and UI controls for RDHEI operations.
 	"""
@@ -58,7 +58,7 @@ class ExtractingView(QWidget):
 		in_layout.addWidget(in_title_label)
 
 		self.in_empty_preview = EmptyPreview(
-			"Drop Grayscale or DICOM image",
+			"Drop encrypted Grayscale or DICOM image",
 			"system-file-manager",
 			"or click to browse",
 			[".pgm", ".dcm"]
@@ -133,7 +133,7 @@ class ExtractingView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: str):
-		image_data = self._transform_image_to_ndarray(image_path)
+		image_data = transform_image_to_ndarray(image_path)
 
 		self._session = HideSession(image_path, image_data)
 		self._session.prediction = predict(image_data, self._session.image_format)
@@ -168,20 +168,3 @@ class ExtractingView(QWidget):
 			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
 		finally:
 			self.encryption_panel.set_busy(False)
-
-	def _transform_image_to_ndarray(self, image_path: str) -> np.ndarray:
-		if image_path.lower().endswith(".dcm"):
-			try:
-				dicom = dcmread(image_path)
-				image = dicom.pixel_array
-			except Exception as e:
-				raise ValueError(f"Failed to decode DICOM file '{path}': {e}") from e
-		else:
-			image = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-
-		if image is None:
-			raise FileNotFoundError(
-				f"""Failed to load image: File not found or unreadable at '{image_path}'"""
-			)
-
-		return image
