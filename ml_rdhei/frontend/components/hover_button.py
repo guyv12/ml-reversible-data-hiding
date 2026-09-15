@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtCore import Signal
 
@@ -10,9 +12,9 @@ class HoverButton(QPushButton):
 	the button area.
 	"""
 	
-	hovered = Signal(str)
+	hovered = Signal(Path)
 	
-	def __init__(self, text: str, image_path: str):
+	def __init__(self, text: str, image_path: Path):
 		super().__init__(text)
 		self.image_path = image_path
 

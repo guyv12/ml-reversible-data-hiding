@@ -21,7 +21,7 @@ class ImagePreview(QWidget):
 	
 	def __init__(self):
 		super().__init__()
-		self._image_path: str | None = None
+		self._image_path: Path | None = None
 		self._image_data: np.ndarray | None = None
 		self._cached_pix: QPixmap | None = None
 
@@ -39,16 +39,16 @@ class ImagePreview(QWidget):
 		self.main_layout.addLayout(self.image_header_layout)
 		self.main_layout.addWidget(self.photo_display)
 
-	def _update_file_label(self, file_path: str):
+	def _update_file_label(self, file_path: Path):
 		pass
 
-	def set_image(self, file_path: str, image_data, template_path: str | None = None):
+	def set_image(self, file_path: Path, image_data, template_path: Path | None = None):
 		self._image_path = file_path
 		self._image_data = image_data
 		self._template_path = template_path or file_path
 		self._update_file_label(file_path)
 
-		if Path(self._image_path).suffix.lower() == ".dcm":
+		if self._image_path.suffix.lower() == ".dcm":
 			try:
 				self._cached_pix = convert_dicom_to_pixmap(
 					self._image_data,
@@ -161,7 +161,7 @@ def convert_ndarray_to_QImage(array: np.ndarray) -> QImage:
 			image_format
 		).copy()
 
-def convert_dicom_to_pixmap(image_data: np.ndarray, template_path: str) -> QPixmap:
+def convert_dicom_to_pixmap(image_data: np.ndarray, template_path: Path) -> QPixmap:
 	raw_pixels = image_data.astype(np.int32)
 
 	pixel_min = raw_pixels.min()
@@ -200,8 +200,8 @@ class InputImagePreview(ImagePreview):
 		self.image_header_layout.addWidget(self.file_label, stretch=1)
 		self.image_header_layout.addWidget(self.delete_btn)
 
-	def _update_file_label(self, file_path: str):
-		file_name = Path(self._image_path).name
+	def _update_file_label(self, file_path: Path):
+		file_name = self._image_path.name
 
 		metrics = QFontMetrics(self.file_label.font())
 		content = metrics.elidedText(
@@ -239,7 +239,7 @@ class OutputImagePreview(ImagePreview):
 		self.image_header_layout.addStretch()
 		self.image_header_layout.addWidget(self.delete_btn)
 
-	def _save_pgm(self, file_path: str):
+	def _save_pgm(self, file_path: Path):
 		data_to_save = self._image_data
 			
 		if data_to_save.ndim == 3:
@@ -260,14 +260,14 @@ class OutputImagePreview(ImagePreview):
 				return
 
 		try:
-			if not cv2.imwrite(file_path, data_to_save):
+			if not cv2.imwrite(str(file_path), data_to_save):
 				raise OSError(f"OpenCV could not write {file_path} (unsupported extension or unwritable path)")
 		except Exception as e:
 			QMessageBox.critical(self, "Write Error", f"Failed to save the image\n{e}")
 		else:
 			QMessageBox.information(self, "Success", f"Saved the image as\n{file_path}")
 
-	def _save_dicom(self, file_path: str):
+	def _save_dicom(self, file_path: Path):
 		try:
 			dicom = dcmread(self._template_path)
 
@@ -282,7 +282,7 @@ class OutputImagePreview(ImagePreview):
 
 			dicom.Rows, dicom.Columns = self._image_data.shape[:2]
 			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
-			dicom.save_as(file_path)
+			dicom.save_as(str(file_path))
 		except Exception as e:
 			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
 		else:
@@ -290,20 +290,21 @@ class OutputImagePreview(ImagePreview):
 		
 
 	def _save_image(self):
-		file_name = Path(self._image_path).name
+		file_name = self._image_path.name
 
-		file_path, _ = QFileDialog.getSaveFileName(
+		path, _ = QFileDialog.getSaveFileName(
 				self, 
 				self.tr("Save Image"), 
 				str(Path.home() / str(file_name)), 
 				self.tr(IMAGE_FILE_FILTER),
 			)
 
-		if not file_path:
+		if not path:
 			return
 		
-		if Path(file_path).suffix.lower() == ".pgm":
+		file_path = Path(path)
+		if file_path.suffix.lower() == ".pgm":
 			self._save_pgm(file_path)
 
-		elif Path(file_path).suffix.lower() == ".dcm":
+		elif file_path.suffix.lower() == ".dcm":
 			self._save_dicom(file_path)

@@ -3,6 +3,7 @@ import numpy as np
 from cv2 import imread, IMREAD_UNCHANGED
 from pydicom import dcmread
 from bitarray import bitarray
+from pathlib import Path
 
 import backend.predictor.predict as ppredict
 from backend.predictor.results import (
@@ -25,8 +26,8 @@ def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int
     dtype = {8: np.uint8, 16: np.uint16}[bpp]
     return np.frombuffer(padded.tobytes(), dtype=dtype).reshape(H, W)
 
-def transform_image_to_ndarray(image_path: str) -> np.ndarray:
-		if image_path.lower().endswith(".dcm"):
+def transform_image_to_ndarray(image_path: Path) -> np.ndarray:
+		if image_path.suffix.lower() == ".dcm":
 			try:
 				dicom = dcmread(image_path)
 				image = dicom.pixel_array
