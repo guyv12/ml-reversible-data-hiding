@@ -1,4 +1,4 @@
-from .models import sklearn_ridge, torch_ridge
+from .models import predict_sklearn_ridge, predict_torch_ridge
 from backend.data.features import extract_features, lr_decompose
 import torch
 from collections.abc import Iterator
@@ -13,7 +13,7 @@ def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
 
     for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
-        kernel_weights, error_map = sklearn_ridge(X, y)
+        kernel_weights, error_map = predict_sklearn_ridge(X, y, mask)
 
         yield kernel_weights, ref_pixels, error_map, batch[i]
 
@@ -24,7 +24,7 @@ def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, tor
     mask[::2, ::2] = True
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
-    kernel_weights_batch, error_map_batch = torch_ridge(X_batch, y_batch)
+    kernel_weights_batch, error_map_batch = predict_torch_ridge(X_batch, y_batch)
 
     return kernel_weights_batch, ref_pixels_batch, error_map_batch
 
@@ -44,7 +44,7 @@ def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torc
         img1_error_map = (15 - img1.flatten()).to(torch.int8)
         
         # image2 -> classic approach
-        img2_kernel_weights, img2_error_map = sklearn_ridge(img2_X, img2_y)
+        img2_kernel_weights, img2_error_map = predict_sklearn_ridge(img2_X, img2_y)
 
         yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
 
@@ -59,6 +59,6 @@ def dicom_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, t
     img1_error_map_batch = (15 - img1_batch.flatten()).to(torch.int8)
 
     X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
-    kernel_weights_img2_batch, error_map_img2_batch = torch_ridge(X_img2_batch, y_img2_batch)
+    kernel_weights_img2_batch, error_map_img2_batch = predict_torch_ridge(X_img2_batch, y_img2_batch)
 
     return img1_error_map_batch, kernel_weights_img2_batch, ref_pixels_img2_batch, error_map_img2_batch
