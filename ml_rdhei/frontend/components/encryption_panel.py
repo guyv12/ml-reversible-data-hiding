@@ -49,10 +49,10 @@ class EncryptionPanel(QFrame):
 		load_stylesheet(self, "metrics.css")
 		self._update_button()
 
-	def enable(self, bytes: int):
+	def enable(self, bytes_: int):
 		self.encryption_key.setEnabled(True)
 		self.message.setEnabled(True)
-		self._set_capacity(bytes)
+		self._set_capacity(bytes_)
 		self._on_message_changed()
 
 	def disable(self):
@@ -71,7 +71,6 @@ class EncryptionPanel(QFrame):
 		self._set_limit_exceeded(False)
 
 	def set_busy(self, busy: bool):
-		"""Lock inputs while the owner runs the hide step; unlock afterwards."""
 		self.encryption_key.setEnabled(not busy)
 		self.message.setEnabled(not busy)
 		if busy:
