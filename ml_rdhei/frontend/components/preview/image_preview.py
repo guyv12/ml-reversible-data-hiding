@@ -271,17 +271,18 @@ class OutputImagePreview(ImagePreview):
 		try:
 			dicom = dcmread(self._template_path)
 
-			if self._image_data.dtype != dicom.pixel_array.dtype:
-				raise ValueError(
-					f"Pipeline produced {self._image_data.dtype} but the source DICOM is "
-					f"{dicom.pixel_array.dtype}. Saving would alter the pixel values and "
-					f"the hidden message could not be extracted."
-				)
-
+			if self._image_data.dtype != np.uint16:
+				raise ValueError(f"Pipeline produced {self._image_data.dtype}; DICOM output requires uint16.")
+			
 			dicom.PixelData = self._image_data.tobytes()
 
 			dicom.Rows, dicom.Columns = self._image_data.shape[:2]
+			dicom.BitsAllocated = 16
+			dicom.BitsStored = 16
+			dicom.HighBit = 15
+			dicom.PixelRepresentation = 0
 			dicom.file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+
 			dicom.save_as(str(file_path))
 		except Exception as e:
 			QMessageBox.critical(self, "Write Error", f"Failed to save the image:\n{e}")
