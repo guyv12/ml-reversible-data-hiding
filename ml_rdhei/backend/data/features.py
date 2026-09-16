@@ -24,7 +24,7 @@ def extract_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[t
     padded_batch = fn.pad(masked_batch, (pad, pad, pad, pad))
 
     # patches shape = (B, H, W, K, K)
-    patches = padded_batch.unfold(1, K, 1).unfold(2, K, step=1)
+    patches = padded_batch.unfold(1, K, 1).unfold(2, K, 1)
 
     X = patches.reshape(B, H * W, K * K)[:, ~mask.flatten(), :]
     y = batch.view(B, H * W)[:, ~mask.flatten()]

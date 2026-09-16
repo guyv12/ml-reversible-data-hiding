@@ -57,8 +57,11 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
 
         window = only_ref_pixels[r_start:r_end, c_start:c_end]
 
-        positive = window[window > 0]
-        prediction = positive.mean()
+        # Select only true reference pixels (even if their value is 0)
+        window_valid = (~target_mask)[r_start:r_end, c_start:c_end]
+        valid_pixels = window[window_valid]
+
+        prediction = np.round(valid_pixels.mean())
 
         value = int(prediction) + error_img[r, c]
         reconstructed_img[r, c] = np.clip(value,0,255)
