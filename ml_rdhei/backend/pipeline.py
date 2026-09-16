@@ -72,19 +72,25 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         raise ValueError(f"Unsupported image format: '{fmt}'")
     
 
-def hide(prediction: Prediction, key: str, message: str) -> np.ndarray:
+def hide(
+    prediction: Prediction,
+    ad_encryption_key: str,
+    message_encryption_key: str,
+    message: str
+) -> np.ndarray:
+    
     ad_enrypted = encryption.encrypt_ad(
         prediction.ad,
         prediction.pixels,
         prediction.bpp,
-        key
+        ad_encryption_key
     )
 
     bits = hider(
         ad_enrypted,
         prediction.metrics.payload_capacity,
         message,
-        key
+        message_encryption_key
     )
  
     return _transform_bits_to_image(bits, prediction.shape, prediction.bpp)
