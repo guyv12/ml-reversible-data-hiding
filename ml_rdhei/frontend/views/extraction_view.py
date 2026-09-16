@@ -108,7 +108,7 @@ class ExtractionView(QWidget):
 		# self._session = None
 		self.in_histogram.clear()
 
-	def _on_extract_request(self, key: str):
+	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
 		pass
 		# try:
 		# 	self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)

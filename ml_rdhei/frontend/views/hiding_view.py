@@ -131,10 +131,10 @@ class HidingView(QWidget):
 		self.quality_metrics_panel.clear()
 		self.encryption_panel.clear()
 
-	def _on_hide_request(self, key: str, message: str):
+	def _on_hide_request(self, ad_encryption_key: str, message_encryption_key: str, message: str):
 		self.encryption_panel.set_busy(True)
 		try:
-			self._session.marked_image = hide(self._session.prediction, key, message)
+			self._session.marked_image = hide(self._session.prediction, ad_encryption_key, message_encryption_key, message)
 			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
 		finally:
 			self.encryption_panel.set_busy(False)

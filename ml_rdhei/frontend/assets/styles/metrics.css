@@ -6,7 +6,8 @@ DecryptionPanel
     background-color: #323232;
 }
 
-#keyEdit,
+#adKeyEdit,
+#messageKeyEdit,
 #messageEdit
 {
     border: 1px solid #323232;
@@ -15,7 +16,8 @@ DecryptionPanel
     padding: 2px;
 }
 
-#keyEdit:disabled,
+#adKeyEdit:disabled,
+#messageKeyEdit:disabled,
 #messageEdit:disabled
 {
     background-color: #2A2A2A;
