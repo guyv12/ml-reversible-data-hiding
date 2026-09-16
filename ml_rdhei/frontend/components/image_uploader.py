@@ -36,7 +36,7 @@ class ImageUploader(QFrame):
 		self._setup_connections()
 
 		load_stylesheet(self,"image_frames.css")
-		self._update_style(has_image=False)
+		self._update_style()
 
 	@property
 	def has_image(self) -> bool:
@@ -44,13 +44,11 @@ class ImageUploader(QFrame):
 
 	def _setup_connections(self):
 		self.preview_manager.image_removed.connect(self.image_removed)
-		
-		self.preview_manager.image_removed.connect(
-			lambda: self._update_style(has_image=False)
-		)
+		self.preview_manager.image_loaded.connect(self._update_style)
+		self.preview_manager.image_removed.connect(self._update_style)
 	
-	def _update_style(self, has_image: bool):
-		self.setProperty("has_image", has_image)
+	def _update_style(self):
+		self.setProperty("has_image", self.has_image)
 		self.style().unpolish(self)
 		self.style().polish(self)
 
@@ -76,7 +74,7 @@ class ImageUploader(QFrame):
 			if file_path.suffix.lower() in ACCEPTED_FORMATS:
 				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
-				self._update_style(has_image=True)
+				self._update_style()
 				
 	def dragEnterEvent(self, event):
 		if not self.has_image and event.mimeData().hasUrls():
@@ -95,13 +93,19 @@ class ImageUploader(QFrame):
 	def dropEvent(self, event):
 		self._set_drag_active(False)
 
-		if not self.has_image and event.mimeData().hasUrls():
-			urls = event.mimeData().urls()
-			if urls:
-				file_path = Path(urls[0].toLocalFile())
-				if file_path.suffix.lower() in ACCEPTED_FORMATS:
-					event.acceptProposedAction()
-					self.image_uploaded.emit(file_path)
-					self._update_style(has_image=True)
-					
-		event.ignore()
+		if self.has_image and not event.mimeData().hasUrls():
+			event.ignore()
+			return
+		
+		urls = event.mimeData().urls()
+		if not urls:
+			event.ignore()
+			return
+
+		file_path = Path(urls[0].toLocalFile())
+		if file_path.suffix.lower() not in ACCEPTED_FORMATS:
+			event.ignore()
+			return
+			
+		event.acceptProposedAction()
+		self.image_uploaded.emit(file_path)
