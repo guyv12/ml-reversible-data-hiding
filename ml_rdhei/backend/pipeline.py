@@ -34,7 +34,7 @@ def transform_image_to_ndarray(image_path: Path) -> np.ndarray:
 			except Exception as e:
 				raise ValueError(f"Failed to decode DICOM file '{image_path}': {e}")
 		else:
-			image = imread(image_path, IMREAD_UNCHANGED)
+			image = imread(str(image_path), IMREAD_UNCHANGED)
 
 		if image is None:
 			raise FileNotFoundError(
