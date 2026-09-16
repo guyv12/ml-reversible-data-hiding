@@ -1,9 +1,11 @@
+from pathlib import Path
+
 from PySide6.QtWidgets import (
 	QWidget, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
 
-from backend.pipeline import predict, hide, transform_image_to_ndarray
+from backend.pipeline import transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
 from frontend.components.image_uploader import ImageUploader
@@ -12,9 +14,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.components.quality_metrics_panel import QualityMetricsPanel
-from frontend.components.encryption_panel import EncryptionPanel
-from frontend.session import HideSession
+from frontend.components.decryption_panel import DecryptionPanel
 from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
 
@@ -28,7 +28,7 @@ class ExtractionView(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		self._session: HideSession | None = None
+		# self._session: HideSession | None = None
 
 		load_stylesheet(self, "sections.css")
 
@@ -62,11 +62,9 @@ class ExtractionView(QWidget):
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
-		self.quality_metrics_panel = QualityMetricsPanel()
-		self.encryption_panel = EncryptionPanel()
+		self.decryption_panel = DecryptionPanel()
 	
-		metrics_section.add_widget(self.quality_metrics_panel)
-		metrics_section.add_widget(self.encryption_panel)
+		metrics_section.add_widget(self.decryption_panel)
 
 		out_section = SectionFrame("Output", "outputSection")
 
@@ -94,8 +92,6 @@ class ExtractionView(QWidget):
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
 		self.image_uploader.image_removed.connect(self._on_image_removed)
-
-		self.encryption_panel.hide_request.connect(self._on_hide_request)
 		
 		self.in_preview_manager.image_loaded.connect(self.in_histogram.plot_histogram)
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
@@ -105,34 +101,16 @@ class ExtractionView(QWidget):
 		image_data = transform_image_to_ndarray(image_path)
 
 		self.in_preview_manager.set_image(image_path, image_data)
-
-		self._session = HideSession(image_path, image_data)
-		self._session.prediction = predict(image_data, self._session.image_format)
-
-		metrics = self._session.prediction.metrics
-		self.quality_metrics_panel.set_metrics(metrics)	
-
-		if metrics.allow_embedding:
-			self.encryption_panel.enable(metrics.payload_capacity)
-		else:
-			self.encryption_panel.clear()
-			QMessageBox.warning(self,
-			"No usable capacity",
-			"Restoring the image afterwards would require more data than the "
-        	"image itself can hold. This happens with images that are already "
-        	"encrypted or contain very little detail."
-			)
+		self.decryption_panel.enable()
+		# self._session.prediction = predict(image_data, self._session.image_format)
 
 	def _on_image_removed(self):
-		self._session = None
+		# self._session = None
 		self.in_histogram.clear()
-		self.quality_metrics_panel.clear()
-		self.encryption_panel.clear()
 
-	def _on_hide_request(self, key: str, message: str):
-		self.encryption_panel.set_busy(True)
-		try:
-			self._session.marked_image = hide(self._session.prediction, key, message)
-			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
-		finally:
-			self.encryption_panel.set_busy(False)
+	def _on_extract_request(self, key: str):
+		pass
+		# try:
+		# 	self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
+		# finally:
+		# 	self.decryption_panel.set_busy(False)

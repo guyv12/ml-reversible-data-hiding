@@ -1,12 +1,13 @@
 QualityMetricsPanel, 
-EncryptionPanel
+EncryptionPanel,
+DecryptionPanel
 {
     border-radius: 10px;
     background-color: #323232;
 }
 
-EncryptionPanel #keyEdit,
-EncryptionPanel #messageEdit
+#keyEdit,
+#messageEdit
 {
     border: 1px solid #323232;
     border-radius: 4px;
@@ -14,21 +15,21 @@ EncryptionPanel #messageEdit
     padding: 2px;
 }
 
-EncryptionPanel #keyEdit:disabled,
-EncryptionPanel #messageEdit:disabled
+#keyEdit:disabled,
+#messageEdit:disabled
 {
     background-color: #2A2A2A;
     color: #707070;
     border-color: #2A2A2A;
 }
 
-EncryptionPanel #messageEdit[limit_exceeded="true"],
-EncryptionPanel #messageEdit[limit_exceeded="true"]:focus
+#messageEdit[limit_exceeded="true"],
+#messageEdit[limit_exceeded="true"]:focus
 {
     border-color: #E74C3C;
 }
 
-EncryptionPanel #messageCountLabel[limit_exceeded="true"]
+#messageCountLabel[limit_exceeded="true"]
 {
     color: #E74C3C;
 }
