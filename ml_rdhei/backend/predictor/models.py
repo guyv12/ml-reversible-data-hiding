@@ -1,4 +1,5 @@
 from sklearn.linear_model import Ridge
+import torch.nn.functional as fn
 import torch
 
 
@@ -27,8 +28,45 @@ def __get_sklearn_model():
 def __get_torch_model():
     raise NotImplementedError("Torch model is not implemented yet...")
 
+def __predict_ridge(X: torch.Tensor, weights: torch.Tensor, mask: torch.Tensor, 
+                    valid_pred_range: tuple[int, int]) -> torch.Tensor:
+    """
+    Computes ridge based predictions:
+    - Interior target pixels: X @ weights
+    - Border target pixels: local mean of available reference pixels
+    """
+    # 1. Basic prediction
+    y_pred = torch.round(X.to(weights.dtype) @ weights)
 
-def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
+    # 2. Border prediction
+    H, W = mask.shape
+    K = int(X.shape[-1] ** 0.5) # The X shape should be (B?, H*W, K*K)
+    pad = K // 2
+
+    interior = torch.zeros((H, W), dtype=torch.bool)
+    interior[pad : H - pad, pad : W - pad] = True
+    border = ~interior.flatten()[~mask.flatten()]
+    if border.any():
+        X_border = X[..., border, :] # all leading dimensions, target pixels, K*K
+
+        # We need to know which pixels are ref
+        # No other way but to rebuild the padded mask and unfold it...
+        padded_mask = fn.pad(mask, (pad, pad, pad, pad))
+        ref_valid_mask = padded_mask.unfold(0, K, 1).unfold(1, K, 1)
+        ref_valid_mask = ref_valid_mask.reshape(H * W, K * K)[~mask.flatten()][border]
+
+        # Calculate mean using the positional validity mask instead of pixel values > 0
+        ref_sum = X_border.masked_fill(~ref_valid_mask, 0).sum(dim=-1)
+        ref_count = ref_valid_mask.sum(dim=-1).clamp(min=1)
+        border_preds = torch.round(ref_sum / ref_count)
+
+        # Overwrite the border predictions, '...' for both batched and single image inputs
+        y_pred[..., border] = border_preds.to(y_pred.dtype)
+
+    return y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
+
+
+def predict_sklearn_ridge(X: torch.Tensor, y: torch.Tensor, mask: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Creates a ridge model prediction and error map.
     Works on a single image input.
@@ -37,6 +75,7 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) 
     :rtype: torch.Tensor[f64] | torch.Tensor[i64], torch.Tensor[i16]
     """
     model = __get_sklearn_model()
+    valid_pred_range = (torch.iinfo(y.dtype).min, torch.iinfo(y.dtype).max)
     
     X_np, y_np = X.double().numpy(), y.double().numpy() # sklearn requires float & numpy
     model.fit(X_np, y_np)
@@ -48,14 +87,13 @@ def sklearn_ridge(X: torch.Tensor, y: torch.Tensor, quantization: bool = False) 
     else:
         kernel_weights = torch.round(W).to(torch.int64) # cut to int
 
-    y_pred = torch.round(X.to(kernel_weights.dtype) @ kernel_weights)
-    y_pred = y_pred.clamp(0, 255) # cut the vals to avoid big errors
+    y_pred = __predict_ridge(X, kernel_weights, mask, valid_pred_range)
 
     error_map = y.to(torch.int16) - y_pred.to(torch.int16) # convert to int16, error in <-255, 255>
 
     return kernel_weights, error_map
 
-def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
+def predict_torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, mask: torch.Tensor, quantization: bool = False) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Creates a ridge model prediction and error map.
     Works on a batched input.
@@ -64,7 +102,8 @@ def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, quantization: bool
     :rtype: torch.Tensor[f64] | torch.Tensor[i64], torch.Tensor[i16]
     """
     model = __get_torch_model()
-    
+    valid_pred_range = (torch.iinfo(y_batch.dtype).min, torch.iinfo(y_batch.dtype).max)
+
     model.fit(X_batch, y_batch)
 
     W = model.weights
@@ -74,8 +113,7 @@ def torch_ridge(X_batch: torch.Tensor, y_batch: torch.Tensor, quantization: bool
     else:
         kernel_weights_batch = torch.round(W).to(torch.int64)
 
-    y_pred_batch = torch.round(X_batch.to(kernel_weights_batch.dtype) @ kernel_weights_batch)
-    y_pred_batch = y_pred_batch.clamp(0, 255) # cut the vals to avoid big errors
+    y_pred_batch = __predict_ridge(X_batch, kernel_weights_batch, mask, valid_pred_range)
 
     error_map_batch = y_batch.to(torch.int16) - y_pred_batch.to(torch.int16)
 
