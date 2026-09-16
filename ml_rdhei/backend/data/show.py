@@ -18,8 +18,13 @@ def check_images(original: bytes, reconstructed: bytes):
         print("ZGODNOSC 100%")
     else:
         print("BŁĄD")
-        byte_errors = 0
-        for b1, b2 in zip(original, reconstructed):
-            xor_byte = b1 ^ b2
-            if xor_byte == 1: byte_errors += 1
-        print(byte_errors)
+
+        if len(original) != len(reconstructed):
+            print(f"different length: {len(original)} vs {len(reconstructed)}")
+
+        diffs = [abs(b1 - b2) for b1, b2 in zip(original, reconstructed) if b1 != b2]
+        total = min(len(original), len(reconstructed))
+
+        print(f"different bytes: {len(diffs)} / {total} ({100 * len(diffs) / total:.2f}%)")
+        print(f"max abs diff: {max(diffs, default=0)}")
+        print(f"off by one: {sum(1 for d in diffs if d == 1)}")
