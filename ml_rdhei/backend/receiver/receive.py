@@ -1,8 +1,4 @@
 from backend.receiver.extraction import ad_extraction, msg_extraction
-<<<<<<< HEAD
-from backend.predictor.predict import reference_mask
-=======
->>>>>>> development
 from backend.receiver.recovery import recovery
 
 def receive(image, key_ad, key_msg, img_size: tuple[int, int] = (512, 512)):
