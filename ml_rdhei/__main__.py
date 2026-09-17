@@ -38,7 +38,7 @@ def pgm_main():
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
             show_image(image)
-            reconstructed = receive(image, K_e, K_h, len(ref_pixels)).tobytes()
+            reconstructed = receive(image, K_e, K_h, len(ref_pixels)).numpy().tobytes()
             check_images(original_bytes, reconstructed)
             show_image(reconstructed)
 
