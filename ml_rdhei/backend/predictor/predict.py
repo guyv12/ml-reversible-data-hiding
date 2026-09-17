@@ -3,12 +3,15 @@ from backend.data.features import extract_features, lr_decompose
 import torch
 from collections.abc import Iterator
 
+def reference_mask(H: int, W: int) -> torch.Tensor:
+    mask = torch.zeros((H, W), dtype=torch.bool)
+    mask[::2, ::2] = True
+    return mask
 
 def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
 
@@ -20,8 +23,7 @@ def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.
 def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
     kernel_weights_batch, error_map_batch = predict_torch_ridge(X_batch, y_batch)
@@ -32,8 +34,7 @@ def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, tor
 def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     img1_batch, img2_batch = lr_decompose(batch)
 
@@ -41,7 +42,7 @@ def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torc
 
     for img1, img2_X, img2_y, img2_ref_pixels in zip(img1_batch, X_img2_batch, y_img2_batch, ref_pixels_img2_batch):
         # image1 -> fixed prediction
-        img1_error_map = (15 - img1.flatten()).to(torch.int8)
+        img1_error_map = (15 - img1.flatten()).to(torch.int16)
         
         # image2 -> classic approach
         img2_kernel_weights, img2_error_map = predict_sklearn_ridge(img2_X, img2_y)
@@ -51,12 +52,11 @@ def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torc
 def dicom_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     _, H, W = batch.shape
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     img1_batch, img2_batch = lr_decompose(batch)
 
-    img1_error_map_batch = (15 - img1_batch.flatten()).to(torch.int8)
+    img1_error_map_batch = (15 - img1_batch.flatten()).to(torch.int16)
 
     X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
     kernel_weights_img2_batch, error_map_img2_batch = predict_torch_ridge(X_img2_batch, y_img2_batch)

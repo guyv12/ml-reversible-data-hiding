@@ -1,7 +1,7 @@
 from sklearn.linear_model import Ridge
 import torch.nn.functional as fn
 import torch
-
+from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 class TorchRidge:
 

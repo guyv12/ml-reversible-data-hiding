@@ -9,7 +9,7 @@ from backend.compressor.hiding import hider
 
 def pgm_main():
     ## sklearn model -- we use yield in torch there would be 1 loop
-    BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
+    BOSSBase_loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
 
     rates = 0
     counter = 0
@@ -23,7 +23,6 @@ def pgm_main():
         for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
             kernel_weights, ref_pixels, error_map, original = raw_ad
             original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
-            show_image(original_bytes)
 
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
             ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
@@ -37,10 +36,10 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            show_image(image)
-            reconstructed = receive(image, K_e, K_h, len(ref_pixels)).tobytes()
+            reconstructed = receive(image, K_e, K_h, (512, 512)).tobytes()
             check_images(original_bytes, reconstructed)
-            show_image(reconstructed)
+            print()
+            print()
 
     return
 
@@ -64,7 +63,7 @@ def dicom_main():
             pixels = H * W
             bits_per_image = pixels * bpp
 
-            available_bits = bits_per_image - (len(ad) * 8)
+            available_bits = bits_per_image - len(ad)
             emb_rate = available_bits / pixels
             rates += emb_rate
             counter += 1

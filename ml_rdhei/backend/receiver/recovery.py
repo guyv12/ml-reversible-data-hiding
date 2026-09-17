@@ -1,14 +1,46 @@
 import numpy as np
+from backend.predictor.predict import reference_mask
 
+<<<<<<< HEAD
+def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
+             img_size: tuple[int, int], k: int = 5):
+
+    H, W = img_size
+    n_ref = int(reference_mask(H, W).sum().item())
+    
+    if len(ref_pixels) != n_ref or len(error_map) != H * W - n_ref:
+        raise ValueError(
+            f"Extracted data does not match a {H}x{W} image: "
+            f"{len(ref_pixels)} reference pixels, {len(error_map)} error values"
+        )
+        
+    reconstructed_img = np.zeros((H, W), dtype=np.uint8)
+
+    ref_idx = 0
+    for r in range(H):
+        for c in range(W):
+            if r % 2 == 0 and c % 2 == 0:
+                reconstructed_img[r,c] = ref_pixels[ref_idx]
+                ref_idx += 1
+=======
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], k: int = 5):
 
     h, w = 512, 512
     half = k // 2
+>>>>>>> development
 
     # reference pixels
     reconstructed_img = np.zeros((h, w), dtype=np.uint8)
     reconstructed_img[::2, ::2] = (np.asarray(ref_pixels, dtype=np.uint8).reshape(reconstructed_img[::2, ::2].shape))
     only_ref_pixels = reconstructed_img.copy()
+<<<<<<< HEAD
+    error_idx = 0
+    for r in range(H):
+        for c in range(W):
+            if r % 2 != 0 or c % 2 != 0:
+                feature_vector = get_feature_vector(r, c, only_ref_pixels, k)
+=======
+>>>>>>> development
 
     # error map
     target_mask = np.ones((h, w), dtype=bool)
@@ -67,3 +99,17 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], 
         reconstructed_img[r, c] = np.clip(value,0,255)
 
     return reconstructed_img
+<<<<<<< HEAD
+
+
+def get_feature_vector(r: int, c: int, reconstructed_img, k: int = 5):
+    H, W = reconstructed_img.shape
+    feature_vector = []
+    for i in range(-(k//2), k//2+1):
+        for j in range(-(k//2), k//2+1):
+            if 0 <= r - i < H and 0 <= c - j < W :
+                feature_vector.append(reconstructed_img[r-i, c-j])
+
+    return feature_vector
+=======
+>>>>>>> development
