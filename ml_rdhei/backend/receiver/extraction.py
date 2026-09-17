@@ -3,6 +3,7 @@ import struct
 
 from bitarray import bitarray
 from backend.compressor.encryption import encrypt_data
+<<<<<<< HEAD
 from backend.predictor.predict import reference_mask
 
 
@@ -14,6 +15,11 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
     n = H * W
     n_ref = int(reference_mask(H, W).sum().item())
     
+=======
+
+
+def ad_extraction(bitstream: bitarray, key: str, n_ref: int, n: int = 512 * 512, bpp: int = 8, k: int = 5):
+>>>>>>> development
     # AD length
     length = math.ceil(math.log2(n * bpp))
     ad_length = bitstream[:length]
@@ -94,7 +100,7 @@ def weights_extraction(ad: bitarray, k: int):
 
     return weights_float, ad
 
-def huffman_decode(codebook: [(str, int)], compressed_data: str):
+def huffman_decode(codebook: dict[str, int], compressed_data: str):
     decoded = []
     buffer = ""
 
@@ -108,7 +114,7 @@ def huffman_decode(codebook: [(str, int)], compressed_data: str):
 
     return decoded
 
-def delta_decoding(deltas: [int]):
+def delta_decoding(deltas: list[int]):
     pixels = []
     current_pixel = deltas[0]
     pixels.append(current_pixel)

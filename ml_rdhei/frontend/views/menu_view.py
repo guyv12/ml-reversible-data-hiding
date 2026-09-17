@@ -21,7 +21,6 @@ class MenuView(QWidget):
 
 	def __init__(self):
 		super().__init__()
-		
 		self.photo_display = QLabel()
 		self.photo_display.setAlignment(Qt.AlignCenter)
 		self.photo_display.setContentsMargins(*ZERO_MARGINS)
