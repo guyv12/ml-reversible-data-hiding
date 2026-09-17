@@ -1,0 +1,20 @@
+#inputSection
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #4A90E2;
+}
+
+#metricsSection
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #E74C3C;
+}
+
+#outputSection
+{   
+    background-color: #2b2b2b;
+    border-radius: 8px;
+    border: 2px solid #2ECC71;
+}

@@ -1,0 +1,37 @@
+QualityMetricsPanel, 
+EncryptionPanel,
+DecryptionPanel
+{
+    border-radius: 10px;
+    background-color: #323232;
+}
+
+#adKeyEdit,
+#messageKeyEdit,
+#messageEdit
+{
+    border: 1px solid #323232;
+    border-radius: 4px;
+    background-color: #1E1E1E;
+    padding: 2px;
+}
+
+#adKeyEdit:disabled,
+#messageKeyEdit:disabled,
+#messageEdit:disabled
+{
+    background-color: #2A2A2A;
+    color: #707070;
+    border-color: #2A2A2A;
+}
+
+#messageEdit[limit_exceeded="true"],
+#messageEdit[limit_exceeded="true"]:focus
+{
+    border-color: #E74C3C;
+}
+
+#messageCountLabel[limit_exceeded="true"]
+{
+    color: #E74C3C;
+}
