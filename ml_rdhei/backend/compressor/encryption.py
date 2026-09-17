@@ -24,8 +24,6 @@ def encrypt_data(data_bits: bitarray, key: str) -> bitarray:
 
 def encrypt_ad(ad: bitarray, n: int, bpp: int, key: str) -> bitarray:
     header = int(math.ceil(math.log2(n * bpp)))
-    #ad_bits = bitarray()
-    #ad_bits.frombytes(ad)
     ad_header = ad[:header]
     ad_rest = encrypt_data(ad[header:], key)
     return ad_header + ad_rest
