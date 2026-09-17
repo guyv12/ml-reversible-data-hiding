@@ -4,23 +4,15 @@ from backend.predictor.predict import reference_mask
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
              img_size: tuple[int, int], k: int = 5):
 
-    H, W = img_size
-    n_ref = int(reference_mask(H, W).sum().item())
+    h, w = img_size
+    half = k // 2
+    n_ref = int(reference_mask(h, w).sum().item())
     
-    if len(ref_pixels) != n_ref or len(error_map) != H * W - n_ref:
+    if len(ref_pixels) != n_ref or len(error_map) != h * w - n_ref:
         raise ValueError(
-            f"Extracted data does not match a {H}x{W} image: "
+            f"Extracted data does not match a {h}x{w} image: "
             f"{len(ref_pixels)} reference pixels, {len(error_map)} error values"
         )
-        
-    reconstructed_img = np.zeros((H, W), dtype=np.uint8)
-
-    ref_idx = 0
-    for r in range(H):
-        for c in range(W):
-            if r % 2 == 0 and c % 2 == 0:
-                reconstructed_img[r,c] = ref_pixels[ref_idx]
-                ref_idx += 1
 
     # reference pixels
     reconstructed_img = np.zeros((h, w), dtype=np.uint8)
