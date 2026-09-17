@@ -45,7 +45,7 @@ def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torc
         img1_error_map = (15 - img1.flatten()).to(torch.int16)
         
         # image2 -> classic approach
-        img2_kernel_weights, img2_error_map = predict_sklearn_ridge(img2_X, img2_y)
+        img2_kernel_weights, img2_error_map = predict_sklearn_ridge(img2_X, img2_y, mask)
 
         yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
 
