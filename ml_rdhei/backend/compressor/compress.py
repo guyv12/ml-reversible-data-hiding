@@ -23,7 +23,7 @@ def __compress_kernel_weights(kernel_weights: torch.Tensor) -> str:
     weights_bytes = __tensor_to_bytes(kernel_weights)
     return "".join(f"{b:08b}" for b in weights_bytes)
 
-def __compress_ref_pixels(ref_pixels: torch.Tensor, n_ref: int) -> str:
+def __compress_ref_pixels(ref_pixels: torch.Tensor) -> str:
     # delta-huffman compression
     encoded_ref_pixels = delta_encode(ref_pixels)
     pixels_list = encoded_ref_pixels.tolist()
@@ -48,7 +48,7 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor, n_ref: int) -> str:
 def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset: bool = True) -> str:
     # huffman compression (error map)
     if add_offset:
-        error_map += 255 # offset
+        error_map = error_map + 255 # offset
 
     error_map_list = error_map.flatten().tolist()
 
@@ -76,7 +76,7 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
     header_width = math.ceil(math.log2(N * bpp))
 
     ad = __compress_kernel_weights(kernel_weights)
-    ad += __compress_ref_pixels(ref_pixels, len(ref_pixels))
+    ad += __compress_ref_pixels(ref_pixels)
     ad += __compress_error_map(error_map, N, len(ref_pixels))
 
     # add len(ad) at the beggining
@@ -88,7 +88,7 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
 
     return ad_bits
 
-def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bytes:
+def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 16
@@ -97,13 +97,14 @@ def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, i
     ad = __compress_error_map(img1_error_map, N, 0, add_offset=False)
 
     ad += __compress_kernel_weights(img2_kernel_weights)
-    ad += __compress_ref_pixels(img2_ref_pixels, len(img2_ref_pixels))
-    ad += __compress_error_map(img2_error_map, N, len(img2_ref_pixels))
+    ad += __compress_ref_pixels(img2_ref_pixels)
+    ad += __compress_error_map(img2_error_map, N, 0)
 
     # add len(ad) at the beggining
     ad = format(len(ad), f'0{header_width}b') + ad
 
     # change bits string to bytes
-    ad_bytes = __bits_to_bytes(ad)
+    ad_bits = bitarray(ad)
+    # ad_bytes = __bits_to_bytes(ad)
 
-    return ad_bytes
+    return ad_bits

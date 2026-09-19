@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 from typing import Final
 from PySide6.QtCore import QSize
@@ -7,9 +6,24 @@ APP_VERSION: Final[str] = "1.0"
 APP_SHELL_SIZE: Final[QSize] = QSize(720, 540)
 ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
 MENU_WIDTH: Final[int] = 320
-PHOTO_MARGIN: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
+SECTIONS_LABEL_HEIGHT: Final[int] = 20
+BORDER_PADDING: Final[int] = 5
+IMAGE_HEADER_MARGIN: Final[tuple[int, int, int, int]] = (BORDER_PADDING, BORDER_PADDING, BORDER_PADDING, 0)
+PHOTO_DISPLAY_MARGIN: Final[tuple[int, int, int, int]] = (10, 10, 10, 10)
+HISTOGRAM_MARGIN: Final[tuple[int, int, int, int]] = (BORDER_PADDING, 10, 10, BORDER_PADDING)
+ZERO_MARGINS: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
+EMPTY_LAYOUT_SPACING: Final[int] = 8
+ICON_SIZE: Final[tuple[int, int]] = (48, 48)
+LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
+ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
+IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
 
-current_dir = Path(__file__).parent
-starting_image_path = os.path.join(current_dir, "assets", "start.webp")
-processing_view_image_path = os.path.join(current_dir, "assets", "processing.webp")
-about_dialog_image_path = os.path.join(current_dir, "assets", "about.webp")
+FRONTEND_DIR = Path(__file__).resolve().parent
+
+ASSETS_DIR = FRONTEND_DIR / "assets"
+STYLES_DIR = ASSETS_DIR / "styles"
+
+STARTING_IMAGE_PATH = ASSETS_DIR / "start.webp"
+HIDING_VIEW_IMAGE_PATH = ASSETS_DIR / "hiding.webp"
+EXTRACTION_VIEW_IMAGE_PATH = ASSETS_DIR / "extraction.webp"
+ABOUT_DIALOG_IMAGE_PATH = ASSETS_DIR / "about.webp"
