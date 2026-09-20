@@ -19,8 +19,8 @@ def test_ad_unfold_ridge_border(show: bool = False):
     H, W = 512, 512 # All images in BOSSbase are 512x512
     mask = reference_mask(H, W) ### predictor shouldn't own mask it should be elevated...
 
-    K_e = "password"
-    K_h = "password"
+    K_e = "password1"
+    K_h = "password2"
 
     for i, batch in enumerate(loader):
         for raw_ad in predict.ad_unfold_ridge_border(batch, K=5):
@@ -87,8 +87,8 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
         return capacity / pixels
     ###########################################
 
-    K_e = "password"
-    K_h = "password"
+    K_e = "password1"
+    K_h = "password2"
 
     for i, batch in enumerate(DICOM_loader):
         H, W = batch.shape[-2:]

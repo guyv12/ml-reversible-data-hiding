@@ -1,6 +1,6 @@
 from bitarray import bitarray
 
-from .encryption import encrypt_data
+from backend.compressor.encryption import encrypt_data
 
 
 def hider(ad: bitarray, length: int, message: str, key: str) -> bitarray:
