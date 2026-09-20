@@ -51,7 +51,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
     if fmt.lower() == ".pgm":
         bpp = 8
         tensor = torch.from_numpy(image[np.newaxis]).int()
-        raw_ad = ppredict.pgm_raw_ad_sklearn(tensor)
+        raw_ad = ppredict.get_ad(tensor)
         kernel_weights, ref_pixels, error_map, _ = next(raw_ad)
 
         ad = ccompress.compress_pgm_ad((H, W), kernel_weights, ref_pixels, error_map)
@@ -61,7 +61,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
     elif fmt.lower() == ".dcm":
         bpp = 16
         tensor = torch.from_numpy(image[np.newaxis]).int()
-        raw_ad = ppredict.dicom_raw_ad_sklearn(tensor)
+        raw_ad = ppredict.get_dicom_ad(tensor)
         msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map = next(raw_ad)
         
         ad = ccompress.compress_dicom_ad((H, W), msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map)

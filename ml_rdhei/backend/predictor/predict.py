@@ -1,64 +1,39 @@
-from .models import predict_sklearn_ridge, predict_torch_ridge
-from backend.data.features import extract_features, lr_decompose
 import torch
-from collections.abc import Iterator
+from functools import partial
 
-def reference_mask(H: int, W: int) -> torch.Tensor:
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
-    return mask
+from backend.predictor.pipelines import *
+from backend.predictor.predictors import *
+from backend.predictor.features import *
+from backend.predictor.operations import *
 
-def pgm_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+
+def ad_unfold_ridge_border(batch: torch.Tensor, K: int = 5):
     _, H, W = batch.shape
-
     mask = reference_mask(H, W)
 
-    X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
+    feature_fn = partial(
+        unfold_features, 
+        K=K
+    )
+    predictor_fn = partial(
+        ridge_prediction, 
+        pred_fn=partial(dot_product_with_border, mask=mask)
+    )
 
-    for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
-        kernel_weights, error_map = predict_sklearn_ridge(X, y, mask)
+    yield from get_ad(batch, mask, feature_fn, predictor_fn)
 
-        yield kernel_weights, ref_pixels, error_map, batch[i]
 
-def pgm_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def dicom_ad_unfold_ridge_border(batch: torch.Tensor, K: int = 5):
     _, H, W = batch.shape
-
     mask = reference_mask(H, W)
 
-    X_batch, y_batch, ref_pixels_batch = extract_features(batch, mask, K)
-    kernel_weights_batch, error_map_batch = predict_torch_ridge(X_batch, y_batch)
+    feature_fn = partial(
+        unfold_features, 
+        K=K
+    )
+    predictor_fn = partial(
+        ridge_prediction, 
+        pred_fn=partial(dot_product_with_border, mask=mask)
+    )
 
-    return kernel_weights_batch, ref_pixels_batch, error_map_batch
-
-
-def dicom_raw_ad_sklearn(batch: torch.Tensor, K: int = 5) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
-    _, H, W = batch.shape
-
-    mask = reference_mask(H, W)
-
-    img1_batch, img2_batch = lr_decompose(batch)
-
-    X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
-
-    for img1, img2_X, img2_y, img2_ref_pixels in zip(img1_batch, X_img2_batch, y_img2_batch, ref_pixels_img2_batch):
-        # image1 -> fixed prediction
-        img1_error_map = (15 - img1.flatten()).to(torch.int16)
-        
-        # image2 -> classic approach
-        img2_kernel_weights, img2_error_map = predict_sklearn_ridge(img2_X, img2_y, mask)
-
-        yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
-
-def dicom_raw_ad_torch(batch: torch.Tensor, K: int = 5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    _, H, W = batch.shape
-
-    mask = reference_mask(H, W)
-
-    img1_batch, img2_batch = lr_decompose(batch)
-
-    img1_error_map_batch = (15 - img1_batch.flatten()).to(torch.int16)
-
-    X_img2_batch, y_img2_batch, ref_pixels_img2_batch = extract_features(img2_batch, mask, K)
-    kernel_weights_img2_batch, error_map_img2_batch = predict_torch_ridge(X_img2_batch, y_img2_batch)
-
-    return img1_error_map_batch, kernel_weights_img2_batch, ref_pixels_img2_batch, error_map_img2_batch
+    yield from get_dicom_ad(batch, mask, feature_fn, predictor_fn)

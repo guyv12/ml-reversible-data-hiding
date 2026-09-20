@@ -1,11 +1,12 @@
-import backend.data.loader as loader
-from backend.data.features import extract_features
-from .predict import reference_mask
+import torch
 from sklearn.linear_model import Ridge
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-import torch
 from pathlib import Path
 import re
+
+import backend.data.loader as loader
+from ml_rdhei.backend.predictor.features import extract_features
+from .predict import reference_mask
 
 
 def __build_path(filename: str) -> Path:
