@@ -13,7 +13,7 @@ def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[to
     :rtype: torch.Tensor, torch.Tensor, torch.Tensor - image's dtype
     """
     if batch.dim() != 3:
-        raise TypeError("Feature extraction requires single channel images")
+        raise TypeError("Feature extraction requires a batch of single-channel images (B, H, W)")
 
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
