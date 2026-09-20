@@ -2,8 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def show_image(bytes, width=512, height=512, title="Image"):
-    stego_array = np.frombuffer(bytes, dtype=np.uint8)
+def show_image(bytes, dtype=np.uint8, width=512, height=512, title="Image"):
+    stego_array = np.frombuffer(bytes, dtype=dtype)
 
     image_2d = stego_array.reshape((height, width))
 

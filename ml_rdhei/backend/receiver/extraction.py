@@ -7,9 +7,6 @@ from backend.predictor.predict import reference_mask
 
 
 def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 8, k: int = 5):
-    #ba = bitarray()
-    #ba.frombytes(bitstream)
-
     H, W = image_size
     n = H * W
     n_ref = int(reference_mask(H, W).sum().item())
@@ -51,6 +48,59 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
 
     return weights_float, pixels, error_map, message
 
+def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 16, k: int = 5):
+    H, W = image_size
+    N = H * W
+    n_ref = int(reference_mask(H, W).sum().item())
+    
+    # AD length
+    length = math.ceil(math.log2(N * bpp))
+    ad_length = bitstream[:length]
+    ad_and_message = bitstream[length:]
+    ad_length_int = int(ad_length.to01(), 2)
+    ad = ad_and_message[:ad_length_int]
+    message = ad_and_message[ad_length_int:]
+
+    ad = encrypt_data(ad, key)  # decrypting
+
+    # 1. Image1 error map
+    b_sym = 4
+    header_length_error = math.ceil(math.log2(N * b_sym))
+    codebook_error, compressed_error, ad = huffman_extraction(
+        ad, b_sym, header_length_error,
+    )
+
+    img1_error_map = huffman_decode(
+        codebook_error, compressed_error,
+    )
+
+    # 2. Image2 kernel weights
+    img2_kernel_weights, ad = weights_extraction(ad, k)
+
+    # 3. Image2 compressed reference pixels
+    b_sym = 9
+    header_length_pixels = math.ceil(math.log2(n_ref * b_sym))
+    codebook_pixels, compressed_pixels, ad = huffman_extraction(ad, b_sym, header_length_pixels)
+
+    # 4. Image2 compressed error map
+    header_length_error = math.ceil(math.log2((N - n_ref) * b_sym))
+    codebook_error, compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
+
+    # Decode Huffman
+    img2_ref_pixels = huffman_decode(codebook_pixels, compressed_pixels)
+    img2_error_map = huffman_decode(codebook_error, compressed_error)
+
+    # remove delta encoding
+    deltas = [img2_ref_pixels[0]]
+    for p in img2_ref_pixels[1:]:
+        deltas.append(p-255)
+    img2_ref_pixels = delta_decoding(deltas)
+    
+    # remove offset
+    img2_error_map = [e - 255 for e in img2_error_map]
+
+    return img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, message
+
 
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
     header = ad[:header_length]
@@ -86,7 +136,7 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
 def weights_extraction(ad: bitarray, k: int):
     weights_float = []
     for i in range(k ** 2):
-        weight = ad[:64]
+        weight = ad[:64] # Assume storing W as 64bit
         weight_bytes = weight.tobytes()
         weight_float = struct.unpack('>d', weight_bytes)[0]
         weights_float.append(weight_float)
