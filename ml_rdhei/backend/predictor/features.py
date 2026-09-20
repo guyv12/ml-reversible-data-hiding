@@ -56,7 +56,8 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor,
     model.eval()
 
     with torch.inference_mode():
-        # (B,H,C,W), change have it in sklearn [samples[features]] format because C are the features
+        # (B, C, H, W) -> (B, H, W, C)
+        # to have it in sklearn [samples[features]] format - C are the features in this case
         feature_map = model(X_pre).permute(0, 2, 3, 1)
         _, _, _, C = feature_map.shape
 
