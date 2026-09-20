@@ -9,8 +9,8 @@ def dot_product(X: torch.Tensor, weights: torch.Tensor,
     return y_pred.clamp(valid_pred_range[0], valid_pred_range[1])
 
 
-def dot_product_with_border(X: torch.Tensor, weights: torch.Tensor, mask: torch.Tensor, 
-                    valid_pred_range: tuple[int, int]) -> torch.Tensor:
+def dot_product_with_border(X: torch.Tensor, weights: torch.Tensor,
+                    valid_pred_range: tuple[int, int], mask: torch.Tensor) -> torch.Tensor:
     """
     Computes ridge based predictions:
     - Interior target pixels: X @ weights
@@ -27,7 +27,7 @@ def dot_product_with_border(X: torch.Tensor, weights: torch.Tensor, mask: torch.
     interior = torch.zeros((H, W), dtype=torch.bool)
     interior[pad : H - pad, pad : W - pad] = True
     border = ~interior.flatten()[~mask.flatten()]
-    
+
     if border.any():
         X_border = X[..., border, :] # all leading dimensions, target pixels, K*K
 
