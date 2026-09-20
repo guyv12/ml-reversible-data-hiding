@@ -9,7 +9,7 @@ from backend.compressor.hiding import hider
 
 def pgm_main():
     ## sklearn model -- we use yield in torch there would be 1 loop
-    BOSSBase_loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    BOSSBase_loader, _ = dloader.get_loader("datasets/BOSSbase_512")
 
     rates = 0
     counter = 0
@@ -20,7 +20,7 @@ def pgm_main():
     K_h = "password"
 
     for i, batch in enumerate(BOSSBase_loader):
-        for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
+        for raw_ad in ppredict.ad_unfold_ridge_border(batch):
             kernel_weights, ref_pixels, error_map, original = raw_ad
             original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
 
@@ -44,7 +44,7 @@ def pgm_main():
     return
 
 def dicom_main():
-    DICOM_loader, _ = dloader.get_dicom_loader("../datasets/DICOM")
+    DICOM_loader, _ = dloader.get_dicom_loader("datasets/DICOM")
 
     rates = 0
     counter = 0
@@ -55,7 +55,7 @@ def dicom_main():
     for i, batch in enumerate(DICOM_loader):
         H, W = batch.shape[-2:]
 
-        for raw_ad in ppredict.dicom_raw_ad_sklearn(batch):
+        for raw_ad in ppredict.dicom_ad_unfold_ridge_border(batch):
             img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map = raw_ad
             
             ad = ccompress.compress_dicom_ad((H, W), img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map)
