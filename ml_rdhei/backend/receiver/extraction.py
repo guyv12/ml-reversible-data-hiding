@@ -1,7 +1,7 @@
 import math
 import struct
 
-from bitarray import bitarray
+from bitarray import bitarray, decodetree
 from backend.compressor.encryption import encrypt_data
 from backend.predictor.predict import reference_mask
 
@@ -51,37 +51,28 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
 
     return weights_float, pixels, error_map, message
 
+def _read_uint(bits: bitarray, pos: int, width: int) -> tuple[int, int]:
+    return int(bits[pos:pos + width].to01(), 2), pos + width
 
-def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
-    header = ad[:header_length]
-    header_int = int(header.to01(), 2)
-    ad = ad[header_length:]
-    codebook = ad[:header_int]
-    ad = ad[header_int:]
+def huffman_extraction(ad: bitarray, b_sym: int, header_length: int, b_code: int = 5):
+    pos = 0
 
-    extracted_codebook: dict = {}
+    codebook_length, pos = _read_uint(ad, pos, header_length)
+    codebook_end = pos + codebook_length
 
-    while len(codebook) > 0:
-        value = codebook[:b_sym]
-        value_int = int(value.to01(), 2)
-        codebook = codebook[b_sym:]
+    extracted_codebook: dict[str, int] = {}
+    while pos < codebook_end:
+        value, pos = _read_uint(ad, pos, b_sym)
+        code_length, pos = _read_uint(ad, pos, b_code)
+        code = ad[pos:pos + code_length].to01()
+        pos += code_length
+        extracted_codebook[code] = value
 
-        code_length = codebook[:5]  # do zmiany
-        code_length_int = int(code_length.to01(), 2)
-        codebook = codebook[5:]
+    data_length, pos = _read_uint(ad, pos, header_length)
+    compressed_data = ad[pos:pos + data_length]
+    pos += data_length
 
-        code = (codebook[:code_length_int]).to01()
-        codebook = codebook[code_length_int:]
-
-        extracted_codebook.update({code: value_int})
-
-    header = ad[:header_length]
-    header_int = int(header.to01(), 2)
-    ad = ad[header_length:]
-    compressed_data = (ad[:header_int]).to01()
-    ad = ad[header_int:]
-
-    return extracted_codebook, compressed_data, ad
+    return extracted_codebook, compressed_data, ad[pos:]
 
 def weights_extraction(ad: bitarray, k: int):
     weights_float = []
@@ -94,19 +85,12 @@ def weights_extraction(ad: bitarray, k: int):
 
     return weights_float, ad
 
-def huffman_decode(codebook: dict[str, int], compressed_data: str):
-    decoded = []
-    buffer = ""
+def huffman_decode(codebook: dict[str, int], compressed_data: bitarray):
+    if len(compressed_data) == 0:
+        return []
 
-    for bit in compressed_data:
-        buffer += bit
-
-        if buffer in codebook:
-            symbol = codebook[buffer]
-            decoded.append(symbol)
-            buffer = ""
-
-    return decoded
+    tree = decodetree({value: bitarray(code) for code, value in codebook.items()})
+    return list(compressed_data.decode(tree))
 
 def delta_decoding(deltas: list[int]):
     pixels = []
@@ -120,6 +104,7 @@ def delta_decoding(deltas: list[int]):
     return pixels
 
 def msg_extraction(image, key):
+    image = image[:len(image) // 8 * 8]
     message = encrypt_data(image, key)
     message = message.tobytes()
     decoded_msg = message.decode('utf-8').rstrip('\x00')
