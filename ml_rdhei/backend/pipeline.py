@@ -12,6 +12,7 @@ from backend.predictor.results import (
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
 from backend.compressor.hiding import hider
+from backend.receiver.receive import receive
 
 def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int = 8) -> np.ndarray:
     H, W = img_size[0], img_size[1]
@@ -94,3 +95,11 @@ def hide(
     )
  
     return _transform_bits_to_image(bits, prediction.shape, prediction.bpp)
+
+def extract(source_image: np.ndarray, ad_decryption_key: str, message_decryption_key: str) -> np.ndarray:
+    H, W = source_image.shape[:2]
+
+    ba = bitarray(endian='big')
+    ba.frombytes(source_image.tobytes())
+    
+    return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
