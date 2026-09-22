@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 	QVBoxLayout, QLabel, QPushButton
 )
 
-from backend.pipeline import transform_image_to_ndarray
+from backend.pipeline import extract, transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
 from frontend.components.image_uploader import ImageUploader
@@ -15,6 +15,7 @@ from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
 from frontend.components.decryption_panel import DecryptionPanel
+from frontend.session import Session
 from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
 
@@ -28,7 +29,7 @@ class ExtractionView(QWidget):
 	def __init__(self):
 		super().__init__()
 		
-		# self._session: HideSession | None = None
+		self._session: Session | None = None
 
 		load_stylesheet(self, "sections.css")
 
@@ -92,6 +93,8 @@ class ExtractionView(QWidget):
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
 		self.image_uploader.image_removed.connect(self._on_image_removed)
+
+		self.decryption_panel.extraction_request.connect(self._on_extract_request)
 		
 		self.in_preview_manager.image_loaded.connect(self.in_histogram.plot_histogram)
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
@@ -101,16 +104,22 @@ class ExtractionView(QWidget):
 		image_data = transform_image_to_ndarray(image_path)
 
 		self.in_preview_manager.set_image(image_path, image_data)
+
+		self._session = Session(image_path, image_data)
+
 		self.decryption_panel.enable()
-		# self._session.prediction = predict(image_data, self._session.image_format)
 
 	def _on_image_removed(self):
-		# self._session = None
+		self._session = None
 		self.in_histogram.clear()
+		self.decryption_panel.clear()
 
 	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
-		pass
-		# try:
-		# 	self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
-		# finally:
-		# 	self.decryption_panel.set_busy(False)
+		self.decryption_panel.set_busy(True)
+		try:
+			self._session.marked_image, message = extract(self._session.source_image, ad_decryption_key, message_decryption_key)
+			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
+			self.decryption_panel.display_message(message)
+		finally:
+			self.decryption_panel.set_busy(False)
+			
