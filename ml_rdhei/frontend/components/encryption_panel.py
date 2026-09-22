@@ -67,7 +67,7 @@ class EncryptionPanel(QFrame):
 
 	def disable(self):
 		self.ad_encryption_key.setEnabled(False)
-		self.message_encryption_key.setEnabled(True)
+		self.message_encryption_key.setEnabled(False)
 		self.message.setEnabled(False)
 		self.hide_button.setEnabled(False)
 
