@@ -45,7 +45,7 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor) -> str:
         + compressed_data
     )
 
-def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset: bool = True) -> str:
+def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, b_sym: int, add_offset: bool = True) -> str:
     # huffman compression (error map)
     if add_offset:
         error_map = error_map + 255 # offset
@@ -57,7 +57,6 @@ def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset
 
     # Compressed error map
     n_non_ref = N - n_ref
-    b_sym = 9  # range [0, 510] so 9 bits are required
     width = math.ceil(math.log2(n_non_ref * b_sym))
     codebook = huffman_codebook_to_bits(error_map_codes, b_sym)
     compressed_data = "".join([error_map_codes[val] for val in error_map_list])
@@ -69,7 +68,9 @@ def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, add_offset
         + compressed_data
     )
 
-def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bitarray:
+def compress_pgm_ad(img_size: tuple[int, int], 
+                    kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor
+                    ) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 8
@@ -77,34 +78,34 @@ def compress_pgm_ad(img_size: tuple[int, int], kernel_weights: torch.Tensor, ref
 
     ad = __compress_kernel_weights(kernel_weights)
     ad += __compress_ref_pixels(ref_pixels)
-    ad += __compress_error_map(error_map, N, len(ref_pixels))
+    ad += __compress_error_map(error_map, N, len(ref_pixels), 9) # range [0, 510] so 9 bits are required
 
     # add len(ad) at the beggining
     ad = format(len(ad), f'0{header_width}b') + ad
 
     # change bits string to bytes
     ad_bits = bitarray(ad)
-    #ad_bytes = __bits_to_bytes(ad)
 
     return ad_bits
 
-def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor, img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor) -> bitarray:
+def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
+                      img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                      ) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 16
     header_width = math.ceil(math.log2(N * bpp))
 
-    ad = __compress_error_map(img1_error_map, N, 0, add_offset=False)
+    ad = __compress_error_map(img1_error_map, N, 0, 4, add_offset=False) # range [0, 15] so 4 bits are required
 
     ad += __compress_kernel_weights(img2_kernel_weights)
     ad += __compress_ref_pixels(img2_ref_pixels)
-    ad += __compress_error_map(img2_error_map, N, 0)
+    ad += __compress_error_map(img2_error_map, N, len(img2_ref_pixels), 9)
 
     # add len(ad) at the beggining
     ad = format(len(ad), f'0{header_width}b') + ad
 
     # change bits string to bytes
     ad_bits = bitarray(ad)
-    # ad_bytes = __bits_to_bytes(ad)
 
     return ad_bits
