@@ -117,8 +117,19 @@ class ExtractionView(QWidget):
 	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
 		self.decryption_panel.set_busy(True)
 		try:
-			self._session.marked_image, message = extract(self._session.source_image, ad_decryption_key, message_decryption_key)
-			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
+			self._session.marked_image, message = extract(
+				self._session.source_image,
+				ad_decryption_key,
+				message_decryption_key,
+				self._session.image_format
+			)
+
+			self.out_preview_manager.set_image(
+				self._session.output_path,
+				self._session.marked_image,
+				self._session.source_path
+			)
+			
 			self.decryption_panel.display_message(message)
 		finally:
 			self.decryption_panel.set_busy(False)
