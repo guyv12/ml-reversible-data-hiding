@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 from backend.predictor.predict import reference_mask
 
@@ -81,7 +82,7 @@ def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
 
 
 def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_pixels: list[int], img2_err_map: list[int],
-                   img_size: tuple[int, int], K: int = 5):
+                   img_size: tuple[int, int], K: int = 5) -> torch.Tensor:
     H, W = img_size
     half = K // 2
 

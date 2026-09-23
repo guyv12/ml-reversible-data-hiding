@@ -64,7 +64,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         bpp = 16
         tensor = torch.from_numpy(image[np.newaxis]).int()
         raw_ad = ppredict.dicom_ad_unfold_ridge_border(tensor)
-        msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map = next(raw_ad)
+        msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map, _ = next(raw_ad)
         
         ad = ccompress.compress_dicom_ad((H, W), msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map)
         metrics = compute_dicom_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
