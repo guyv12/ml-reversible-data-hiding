@@ -21,5 +21,5 @@ def receive_dicom(stego_image: bitarray, key_ad: str, key_msg: str, img_size: tu
     message = msg_extraction(message, key_msg)
     
     original_image = dicom_recovery(img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, img_size)
-    
-    return original_image, message
+
+    return original_image.numpy(), message
