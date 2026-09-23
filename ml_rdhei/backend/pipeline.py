@@ -12,7 +12,7 @@ from backend.predictor.results import (
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
 from backend.compressor.hiding import hider
-from backend.receiver.receive import receive
+from backend.receiver.receive import receive, receive_dicom
 
 def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int = 8) -> np.ndarray:
     H, W = img_size[0], img_size[1]
@@ -66,7 +66,14 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         raw_ad = ppredict.dicom_ad_unfold_ridge_border(tensor)
         msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map, _ = next(raw_ad)
         
-        ad = ccompress.compress_dicom_ad((H, W), msb_error_map, lsb_kernel_weights, lsb_ref_pixels, lsb_error_map)
+        ad = ccompress.compress_dicom_ad(
+            (H, W),
+            msb_error_map,
+            lsb_kernel_weights,
+            lsb_ref_pixels,
+            lsb_error_map
+        )
+
         metrics = compute_dicom_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
@@ -97,10 +104,24 @@ def hide(
  
     return _transform_bits_to_image(bits, prediction.shape, prediction.bpp)
 
-def extract(source_image: np.ndarray, ad_decryption_key: str, message_decryption_key: str) -> np.ndarray:
+def extract(
+    source_image: np.ndarray,
+    ad_decryption_key: str,
+    message_decryption_key: str,
+    fmt: str
+) -> np.ndarray:
+
     H, W = source_image.shape[:2]
 
     ba = bitarray(endian='big')
     ba.frombytes(source_image.tobytes())
+
+    if fmt.lower() == ".pgm":
+        return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+    elif fmt.lower() == ".dcm":
+        return receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+
+    else:
+        raise ValueError(f"Unsupported image format: '{fmt}'")
     
-    return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+    
