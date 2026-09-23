@@ -7,7 +7,6 @@ import backend.compressor.compress as compress
 from backend.predictor.pipelines import reference_mask
 import backend.predictor.results as results
 
-
 import backend.compressor.encryption as encryption
 from backend.data.show import show_image, check_images
 from backend.receiver.receive import receive, receive_dicom
@@ -15,7 +14,7 @@ from backend.compressor.hiding import hider
 
 
 def test_ad_unfold_ridge_border(show: bool = False):
-    loader, _ = dloader.get_loader("datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
     H, W = 512, 512 # All images in BOSSbase are 512x512
     mask = reference_mask(H, W) ### predictor shouldn't own mask it should be elevated...
 
@@ -55,18 +54,22 @@ def test_ad_unfold_ridge_border(show: bool = False):
             )
 
             # 5. Reconstruct the image based on decrypted AD
-            reconstructed_image = receive(
+            reconstructed_image, message = receive(
                 stego_image, K_e, K_h, prediction_metrics.shape
-            ).tobytes()
+            )
+            
+            reconstructed_image = reconstructed_image.tobytes()
 
             # 6. Verify the reconstruction is successful
             original_bytes = (
                 original_image.contiguous().numpy().astype("uint8").tobytes()
             )
             check_images(original_bytes, reconstructed_image)
+            print(message)
             print(prediction_metrics.metrics.embedding_rate)
             print(prediction_metrics.metrics.psnr)
             print(prediction_metrics.metrics.ssim)
+            print()
 
             if show:
                 show_image(original_bytes, title="Original Image")
@@ -117,16 +120,20 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
             )
 
             # 5. Reconstruct the image based on decrypted AD
-            reconstructed_image = receive_dicom(
+            reconstructed_image, message = receive_dicom(
                 stego_image, K_e, K_h, (H, W)
-            ).numpy().tobytes()
+            )
+            
+            reconstructed_image = reconstructed_image.numpy().tobytes()
 
             # 6. Verify the reconstruction is successful
             original_bytes = (
                 original_image.contiguous().numpy().astype("int16").tobytes()
             )
             check_images(original_bytes, reconstructed_image)
+            print(message)
             print(embedding_rate(payload_capacity(pixels(H, W), len(ad)), pixels(H, W)))
+            print()
 
             if show:
                 show_image(original_bytes, dtype=np.int16, width=W, height=H, title="Original Image")
@@ -134,4 +141,5 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
                 show_image(reconstructed_image, dtype=np.int16, width=W, height=H, title="Reconstructed Image")
 
 
-test_dicom_ad_unfold_ridge_border(True)
+# test_ad_unfold_ridge_border(False)
+test_dicom_ad_unfold_ridge_border(False)
