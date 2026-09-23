@@ -51,7 +51,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
 
     if fmt.lower() == ".pgm":
         bpp = 8
-        tensor = torch.from_numpy(image[np.newaxis]).int()
+        tensor = torch.from_numpy(np.ascontiguousarray(image[np.newaxis]))
         raw_ad = ppredict.pgm_raw_ad_sklearn(tensor)
         kernel_weights, ref_pixels, error_map, _ = next(raw_ad)
 
