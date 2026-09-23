@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-	QFrame, QWidget, QFileDialog, QVBoxLayout
+	QFrame, QWidget, QFileDialog, QVBoxLayout, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QDir
 
@@ -71,10 +71,14 @@ class ImageUploader(QFrame):
 				return
 
 			file_path = Path(path)
+			fmt = file_path.suffix.lower()
+
 			if file_path.suffix.lower() in ACCEPTED_FORMATS:
 				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
 				self._update_style()
+			else:
+				QMessageBox.critical(self,"Error",f"Unsupported image format: {fmt}")
 				
 	def dragEnterEvent(self, event):
 		if not self.has_image and event.mimeData().hasUrls():
