@@ -7,13 +7,11 @@ import re
 
 
 class ImageDataset(Dataset):
-    
     def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
         # Dataset holds file paths
         all_files = list(Path(img_dir).glob("*.pgm"))
         if regex is None:
             self.files = all_files
-
         else:
             self.files = [f for f in all_files if regex.match(f.name)]
 
@@ -33,10 +31,12 @@ class ImageDataset(Dataset):
 
 
 class DicomDataset(Dataset):
-    def __init__(self, img_dir: str | Path, regex=None) -> None:
-        self.files = sorted(list(Path(img_dir).glob("*.dcm")))
-        if regex:
-            self.files = [f for f in self.files if regex.match(f.name)]
+    def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
+        all_files = sorted(list(Path(img_dir).glob("*.dcm")))
+        if regex is None:
+            self.files = all_files
+        else:
+            self.files = [f for f in all_files if regex.match(f.name)]
 
     def __len__(self) -> int:
         return len(self.files)
