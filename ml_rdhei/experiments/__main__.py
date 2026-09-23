@@ -124,7 +124,7 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
                 stego_image, K_e, K_h, (H, W)
             )
             
-            reconstructed_image = reconstructed_image.numpy().tobytes()
+            reconstructed_image = reconstructed_image.tobytes()
 
             # 6. Verify the reconstruction is successful
             original_bytes = (
