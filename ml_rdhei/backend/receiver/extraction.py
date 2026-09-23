@@ -170,6 +170,7 @@ def delta_decoding(deltas: list[int]):
     return pixels
 
 def msg_extraction(image, key):
+    image = image[:len(image) // 8 * 8]
     message = encrypt_data(image, key)
     message = message.tobytes()
     decoded_msg = message.decode('utf-8').rstrip('\x00')

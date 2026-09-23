@@ -9,11 +9,10 @@ def receive(stego_image: bitarray, key_ad: str, key_msg: str, img_size: tuple[in
     weights, ref_pixels, error_map, message = ad_extraction(stego_image, key_ad, img_size)
 
     message = msg_extraction(message, key_msg)
-    print(message)
 
     original_image = recovery(weights, ref_pixels, error_map, img_size)
 
-    return original_image
+    return original_image, message
 
 def receive_dicom(stego_image: bitarray, key_ad: str, key_msg: str, img_size: tuple[int, int] = (512, 512)):
 
@@ -24,5 +23,4 @@ def receive_dicom(stego_image: bitarray, key_ad: str, key_msg: str, img_size: tu
     
     original_image = dicom_recovery(img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, img_size)
     
-    return original_image
-    
+    return original_image, message

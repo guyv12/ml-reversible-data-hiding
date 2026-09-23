@@ -29,7 +29,7 @@ class DecryptionPanel(QFrame):
 		self.message = QPlainTextEdit()
 		self.message.setEnabled(False)
 		self.message.setReadOnly(True)
-		# self.message.setPlaceholderText("")
+		self.message.setPlaceholderText("Hidden message")
 		self.message.setObjectName("messageEdit")
 
 		self.extraction_button = QPushButton("Extract")
@@ -53,11 +53,13 @@ class DecryptionPanel(QFrame):
 	def enable(self):
 		self.ad_decryption_key.setEnabled(True)
 		self.message_decryption_key.setEnabled(True)
+		self.message.setEnabled(True)
 
 	def disable(self):
 		self.ad_decryption_key.setEnabled(False)
 		self.message_decryption_key.setEnabled(False)
 		self.extraction_button.setEnabled(False)
+		self.message.setEnabled(False)
 
 	def clear(self):
 		self.disable()
@@ -85,3 +87,5 @@ class DecryptionPanel(QFrame):
 			and bool(self.message_decryption_key.text())
 			)
 
+	def display_message(self, message: str):
+		self.message.setPlainText(message)
