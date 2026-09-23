@@ -5,10 +5,9 @@ from pathlib import Path
 from backend.predictor.results import Prediction
 
 @dataclass
-class HideSession:
+class Session:
     source_path: Path
     source_image: ndarray
-    prediction: Prediction | None = None
     marked_image: ndarray | None = None
 
     @property
@@ -18,3 +17,6 @@ class HideSession:
     @property
     def image_format(self) -> str:
         return self.source_path.suffix.lower()
+
+class HideSession(Session):
+    prediction: Prediction | None = None

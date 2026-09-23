@@ -4,7 +4,7 @@ from backend.predictor.predict import reference_mask
 
 
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
-             img_size: tuple[int, int], k: int = 5):
+             img_size: tuple[int, int], k: int = 5) -> np.ndarray:
 
     h, w = img_size
     half = k // 2
