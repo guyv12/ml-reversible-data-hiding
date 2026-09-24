@@ -6,7 +6,7 @@ import numpy as np
 
 from PySide6.QtWidgets import (
 	QWidget, QMessageBox, QVBoxLayout, QHBoxLayout,
-	QLabel, QPushButton, QFileDialog
+	QLabel, QPushButton, QFileDialog, QSizePolicy
 ) 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QImage, QFontMetrics
@@ -35,6 +35,7 @@ class ImagePreview(QWidget):
 		self.photo_display = QLabel()
 		self.photo_display.setContentsMargins(*PHOTO_DISPLAY_MARGIN)
 		self.photo_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.photo_display.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
 
 		self.main_layout.addLayout(self.image_header_layout)
 		self.main_layout.addWidget(self.photo_display)
