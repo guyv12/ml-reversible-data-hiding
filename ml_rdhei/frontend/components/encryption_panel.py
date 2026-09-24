@@ -1,10 +1,11 @@
 from PySide6.QtWidgets import (
-	QFrame, QVBoxLayout, QLabel, QPushButton,
+	QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
 	QLineEdit, QPlainTextEdit
 )
 from PySide6.QtCore import Qt, Signal
 
 from frontend.utils import load_stylesheet
+from frontend.config import KEYS_LEN_LIMIT
 
 class EncryptionPanel(QFrame):
 	hide_request = Signal(str, str, str)
@@ -19,13 +20,13 @@ class EncryptionPanel(QFrame):
 		
 		self.ad_encryption_key = QLineEdit()
 		self.ad_encryption_key.setEnabled(False)
-		self.ad_encryption_key.setMaxLength(10)
+		self.ad_encryption_key.setMaxLength(KEYS_LEN_LIMIT)
 		self.ad_encryption_key.setPlaceholderText("Enter key")
 		self.ad_encryption_key.setObjectName("adKeyEdit")
 
 		self.message_encryption_key = QLineEdit()
 		self.message_encryption_key.setEnabled(False)
-		self.message_encryption_key.setMaxLength(10)
+		self.message_encryption_key.setMaxLength(KEYS_LEN_LIMIT)
 		self.message_encryption_key.setPlaceholderText("Enter key")
 		self.message_encryption_key.setObjectName("messageKeyEdit")
 
@@ -41,10 +42,20 @@ class EncryptionPanel(QFrame):
 		self.hide_button = QPushButton("Hide")
 		self.hide_button.setEnabled(False)
 
-		layout.addWidget(QLabel("Image encryption key"))
+		image_enc_key_layout = QHBoxLayout()
+		image_enc_key_layout.addWidget(QLabel("Image encryption key"))
+		image_enc_key_layout.addStretch()
+		image_enc_key_layout.addWidget(QLabel(f"max {KEYS_LEN_LIMIT}"))
+		layout.addLayout(image_enc_key_layout)
 		layout.addWidget(self.ad_encryption_key)
-		layout.addWidget(QLabel("Message encryption key"))
+
+		message_enc_key_layout = QHBoxLayout()
+		message_enc_key_layout.addWidget(QLabel("Message encryption key"))
+		message_enc_key_layout.addStretch()
+		message_enc_key_layout.addWidget(QLabel(f"max {KEYS_LEN_LIMIT}"))
+		layout.addLayout(message_enc_key_layout)
 		layout.addWidget(self.message_encryption_key)
+
 		layout.addWidget(QLabel("Message to hide"))
 		layout.addWidget(self.message)
 		layout.addWidget(self.message_count_label)

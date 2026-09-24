@@ -1,10 +1,11 @@
 from PySide6.QtWidgets import (
-	QFrame, QVBoxLayout, QLabel, QPushButton,
+	QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
 	QLineEdit, QPlainTextEdit
 )
 from PySide6.QtCore import Qt, Signal
 
 from frontend.utils import load_stylesheet
+from frontend.config import KEYS_LEN_LIMIT
 
 class DecryptionPanel(QFrame):
 	extraction_request = Signal(str, str)
@@ -16,13 +17,13 @@ class DecryptionPanel(QFrame):
 		
 		self.ad_decryption_key = QLineEdit()
 		self.ad_decryption_key.setEnabled(False)
-		self.ad_decryption_key.setMaxLength(10)
+		self.ad_decryption_key.setMaxLength(KEYS_LEN_LIMIT)
 		self.ad_decryption_key.setPlaceholderText("Enter key")
 		self.ad_decryption_key.setObjectName("adKeyEdit")
 
 		self.message_decryption_key = QLineEdit()
 		self.message_decryption_key.setEnabled(False)
-		self.message_decryption_key.setMaxLength(10)
+		self.message_decryption_key.setMaxLength(KEYS_LEN_LIMIT)
 		self.message_decryption_key.setPlaceholderText("Enter key")
 		self.message_decryption_key.setObjectName("messageKeyEdit")
 
@@ -35,10 +36,20 @@ class DecryptionPanel(QFrame):
 		self.extraction_button = QPushButton("Extract")
 		self.extraction_button.setEnabled(False)
 
-		layout.addWidget(QLabel("Image decryption key"))
+		image_dec_key_layout = QHBoxLayout()
+		image_dec_key_layout.addWidget(QLabel("Image decryption key"))
+		image_dec_key_layout.addStretch()
+		image_dec_key_layout.addWidget(QLabel(f"max {KEYS_LEN_LIMIT}"))
+		layout.addLayout(image_dec_key_layout)
 		layout.addWidget(self.ad_decryption_key)
-		layout.addWidget(QLabel("Message decryption key"))
+
+		message_dec_key_layout = QHBoxLayout()
+		message_dec_key_layout.addWidget(QLabel("Message decryption key"))
+		message_dec_key_layout.addStretch()
+		message_dec_key_layout.addWidget(QLabel(f"max {KEYS_LEN_LIMIT}"))
+		layout.addLayout(message_dec_key_layout)
 		layout.addWidget(self.message_decryption_key)
+
 		layout.addWidget(QLabel("Hidden message"))
 		layout.addWidget(self.message)
 		layout.addWidget(self.extraction_button)
