@@ -19,4 +19,4 @@ class SectionFrame(QFrame):
 		self._layout.addWidget(self.title_label)
 
 	def add_widget(self, widget: QWidget, stretch: int = 0):
-		self._layout.addWidget(widget)
+		self._layout.addWidget(widget, stretch=stretch)

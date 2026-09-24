@@ -191,6 +191,7 @@ class InputImagePreview(ImagePreview):
 		self.file_label.setTextFormat(Qt.TextFormat.PlainText)
 		self.file_label.setObjectName("fileLabel")
 		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+		self.file_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
 		self.delete_btn = QPushButton("✕")
 		self.delete_btn.setObjectName("deleteBtn")
