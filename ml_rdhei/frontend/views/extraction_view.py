@@ -58,8 +58,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.add_widget(self.image_uploader)
-		in_section.add_widget(self.in_histogram)
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
@@ -80,8 +80,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.add_widget(self.out_preview_manager)
-		out_section.add_widget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)

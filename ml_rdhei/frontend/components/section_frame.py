@@ -18,5 +18,5 @@ class SectionFrame(QFrame):
 		self.title_label.setFixedHeight(SECTIONS_LABEL_HEIGHT)
 		self._layout.addWidget(self.title_label)
 
-	def add_widget(self, widget: QWidget):
+	def add_widget(self, widget: QWidget, stretch: int = 0):
 		self._layout.addWidget(widget)
