@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from cv2 import imread, IMREAD_UNCHANGED
 from pydicom import dcmread
+from pydicom.errors import InvalidDicomError
 from bitarray import bitarray
 from pathlib import Path
 
@@ -27,23 +28,45 @@ def _transform_bits_to_image(bits: bitarray, img_size: tuple[int, int], bpp: int
     dtype = {8: np.uint8, 16: np.uint16}[bpp]
     return np.frombuffer(padded.tobytes(), dtype=dtype).reshape(H, W)
 
+def _load_dicom(image_path: Path) -> np.ndarray:
+	try:
+		dicom = dcmread(image_path)
+	except InvalidDicomError as e:
+		raise ValueError(f"'{image_path.name}' is not a valid DICOM file") from e
+
+	if "PixelData" not in dicom:
+		raise ValueError(f"'{image_path.name}' does not contain any image data")
+	if dicom.get("NumberOfFrames", 1) != 1:
+		raise ValueError(f"'{image_path.name}' has multiple frames\nOnly single-frame images are supported")
+	if dicom.get("SamplesPerPixel") != 1 or dicom.get("PhotometricInterpretation") not in ("MONOCHROME1", "MONOCHROME2"):
+		raise ValueError(f"'{image_path.name}' is not a grayscale image")
+	if dicom.get("BitsAllocated") != 16:
+		raise ValueError(f"'{image_path.name}' is not a 16-bit image")
+
+	try:
+		image = dicom.pixel_array
+	except Exception as e:
+		raise ValueError(f"Failed to decode '{image_path.name}': {e}") from e
+
+	if image.min() < 0:
+		raise ValueError(f"'{image_path.name}' contains negative pixel values, which are not supported")
+
+	return image.astype(np.uint16)
+
 def transform_image_to_ndarray(image_path: Path) -> np.ndarray:
 		if image_path.suffix.lower() == ".dcm":
-			try:
-				dicom = dcmread(image_path)
-				image = dicom.pixel_array
-			except Exception as e:
-				raise ValueError(f"Failed to decode DICOM file '{image_path}': {e}")
-		else:
+			return _load_dicom(image_path)
+
+		if image_path.suffix.lower() == ".pgm":
 			image = imread(str(image_path), IMREAD_UNCHANGED)
 
-		if image is None:
-			raise FileNotFoundError(
-				f"""Failed to load image: File not found or unreadable at '{image_path}'"""
-			)
+			if image is None:
+				raise FileNotFoundError(
+					f"""Failed to load image: File not found or unreadable at '{image_path}'"""
+				)
+			return image
 
-		return image
-
+		raise ValueError(f"Unsupported image format: '{image_path.suffix}'")
 
 def predict(image: np.ndarray, fmt: str) -> Prediction:
     H, W = image.shape[:2]
@@ -61,6 +84,9 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         return Prediction(ad, metrics, bpp, (H, W))
 
     elif fmt.lower() == ".dcm":
+        if image.max() > 0x0FFF:
+            raise ValueError("Pixel values exceed 12 bits, which is not supported for hiding")
+        
         bpp = 16
         tensor = torch.from_numpy(image[np.newaxis]).int()
         raw_ad = ppredict.dicom_ad_unfold_ridge_border(tensor)
