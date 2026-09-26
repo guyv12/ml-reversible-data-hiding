@@ -1,30 +1,26 @@
-import numpy as np
 import torch
 
 
 def test_image_reconstruction(original: torch.Tensor, reconstructed: torch.Tensor):
-    assert len(original) == len(reconstructed), (
+    assert original.shape == reconstructed.shape, (
         f"Images have different length: "
-        f"original={len(original)}, reconstructed={len(reconstructed)}"
+        f"original={original.shape}, reconstructed={reconstructed.shape}"
     )
 
     diff = original.to(torch.int16) - reconstructed.to(torch.int16)
     different = diff != 0
-    error_count = torch.count_nonzero(different)
+    error_count = torch.count_nonzero(different).item()
 
     assert error_count == 0, (
         f"Reconstruction FAILED: "
-        f"{error_count}/{len(original)} of pixels differ "
-        f"({100 * error_count / len(original):.4f}%)"
+        f"{error_count}/{original.numel()} of pixels differ "
+        f"({100 * error_count / original.numel():.4f}%)"
     )
 
-def test_error_statistics(original: bytes, reconstructed: bytes):
-    original_np = np.frombuffer(original, dtype=np.uint8)
-    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8)
-
-    diff = (original_np.astype(np.int16) - reconstructed_np.astype(np.int16))
+def test_error_statistics(original: torch.Tensor, reconstructed: torch.Tensor):
+    diff = (original.to(torch.int16) - reconstructed.to(torch.int16))
     nonzero = diff[diff != 0]
-    values, counts = np.unique(diff[diff != 0], return_counts=True)
+    values, counts = torch.unique(diff[diff != 0], return_counts=True)
 
     if len(nonzero) == 0:
         return
@@ -38,42 +34,32 @@ def test_error_statistics(original: bytes, reconstructed: bytes):
         print(f"{value:+3d}: {count}")
 
 
-def test_reconstruction_region(original: bytes, reconstructed: bytes):
-    original_np = np.frombuffer(original, dtype=np.uint8).reshape(512,512)
-    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).reshape(512,512)
-
-    diff = (original_np.astype(np.int16) - reconstructed_np.astype(np.int16))
+def test_reconstruction_region(original: torch.Tensor, reconstructed: torch.Tensor):
+    diff = (original.to(torch.int16) - reconstructed.to(torch.int16))
 
     region = diff[:16, :16]
-    #region = diff[200:216, 200:216]
 
     print("\nRegion 16x16:")
     for row in region:
         print(" ".join(f"{value:+3d}" for value in row))
 
-def test_reference_pixels(original: bytes, reconstructed: bytes):
-    original_np = np.frombuffer(original, dtype=np.uint8).reshape(512, 512)
-    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).reshape(512, 512)
-
-    reference_mask = np.zeros((512, 512), dtype=bool)
+def test_reference_pixels(original: torch.Tensor, reconstructed: torch.Tensor):
+    reference_mask = torch.zeros((512, 512), dtype=torch.bool)
     reference_mask[::2, ::2] = True
 
-    errors = original_np[reference_mask] != reconstructed_np[reference_mask]
-    error_count = np.count_nonzero(errors)
+    errors = original[reference_mask] != reconstructed[reference_mask]
+    error_count = torch.count_nonzero(errors)
 
     assert error_count == 0, (
         f"Reference pixels errors: {error_count}"
     )
 
-def test_psnr(original: bytes, reconstructed: bytes):
-    original_np = np.frombuffer(original, dtype=np.uint8).astype(np.float64)
-    reconstructed_np = np.frombuffer(reconstructed, dtype=np.uint8).astype(np.float64)
-
-    mse = np.mean((original_np - reconstructed_np) ** 2)
+def test_psnr(original: torch.Tensor, reconstructed: torch.Tensor):
+    mse = torch.mean((original - reconstructed) ** 2)
     if mse == 0:
         psnr = float("inf")
     else:
-        psnr = 10 * np.log10((255 ** 2) / mse)
+        psnr = 10 * torch.log10((255 ** 2) / mse)
 
     print(f"\nMSE: {mse:.4f}")
     print(f"PSNR: {psnr:.4f} dB")
