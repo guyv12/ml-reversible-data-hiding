@@ -51,30 +51,32 @@ class DicomDataset(Dataset):
         return torch.from_numpy(img).clamp(min=0) # DICOM images loaded with pydicom can hold negative values
                                                   # which are 99% just pure black, so we can clamp to 0
 
-def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tuple[DataLoader, int]:
+def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
+               batch_size: int = 64, num_workers: int = 4) -> tuple[DataLoader, int]:
     # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
     # apparently this is a known headache for Windows machines - bruh
     
     dataset = ImageDataset(dataset_dir, regex)
     loader = DataLoader(
         dataset,
-        batch_size=64,
+        pin_memory=True,
         shuffle=True,
-        num_workers=4,
-        pin_memory=True
+        batch_size=batch_size,
+        num_workers=num_workers
     )
     
     return loader, len(dataset)
 
-def get_dicom_loader(dataset_dir: str | Path, regex: re.Pattern | None = None) -> tuple[DataLoader, int]:
+def get_dicom_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
+                     num_workers: int = 4) -> tuple[DataLoader, int]:
     
     dataset = DicomDataset(dataset_dir, regex)
     loader = DataLoader(
         dataset,
-        batch_size=1, # batch_size = 1 because DICOM images can be different shapes
+        pin_memory=True,
         shuffle=True,
-        num_workers=4,
-        pin_memory=True
+        batch_size=1, # batch_size = 1 because DICOM images can be different shapes
+        num_workers=num_workers
     )
 
     return loader, len(dataset)

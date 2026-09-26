@@ -52,7 +52,7 @@ def test_dicom_ad_unfold_ridge_border(show=False):
 
 
 def test_ad_mobilenet_ridge_border(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_torch_unet_model(classes=K ** 2)
     model.eval()

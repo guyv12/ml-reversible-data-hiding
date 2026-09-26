@@ -175,6 +175,7 @@ def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: li
     # weights
     weights = torch.tensor(weights, dtype=torch.float64)
 
+    # rest
     model = get_torch_unet_model(path="unet_mobilenetv2.pth", classes=k ** 2)
     model.eval()
 
@@ -186,15 +187,17 @@ def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: li
         _, _, _, C = feature_map.shape
 
     X = feature_map.reshape(h * w, C)
-    X = X[target_mask.flatten()].double()
+    X = X[target_mask.flatten()]
 
-    predictions = torch.round(X @ weights)
+    predictions = torch.round(X.to(weights.dtype) @ weights)
     predictions = predictions.clamp(0, 255)
 
     errors = torch.tensor(error_map, dtype=torch.int64)
 
-    values = predictions.to(torch.int64) + errors
-
-    reconstructed_img[target_mask].to(torch.uint8)
+    reconstructed_img[target_mask] = torch.clamp(
+        predictions.to(torch.int64) + errors,
+        0,
+        255,
+    ).to(torch.uint8)
 
     return reconstructed_img
