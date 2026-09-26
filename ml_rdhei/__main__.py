@@ -2,7 +2,7 @@ import backend.data.loader as dloader
 import backend.predictor.predict as ppredict
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
-from backend.data.show import show_image, check_images
+import backend.data.show as show
 from backend.receiver.receive import receive
 from backend.compressor.hiding import hider
 
@@ -22,8 +22,8 @@ def pgm_main():
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
             kernel_weights, ref_pixels, error_map, original = raw_ad
-            original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
-            show_image(original_bytes)
+            #original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
+            show.show_image(original)
 
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
             ad_enrypted = encryption.encrypt_ad(ad, pixels, bpp, K_e)
@@ -37,10 +37,11 @@ def pgm_main():
             print(f"Avg embedding rate[bpp]: {rates/counter:.4f}\n")
 
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
-            show_image(image)
-            reconstructed = receive(image, K_e, K_h, len(ref_pixels)).numpy().tobytes()
-            check_images(original_bytes, reconstructed)
-            show_image(reconstructed)
+            show.show_bytes(image)
+            reconstructed = receive(image, K_e, K_h, len(ref_pixels))
+            #reconstructed.numpy().tobytes()
+            #check_images(original_bytes, reconstructed)
+            #show_image(reconstructed)
 
     return
 
