@@ -5,6 +5,7 @@ import backend.compressor.encryption as encryption
 import backend.data.show as show
 from backend.receiver.receive import receive
 from backend.compressor.hiding import hider
+import backend.receiver.test as test_receiver
 
 
 def pgm_main():
@@ -22,7 +23,6 @@ def pgm_main():
     for i, batch in enumerate(BOSSBase_loader):
         for raw_ad in ppredict.pgm_raw_ad_sklearn(batch):
             kernel_weights, ref_pixels, error_map, original = raw_ad
-            #original_bytes = original.contiguous().cpu().numpy().astype('uint8').tobytes()
             show.show_image(original)
 
             ad = ccompress.compress_pgm_ad((512, 512), kernel_weights, ref_pixels, error_map)
@@ -39,9 +39,8 @@ def pgm_main():
             image = hider(ad_enrypted, available_bits//8, "bardzo tajna wiadomosc", K_h)
             show.show_bytes(image)
             reconstructed = receive(image, K_e, K_h, len(ref_pixels))
-            #reconstructed.numpy().tobytes()
-            #check_images(original_bytes, reconstructed)
-            #show_image(reconstructed)
+            show.show_image(reconstructed)
+            test_receiver.test_image_reconstruction(original, reconstructed)
 
     return
 
