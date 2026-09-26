@@ -2,6 +2,7 @@ import torch
 import numpy as np
 
 from backend.predictor.predict import reference_mask
+from backend.models.models import get_torch_unet_model
 
 
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
@@ -154,4 +155,46 @@ def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_
 
     reconstructed_image = (img1 << 8) | img2
     return reconstructed_image
-    
+
+
+def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
+                      img_size: tuple[int, int], k: int = 5) -> np.ndarray:
+    h, w = img_size
+
+    # reference pixels
+    reconstructed_img = torch.zeros((h, w), dtype=torch.uint8)
+    reconstructed_img[::2, ::2] = (torch.tensor(ref_pixels, dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape))
+    only_ref_pixels = reconstructed_img.clone()
+
+    # error map
+    target_mask = torch.ones((h, w), dtype=torch.bool)
+    target_mask[::2, ::2] = False
+    error_img = torch.zeros((h, w), dtype=torch.int64)
+    error_img[target_mask] = torch.tensor(error_map, dtype=torch.int64)
+
+    # weights
+    weights = torch.tensor(weights, dtype=torch.float64)
+
+    model = get_torch_unet_model(path="unet_mobilenetv2.pth", classes=k ** 2)
+    model.eval()
+
+    with torch.inference_mode():
+        feature_map = model(
+            only_ref_pixels.unsqueeze(0).unsqueeze(0).float() / 255.0
+        ).permute(0, 2, 3, 1)
+
+        _, _, _, C = feature_map.shape
+
+    X = feature_map.reshape(h * w, C)
+    X = X[target_mask.flatten()].double()
+
+    predictions = torch.round(X @ weights)
+    predictions = predictions.clamp(0, 255)
+
+    errors = torch.tensor(error_map, dtype=torch.int64)
+
+    values = predictions.to(torch.int64) + errors
+
+    reconstructed_img[target_mask].to(torch.uint8)
+
+    return reconstructed_img

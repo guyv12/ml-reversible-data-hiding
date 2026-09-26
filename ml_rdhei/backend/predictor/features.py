@@ -52,7 +52,7 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch
     # Add channel dimension and normalize to <0, 1>
     X_pre = masked_batch.unsqueeze(1).float() / 255.0
 
-    model = get_torch_unet_model(classes=K ** 2)
+    model = get_torch_unet_model("unet_mobilenetv2.pth", classes=K ** 2)
     model.eval()
 
     with torch.inference_mode():

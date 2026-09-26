@@ -39,31 +39,33 @@ def dicom_ad_unfold_ridge_border(batch: torch.Tensor, K: int = 5):
     yield from get_dicom_ad(batch, mask, feature_fn, predictor_fn)
 
 
-def ad_mobilenetv2_ridge_border(batch: torch.Tensor):
+def ad_mobilenetv2_ridge(batch: torch.Tensor, K: int = 5):
     _, H, W = batch.shape
     mask = reference_mask(H, W)
     
     feature_fn = partial(
-        cnn_features
+        cnn_features,
+        K=K
     )
     predictor_fn = partial(
-        ridge_prediction, 
-        pred_fn=partial(dot_product_with_border, mask=mask)
+        ridge_prediction,
+        pred_fn=dot_product
     )
     
     yield from get_ad(batch, mask, feature_fn, predictor_fn)
 
 
-def ad_cnn_ridge_border(batch: torch.Tensor):
+def ad_cnn_ridge_border(batch: torch.Tensor, K: int = 5):
     _, H, W = batch.shape
     mask = reference_mask(H, W)
         
     feature_fn = partial(
-        cnn_features
+        cnn_features,
+        K=K
     )
     predictor_fn = partial(
-        ridge_prediction, 
-        pred_fn=partial(dot_product_with_border, mask=mask)
+        ridge_prediction,
+        pred_fn=dot_product
     )
         
     yield from get_ad(batch, mask, feature_fn, predictor_fn)
