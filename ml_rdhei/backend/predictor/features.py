@@ -32,7 +32,7 @@ def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[to
     y = batch.view(B, H * W)[:, ~mask.flatten()]
     return X, y, ref_p
 
-def cnn_features(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def cnn_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Extracts features through CNN pass.
     Works on a batched input. Requires no channel dimension.
@@ -52,7 +52,7 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor,
     # Add channel dimension and normalize to <0, 1>
     X_pre = masked_batch.unsqueeze(1).float() / 255.0
 
-    model = get_torch_unet_model(classes=25)
+    model = get_torch_unet_model(classes=K ** 2)
     model.eval()
 
     with torch.inference_mode():
