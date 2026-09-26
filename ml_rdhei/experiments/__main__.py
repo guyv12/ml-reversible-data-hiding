@@ -80,16 +80,6 @@ def test_ad_unfold_ridge_border(show: bool = False):
 def test_dicom_ad_unfold_ridge_border(show: bool = False):
     DICOM_loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
 
-    ########################################### to delete if dicom metrics in place
-    bpp = 16
-    def pixels(H, W):
-        return H * W
-    def payload_capacity(pixels, ad_bits):
-        return (pixels * bpp) - ad_bits
-    def embedding_rate(capacity, pixels):
-        return capacity / pixels
-    ###########################################
-
     K_e = "password1"
     K_h = "password2"
 
@@ -107,21 +97,29 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
                 (H, W), img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map
             )
 
-            # TODO Dicom Prediction Metrics?
+            prediction_metrics = results.Prediction(
+                ad=ad,
+                bpp=16,
+                shape=(H, W),
+                metrics=results.compute_dicom_metrics(
+                    original=original_image, lsb_error_map=img2_error_map,
+                    mask=mask, ad_bits=len(ad),
+                )
+            )
 
             # 3. Encrypt AD
             encrypted_ad = encryption.encrypt_ad(
-                ad, pixels(H, W), bpp, K_e
+                ad, prediction_metrics.pixels, prediction_metrics.bpp, K_e
             )
 
             # 4. Hide AD in the image
             stego_image = hider(
-                encrypted_ad, payload_capacity(pixels(H, W), len(ad)), "bardzo tajna wiadomosc", K_h
+                encrypted_ad, prediction_metrics.metrics.payload_capacity, "bardzo tajna wiadomosc", K_h
             )
 
             # 5. Reconstruct the image based on decrypted AD
             reconstructed_image, message = receive_dicom(
-                stego_image, K_e, K_h, (H, W)
+                stego_image, K_e, K_h, prediction_metrics.shape
             )
             
             reconstructed_image = reconstructed_image.tobytes()
@@ -132,7 +130,9 @@ def test_dicom_ad_unfold_ridge_border(show: bool = False):
             )
             check_images(original_bytes, reconstructed_image)
             print(message)
-            print(embedding_rate(payload_capacity(pixels(H, W), len(ad)), pixels(H, W)))
+            print(prediction_metrics.metrics.embedding_rate)
+            print(prediction_metrics.metrics.psnr)
+            print(prediction_metrics.metrics.ssim)
             print()
 
             if show:
