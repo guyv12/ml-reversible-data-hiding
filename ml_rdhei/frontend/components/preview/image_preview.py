@@ -63,7 +63,7 @@ class ImagePreview(QWidget):
 				)
 				self._cached_pix = None
 
-		else:
+		elif self._image_path.suffix.lower() == ".pgm":
 			image = convert_ndarray_to_QImage(self._image_data)
 			self._cached_pix = QPixmap.fromImage(image)
 
