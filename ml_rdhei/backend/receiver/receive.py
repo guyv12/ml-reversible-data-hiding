@@ -1,4 +1,5 @@
 from bitarray import bitarray
+from numpy import uint16
 
 from backend.receiver.extraction import *
 from backend.receiver.recovery import recovery, dicom_recovery
@@ -22,4 +23,4 @@ def receive_dicom(stego_image: bitarray, key_ad: str, key_msg: str, img_size: tu
     
     original_image = dicom_recovery(img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, img_size)
 
-    return original_image.numpy(), message
+    return original_image.numpy().astype(uint16), message
