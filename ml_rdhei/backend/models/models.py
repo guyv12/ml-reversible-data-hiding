@@ -37,7 +37,7 @@ def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1,
         return load_model(path)
     
     return smp.UnetPlusPlus(
-        encoder_name="resnet50",
+        encoder_name="mobilenet_v2",
         encoder_weights="imagenet",
         in_channels=in_channels,
         classes=classes,
