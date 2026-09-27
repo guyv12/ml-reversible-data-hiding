@@ -101,12 +101,13 @@ class ExtractionView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
-		image_data = transform_image_to_ndarray(image_path)
-
-		self.in_preview_manager.set_image(image_path, image_data)
-
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+		except (ValueError, OSError) as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+		
 		self._session = Session(image_path, image_data)
-
+		self.in_preview_manager.set_image(image_path, image_data)
 		self.decryption_panel.enable()
 
 	def _on_image_removed(self):
@@ -131,6 +132,8 @@ class ExtractionView(QWidget):
 			)
 			
 			self.decryption_panel.display_message(message)
+		# except ValueError as e:
+		# 	QMessageBox.warning(self, "Extracting failed", str(e))
 		finally:
 			self.decryption_panel.set_busy(False)
 			

@@ -74,7 +74,6 @@ class ImageUploader(QFrame):
 			fmt = file_path.suffix.lower()
 
 			if file_path.suffix.lower() in ACCEPTED_FORMATS:
-				# self.preview_manager.set_image(file_path)
 				self.image_uploaded.emit(file_path)
 				self._update_style()
 			else:
