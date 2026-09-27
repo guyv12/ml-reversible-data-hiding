@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from cv2 import imread, IMREAD_UNCHANGED
+from cv2 import imdecode, IMREAD_UNCHANGED
 from pydicom import dcmread
 from pydicom.errors import InvalidDicomError
 from bitarray import bitarray
@@ -53,18 +53,28 @@ def _load_dicom(image_path: Path) -> np.ndarray:
 
 	return image.astype(np.uint16)
 
+def _load_pgm(image_path: Path) -> np.ndarray:
+    PGM_BYTES = (b"P2", b"P5")
+
+    buffer = np.fromfile(image_path, dtype=np.uint8)
+    if buffer[:2].tobytes() not in PGM_BYTES:
+        raise ValueError(f"'{image_path.name}' is not valid PGM file")
+
+    image = imdecode(buffer, IMREAD_UNCHANGED)
+
+    if image is None:
+        raise ValueError(f"""Failed to load image: File not found or unreadable at '{image_path}'""")
+    if image.dtype != np.uint8:
+        raise ValueError(f"'{image_path.name}' is not an 8-bit image")
+
+    return image
+
 def transform_image_to_ndarray(image_path: Path) -> np.ndarray:
 		if image_path.suffix.lower() == ".dcm":
 			return _load_dicom(image_path)
 
 		if image_path.suffix.lower() == ".pgm":
-			image = imread(str(image_path), IMREAD_UNCHANGED)
-
-			if image is None:
-				raise FileNotFoundError(
-					f"""Failed to load image: File not found or unreadable at '{image_path}'"""
-				)
-			return image
+			return _load_pgm(image_path)
 
 		raise ValueError(f"Unsupported image format: '{image_path.suffix}'")
 
