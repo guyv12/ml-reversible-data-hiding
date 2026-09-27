@@ -1,6 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from collections.abc import Callable
+from functools import partial
 
 import backend.data.show as dshow
 import backend.data.loader as dloader
@@ -51,10 +52,10 @@ def test_dicom_ad_unfold_ridge_border(show=False):
     )
 
 
-def test_ad_mobilenet_ridge_border(show=False):
+def test_ad_mobilenet_v2_ridge(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
-    model = get_torch_unet_model(classes=K ** 2)
+    model = get_mobilenet_v2_unet_model(classes=K ** 2)
     model.eval()
     save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
     
@@ -64,13 +65,46 @@ def test_ad_mobilenet_ridge_border(show=False):
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
         metrics_fn=compute_metrics,
-        receiver_fn=receiver.receive_cnn_features,
+        receiver_fn=partial(
+            receiver.receive_cnn_features, 
+            model_fn=partial(
+                get_mobilenet_v2_unet_model, 
+                path="unet_mobilenetv2.pth",
+                classes=K ** 2
+            )
+        ),
         bpp=8,
         K=K,
         dtype="uint8",
         show=show,
     )
 
+def test_unet_resnet50_ridge(show=False):
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
+    K = 5
+    model = get_resnet_50_unet_model(classes=K ** 2)
+    model.eval()
+    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
+    
+    run_linear(
+        loader,
+        predictor_fn=prediction.ad_resnet50_ridge,
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_metrics,
+         receiver_fn=partial(
+            receiver.receive_cnn_features, 
+            model_fn=partial(
+                get_resnet_50_unet_model, 
+                path="unet_resnet50.pth",
+                classes=K ** 2
+            )
+        ),
+        bpp=8,
+        K=K,
+        dtype="uint8",
+        show=show,
+    )
 
 #---- Generic runner ----
 
@@ -136,11 +170,11 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
             )
 
             reconstructed, message = receiver_fn(
-                stego,
-                K_e,
-                K_h,
-                prediction.shape,
-                K,
+                stego_image=stego,
+                key_ad=K_e,
+                key_msg=K_h,
+                img_size=prediction.shape,
+                K=K,
             )
 
             original_bytes = (
@@ -192,7 +226,8 @@ def prepare_dicom(raw_ad):
 def main():
     #test_ad_unfold_ridge_border()
     #test_dicom_ad_unfold_ridge_border()
-    test_ad_mobilenet_ridge_border()
+    #test_ad_mobilenet_v2_ridge()
+    test_unet_resnet50_ridge()
 
 if __name__ == "__main__":
     main()

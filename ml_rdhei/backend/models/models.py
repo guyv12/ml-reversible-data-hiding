@@ -10,7 +10,7 @@ def get_ridge_model():
 def get_batch_ridge_model():
     raise NotImplementedError("Torch model is not implemented yet...")
 
-def get_torch_unet_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
+def get_mobilenet_v2_unet_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
     if path is not None:
         return load_model(path)
 
@@ -21,6 +21,27 @@ def get_torch_unet_model(path: Path | str = None, in_channels: int = 1, classes:
         classes=classes,
     )
 
+def get_resnet_50_unet_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
+    if path is not None:
+        return load_model(path)
+    
+    return smp.Unet(
+        encoder_name="resnet50",
+        encoder_weights="imagenet",
+        in_channels=in_channels,
+        classes=classes,
+    )
+
+def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
+    if path is not None:
+        return load_model(path)
+    
+    return smp.UnetPlusPlus(
+        encoder_name="resnet50",
+        encoder_weights="imagenet",
+        in_channels=in_channels,
+        classes=classes,
+    )
 
 # ----- Classes ----
 

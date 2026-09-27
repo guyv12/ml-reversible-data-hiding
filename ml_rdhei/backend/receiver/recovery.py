@@ -1,8 +1,8 @@
 import torch
 import numpy as np
+from collections.abc import Callable
 
 from backend.predictor.predict import reference_mask
-from backend.models.models import get_torch_unet_model
 
 
 def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
@@ -158,7 +158,7 @@ def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_
 
 
 def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
-                      img_size: tuple[int, int], k: int = 5) -> np.ndarray:
+                      model_fn: Callable, img_size: tuple[int, int], k: int = 5) -> np.ndarray:
     h, w = img_size
 
     # reference pixels
@@ -176,7 +176,7 @@ def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: li
     weights = torch.tensor(weights, dtype=torch.float64)
 
     # rest
-    model = get_torch_unet_model(path="unet_mobilenetv2.pth", classes=k ** 2)
+    model = model_fn()
     model.eval()
 
     with torch.inference_mode():
