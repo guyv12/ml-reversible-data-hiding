@@ -3,14 +3,14 @@ import torch.nn.functional as fn
 
 
 def dot_product(X: torch.Tensor, weights: torch.Tensor, 
-                    valid_pred_range: tuple[int, int]) -> torch.Tensor:
+                valid_pred_range: tuple[int, int]) -> torch.Tensor:
 
     y_pred = torch.round(X.to(weights.dtype) @ weights)
     return y_pred.clamp(valid_pred_range[0], valid_pred_range[1])
 
 
 def dot_product_with_border(X: torch.Tensor, weights: torch.Tensor,
-                    valid_pred_range: tuple[int, int], mask: torch.Tensor) -> torch.Tensor:
+                            valid_pred_range: tuple[int, int], mask: torch.Tensor) -> torch.Tensor:
     """
     Computes ridge based predictions:
     - Interior target pixels: X @ weights
