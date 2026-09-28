@@ -1,4 +1,3 @@
-import math
 import heapq
 import torch
 from collections import Counter
