@@ -1,26 +1,22 @@
 import torch
 
-def recovery(weights: list[float], ref_pixels: list[int], error_map: list[int], k: int = 5):
+def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor, k: int = 5):
 
     h, w = 512, 512
     half = k // 2
 
     # reference pixels
     reconstructed_img = torch.zeros((h, w), dtype=torch.uint8)
-    reconstructed_img[::2, ::2] = (torch.tensor(ref_pixels, dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape))
+    reconstructed_img[::2, ::2] = (ref_pixels.to(dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape))
     only_ref_pixels = reconstructed_img.clone()
 
     # error map
     target_mask = torch.ones((h, w), dtype=torch.bool)
     target_mask[::2, ::2] = False
     error_img = torch.zeros((h, w), dtype=torch.int64)
-    error_img[target_mask] = torch.tensor(error_map, dtype=torch.int64)
-
-    # weights
-    weights = torch.tensor(weights, dtype=torch.float64)
+    error_img[target_mask] = error_map
 
     # INTERIOR CASE
-    #windows = torch.lib.stride_tricks.sliding_window_view(only_ref_pixels,(k, k))
     windows = only_ref_pixels.unfold(0,k,1).unfold(1,k,1)
 
     interior_mask = target_mask[half:h-half,half:w-half]
