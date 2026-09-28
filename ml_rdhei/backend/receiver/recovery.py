@@ -1,6 +1,6 @@
 import torch
 
-def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor, k: int = 5):
+def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor, k: int = 5) -> torch.Tensor:
 
     h, w = 512, 512
     half = k // 2
