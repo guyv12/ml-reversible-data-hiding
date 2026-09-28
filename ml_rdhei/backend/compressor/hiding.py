@@ -1,5 +1,4 @@
 from bitarray import bitarray
-
 from .encryption import encrypt_data
 
 

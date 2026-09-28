@@ -1,8 +1,6 @@
 import math
-
 import torch
 from bitarray import bitarray
-
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode, huffman_codebook_to_bits
 
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
