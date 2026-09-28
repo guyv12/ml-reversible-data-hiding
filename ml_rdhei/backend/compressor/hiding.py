@@ -1,6 +1,5 @@
 from bitarray import bitarray
-from .encryption import encrypt_data
-
+from backend.compressor.encryption import encrypt_data
 
 def hider(ad: bitarray, length: int, message: str, key: str) -> bitarray:
     msg_bytes = bytes(message.encode('utf-8'))

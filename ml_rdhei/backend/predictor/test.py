@@ -1,10 +1,12 @@
-import backend.data.loader as loader
-from backend.data.features import extract_features
+import torch
 from sklearn.linear_model import Ridge
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
-import torch
 from pathlib import Path
 import re
+
+import backend.data.loader as loader
+from ml_rdhei.backend.predictor.features import extract_features
+from .predict import reference_mask
 
 
 def __build_path(filename: str) -> Path:
@@ -22,8 +24,7 @@ def test_sklearn_kernel(K: int = 5, results_file: str | Path | None = None) -> N
 
     H, W = 512, 512 # !GS: assumes grayscale .pgm
 
-    mask = torch.zeros((H, W), dtype=torch.bool)
-    mask[::2, ::2] = True
+    mask = reference_mask(H, W)
 
     model = Ridge(alpha=1, solver="svd", fit_intercept=False)
 
