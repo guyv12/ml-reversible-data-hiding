@@ -1,16 +1,17 @@
-import os
+from pathlib import Path
 
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 
 from frontend.config import (
-	PHOTO_MARGIN, MENU_WIDTH,
-	processing_view_image_path, about_dialog_image_path, starting_image_path
+	MENU_WIDTH, ZERO_MARGINS,
+	HIDING_VIEW_IMAGE_PATH, EXTRACTION_VIEW_IMAGE_PATH,
+	ABOUT_DIALOG_IMAGE_PATH, STARTING_IMAGE_PATH
 )
 from frontend.components.hover_button import HoverButton
 	
-class MainView(QWidget):
+class MenuView(QWidget):
 	"""
 	Main application landing view.
 	
@@ -22,17 +23,20 @@ class MainView(QWidget):
 		super().__init__()
 		self.photo_display = QLabel()
 		self.photo_display.setAlignment(Qt.AlignCenter)
-		self.photo_display.setContentsMargins(*PHOTO_MARGIN)
-		self.update_image(starting_image_path)
+		self.photo_display.setContentsMargins(*ZERO_MARGINS)
+		self.update_image(STARTING_IMAGE_PATH)
 
-		self.processing_view_btn = HoverButton("Processing", processing_view_image_path)
-		self.about_dialog_btn = HoverButton("About", about_dialog_image_path)
+		self.hiding_view_btn = HoverButton("Data Hiding", HIDING_VIEW_IMAGE_PATH)
+		self.extraction_view_btn = HoverButton("Data Extraction", EXTRACTION_VIEW_IMAGE_PATH)
+		self.about_dialog_btn = HoverButton("About", ABOUT_DIALOG_IMAGE_PATH)
 
-		self.processing_view_btn.hovered.connect(self.update_image)
+		self.hiding_view_btn.hovered.connect(self.update_image)
+		self.extraction_view_btn.hovered.connect(self.update_image)
 		self.about_dialog_btn.hovered.connect(self.update_image)
 
 		menu_layout = QVBoxLayout(self)
-		menu_layout.addWidget(self.processing_view_btn)
+		menu_layout.addWidget(self.hiding_view_btn)
+		menu_layout.addWidget(self.extraction_view_btn)
 		menu_layout.addWidget(self.about_dialog_btn)
 
 		menu_container = QWidget()
@@ -43,9 +47,9 @@ class MainView(QWidget):
 		main_layout.addWidget(self.photo_display)
 		main_layout.addWidget(menu_container)
 
-	def update_image(self, path):
+	def update_image(self, path: str):
 		pix = QPixmap(path)
 		if not pix.isNull():
 			self.photo_display.setPixmap(pix)
 		else:
-			self.photo_display.setText(f"Error loading image {os.path.basename(path)}")
+			self.photo_display.setText(f"Error loading image {Path(path).name}")

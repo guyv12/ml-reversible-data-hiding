@@ -1,0 +1,93 @@
+ImageUploader[has_image="false"] 
+{
+    border: 2px dashed #aaa;
+	border-radius: 10px;
+	background-color: #2b2b2b;
+}
+
+ImageUploader[has_image="false"]:hover, 
+ImageUploader[has_image="false"][drag_active="true"]
+{
+	border-color: #3498db;
+	background-color: #323232;
+}
+
+ImageUploader[has_image="true"],
+PreviewManager
+{
+    border-radius: 10px;
+    background-color: #323232;
+}
+
+PreviewManager QLabel
+{
+    border: none;
+    background: transparent;
+    color: #aaa;
+}
+
+PreviewManager #titleLabel
+{
+    font-size: 15px;
+    font-weight: bold;
+    color: #ececec
+}
+
+PreviewManager #subtitleLabel
+{
+    font-size: 12px;
+}
+
+PreviewManager #chipLabel
+{
+    border-radius: 5px;
+    padding: 3px 8px;
+    background-color: #565656;
+    color: #ececec;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+PreviewManager #deleteBtn 
+{
+    background-color: transparent;
+    border: none;
+    color: #888888;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+}
+
+PreviewManager #deleteBtn:hover 
+{
+    background-color: transparent;
+    color: #e74c3c;
+}
+
+PreviewManager #deleteBtn:pressed 
+{
+    color: #c0392b;
+}
+
+PreviewManager #downloadBtn 
+{
+    background-color: transparent;
+    border: none;
+    color: #888888;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+}
+
+PreviewManager #downloadBtn:hover 
+{
+    background-color: transparent;
+    color: #3498db;
+}
+
+PreviewManager #downloadBtn:pressed 
+{
+    color: #2b7fb7;
+}
