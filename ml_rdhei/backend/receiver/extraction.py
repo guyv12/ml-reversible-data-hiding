@@ -1,5 +1,6 @@
 import math
 import struct
+import numpy as np
 
 from bitarray import bitarray
 from backend.compressor.encryption import encrypt_data
@@ -23,19 +24,29 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
 
     # Kernel weights
     weights_float, ad = weights_extraction(ad, k)
-
+    
+    if not np.isfinite(weights_float).all():
+        raise ValueError("Invalid data")
+    
     # Compressed reference pixels
     b_sym = 9
     header_length_pixels = math.ceil(math.log2(n_ref * b_sym))
     codebook_pixels, compressed_pixels, ad = huffman_extraction(ad, b_sym, header_length_pixels)
-
     # Compressed error map
     header_length_error = math.ceil(math.log2((n - n_ref) * b_sym))
+    if len(ad) < header_length_error:
+        raise ValueError("Invalid data")
     codebook_error, compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
+
+    if len(ad) > 0:
+        raise ValueError("Invalid data")
 
     # Decode Huffman
     ref_pixels = huffman_decode(codebook_pixels, compressed_pixels)
     error_map = huffman_decode(codebook_error, compressed_error)
+
+    if len(ref_pixels) != n_ref or len(error_map) != n - n_ref:
+        raise ValueError("Invalid data")
 
     # remove offset
     deltas = [ref_pixels[0]]
@@ -103,15 +114,25 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
 
 
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
+    if len(ad) < header_length:
+        raise ValueError("Invalid data in Huffman section")
+
     header = ad[:header_length]
     header_int = int(header.to01(), 2)
     ad = ad[header_length:]
     codebook = ad[:header_int]
+
+    if header_int > len(ad):
+        raise ValueError("Invalid data in Huffman section")
+    
     ad = ad[header_int:]
 
     extracted_codebook: dict = {}
 
     while len(codebook) > 0:
+        if b_sym + 5 > len(codebook):
+            raise ValueError("Invalid data in Huffman section")
+
         value = codebook[:b_sym]
         value_int = int(value.to01(), 2)
         codebook = codebook[b_sym:]
@@ -120,20 +141,36 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
         code_length_int = int(code_length.to01(), 2)
         codebook = codebook[5:]
 
+        if code_length_int > len(codebook):
+            raise ValueError("Invalid data in Huffman section")
+
         code = (codebook[:code_length_int]).to01()
         codebook = codebook[code_length_int:]
 
         extracted_codebook.update({code: value_int})
+    
+    if len(extracted_codebook) > 2 ** b_sym:
+        raise ValueError("Invalid data in Huffman section")
+
+    if len(ad) < header_length:
+        raise ValueError("Invalid data in Huffman section")
 
     header = ad[:header_length]
     header_int = int(header.to01(), 2)
     ad = ad[header_length:]
+
+    if header_int > len(ad):
+        raise ValueError("Invalid data in Huffman section")
+
     compressed_data = (ad[:header_int]).to01()
     ad = ad[header_int:]
 
     return extracted_codebook, compressed_data, ad
 
 def weights_extraction(ad: bitarray, k: int):
+    if len(ad) < (k ** 2) * 64:
+        raise ValueError("Invalid data")
+
     weights_float = []
     for i in range(k ** 2):
         weight = ad[:64] # Assume storing W as 64bit
