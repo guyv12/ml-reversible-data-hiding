@@ -136,6 +136,8 @@ def weights_extraction(ad: bitarray, k: int) -> (torch.Tensor, bitarray):
     for i in range(num_weights):
         weight_bytes = ad[:64].tobytes() # Assume storing W as 64bit
         weights[i] = struct.unpack('>d', weight_bytes)[0]
+        ad = ad[64:]
+
 
     return weights, ad
 
