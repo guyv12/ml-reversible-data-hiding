@@ -191,7 +191,7 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
             
             if show:
                 dshow.show_image(original, title="Original Image")
-                dshow.show_image(stego, title="Stego Image")
+                dshow.show_bytes(stego, title="Stego Image")
                 dshow.show_image(reconstructed, title="Reconstructed Image")
 
 
