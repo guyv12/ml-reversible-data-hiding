@@ -34,8 +34,6 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
     codebook_pixels, compressed_pixels, ad = huffman_extraction(ad, b_sym, header_length_pixels)
     # Compressed error map
     header_length_error = math.ceil(math.log2((n - n_ref) * b_sym))
-    if len(ad) < header_length_error:
-        raise ValueError("Invalid data")
     codebook_error, compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
 
     if len(ad) > 0:
@@ -81,12 +79,11 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
         ad, b_sym, header_length_error,
     )
 
-    img1_error_map = huffman_decode(
-        codebook_error, compressed_error,
-    )
-
     # 2. Image2 kernel weights
     img2_kernel_weights, ad = weights_extraction(ad, k)
+
+    if not np.isfinite(img2_kernel_weights).all():
+        raise ValueError("Invalid data")
 
     # 3. Image2 compressed reference pixels
     b_sym = 9
@@ -97,9 +94,16 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
     header_length_error = math.ceil(math.log2((N - n_ref) * b_sym))
     codebook_error, compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
 
+    if len(ad) > 0:
+        raise ValueError("Invalid data")
+
     # Decode Huffman
+    img1_error_map = huffman_decode(codebook_error, compressed_error)
     img2_ref_pixels = huffman_decode(codebook_pixels, compressed_pixels)
     img2_error_map = huffman_decode(codebook_error, compressed_error)
+
+    if len(img2_ref_pixels) != n_ref or len(img2_error_map) != N - n_ref or len(img1_error_map) != N:
+        raise ValueError("Invalid data")
 
     # remove delta encoding
     deltas = [img2_ref_pixels[0]]
