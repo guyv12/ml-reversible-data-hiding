@@ -214,6 +214,18 @@ def msg_extraction(image, key):
     image = image[:len(image) // 8 * 8]
     message = encrypt_data(image, key)
     message = message.tobytes()
-    decoded_msg = message.decode('utf-8').rstrip('\x00')
+    complement_start = message.find(b'\x00')
+    try:
+        if complement_start != -1:
+            complement = message[complement_start:]
+            is_not_zeros = np.frombuffer(complement, dtype=np.uint8).any()
+            if is_not_zeros:
+                raise ValueError("Invalid data")
 
+            decoded_msg = message[:complement_start].decode('utf-8')
+        else:   
+            decoded_msg = message.decode('utf-8')
+    except UnicodeDecodeError as e:
+        raise ValueError("Invalid data") from e
+    
     return decoded_msg
