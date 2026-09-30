@@ -6,6 +6,7 @@ from pydicom.errors import InvalidDicomError
 from bitarray import bitarray
 from pathlib import Path
 
+from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 import backend.predictor.predict as ppredict
 from backend.predictor.results import (
     compute_metrics, compute_dicom_metrics, Prediction
@@ -153,9 +154,16 @@ def extract(
     ba.frombytes(source_image.tobytes())
 
     if fmt.lower() == ".pgm":
-        return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        try:
+            return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        except (InvalidImageKeyError, InvalidMessageKeyError) as e:
+            raise 
+
     elif fmt.lower() == ".dcm":
-        return receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+        try:
+            return receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+        except (InvalidImageKeyError, InvalidMessageKeyError) as e:
+            raise 
 
     else:
         raise ValueError(f"Unsupported image format: '{fmt}'")
