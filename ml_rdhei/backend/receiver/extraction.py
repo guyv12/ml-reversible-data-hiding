@@ -100,7 +100,7 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
 
     # Decode Huffman
     img1_error_map = huffman_decode(img1_codebook_error, img1_compressed_error)
-    img2_ref_pixels = huffman_decode(img2_codebook_pixels, img2_codebook_pixels)
+    img2_ref_pixels = huffman_decode(img2_codebook_pixels, img2_compressed_error)
     img2_error_map = huffman_decode(img2_codebook_error, img2_compressed_error)
 
     if len(img2_ref_pixels) != n_ref or len(img2_error_map) != N - n_ref or len(img1_error_map) != N:
