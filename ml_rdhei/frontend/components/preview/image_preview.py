@@ -311,3 +311,10 @@ class OutputImagePreview(ImagePreview):
 
 		elif file_path.suffix.lower() == ".dcm":
 			self._save_dicom(file_path)
+		
+		else:
+			QMessageBox.warning(
+				self,
+				"Write error",
+				f"Could not write {file_path} (unsupported extension or unwritable path)"
+			)
