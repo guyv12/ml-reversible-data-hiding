@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 	QVBoxLayout, QLabel, QPushButton
 )
 
+from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 from backend.pipeline import extract, transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
@@ -132,8 +133,8 @@ class ExtractionView(QWidget):
 			)
 			
 			self.decryption_panel.display_message(message)
-		# except ValueError as e:
-		# 	QMessageBox.warning(self, "Extracting failed", str(e))
+		except (InvalidImageKeyError, InvalidMessageKeyError) as e:
+			QMessageBox.warning(self, "Extracting failed", str(e))
 		finally:
 			self.decryption_panel.set_busy(False)
 			
