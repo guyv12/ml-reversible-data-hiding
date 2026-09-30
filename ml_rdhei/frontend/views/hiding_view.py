@@ -108,7 +108,7 @@ class HidingView(QWidget):
 			image_data = transform_image_to_ndarray(image_path)
 			session = HideSession(image_path, image_data)
 			session.prediction = predict(image_data, session.image_format)
-		except (ValueError, OSError) as e:
+		except Exception as e:
 			QMessageBox.warning(self, "Cannot open image", str(e))
 			return
 
@@ -140,7 +140,11 @@ class HidingView(QWidget):
 		try:
 			self._session.marked_image = hide(self._session.prediction, ad_encryption_key, message_encryption_key, message)
 			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
-		except ValueError as e:
-			QMessageBox.warning(self, "Hiding failed", str(e))
+		except Exception:
+			QMessageBox.critical(
+				self,
+				"Hiding failed",
+				"An unexpected error occurred while hiding the data."
+			)
 		finally:
 			self.encryption_panel.set_busy(False)

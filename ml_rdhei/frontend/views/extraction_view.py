@@ -106,6 +106,7 @@ class ExtractionView(QWidget):
 			image_data = transform_image_to_ndarray(image_path)
 		except (ValueError, OSError) as e:
 			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
 		
 		self._session = Session(image_path, image_data)
 		self.in_preview_manager.set_image(image_path, image_data)
@@ -135,6 +136,12 @@ class ExtractionView(QWidget):
 			self.decryption_panel.display_message(message)
 		except (InvalidImageKeyError, InvalidMessageKeyError) as e:
 			QMessageBox.warning(self, "Extracting failed", str(e))
+		except Exception:
+			QMessageBox.critical(
+				self,
+				"Extracting failed",
+				"An unexpected error occurred while extracting the data."
+			)
 		finally:
 			self.decryption_panel.set_busy(False)
 			
