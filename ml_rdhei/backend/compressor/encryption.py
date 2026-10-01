@@ -1,7 +1,6 @@
 import hashlib
 import numpy as np
 import math
-
 from bitarray import bitarray
 
 
