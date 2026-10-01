@@ -10,6 +10,7 @@ import backend.compressor.compress as compression
 import backend.compressor.encryption as encryption
 import backend.compressor.hiding as hiding
 import backend.receiver.receive as receiver
+import backend.receiver.test as test_receiver
 
 from backend.models.models import *
 from backend.predictor.results import Prediction, compute_dicom_metrics, compute_metrics
@@ -177,16 +178,9 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
                 K=K,
             )
 
-            original_bytes = (
-                original.contiguous()
-                .numpy()
-                .astype(dtype)
-                .tobytes()
-            )
-
-            dshow.check_images(
-                original_bytes,
-                reconstructed.tobytes(),
+            test_receiver.test_image_reconstruction(
+                original,
+                reconstructed
             )
 
             print(f"Hidden Message: {message}")
@@ -196,9 +190,9 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
             print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
             
             if show:
-                dshow.show_image(original_bytes, title="Original Image")
-                dshow.show_image(stego, title="Stego Image")
-                dshow.show_image(reconstructed.tobytes(), title="Reconstructed Image")
+                dshow.show_image(original, title="Original Image")
+                dshow.show_bytes(stego, title="Stego Image")
+                dshow.show_image(reconstructed, title="Reconstructed Image")
 
 
 #---- Functions for getting the AD for PGM/Dicom ----
