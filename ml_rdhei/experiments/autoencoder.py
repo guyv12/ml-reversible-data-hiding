@@ -1,5 +1,8 @@
 import torch.nn as nn
 import torch
+from torch.utils.data import DataLoader
+import ml_rdhei.backend.data.loader as dloader
+import ml_rdhei.experiments.dataset as ddataset
 
 class Autoencoder(nn.Module):
     def __init__(self):
@@ -71,5 +74,94 @@ def test_training():
     print(f"Target:\n{target[0, 0]}")
     print(f"\nReconstructed:\n{output[0, 0]}")
 
-test_shapes()
-test_training()
+
+set, _ = dloader.get_loader("datasets\BOSSbase_512", batch_size=1, num_workers=0)
+image = next(iter(set)).reshape(512, 512)
+image = image / 255.0
+
+dataset = ddataset.PixelMaskDataset(image)
+loader = DataLoader(dataset, batch_size=256, shuffle=True)
+input_batch, target_batch = next(iter(loader))
+
+def training():
+    model = Autoencoder()
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=0.001
+    )
+
+    epochs = 10
+
+    for epoch in range(epochs):
+        total_loss = 0.0
+
+        for input_batch, target_batch in loader:
+            optimizer.zero_grad()
+
+            output = model(input_batch)
+
+            prediction = output[:, 0, 2, 2]
+
+            loss = criterion(prediction, target_batch)
+
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+
+        average_loss = total_loss / len(loader)
+
+        print(
+            f"Epoch: {epoch + 1}/{epochs}, "
+            f"Loss: {average_loss:.6f}"
+        )
+
+    model.eval()
+
+    test_image = next(iter(set)).reshape(512, 512)
+    test_image = test_image / 255.0
+    test_dataset = ddataset.PixelMaskDataset(test_image)
+    test_loader = DataLoader(test_dataset, batch_size=256, shuffle=True)
+
+    total_absolute_error = 0.0
+    total_squared_error = 0.0
+    total_samples = 0
+
+    max_error = 0
+    exact_predictions = 0
+
+    with torch.no_grad():
+        for input_batch, target_batch in test_loader:
+            output = model(input_batch)
+
+            prediction = output[:, 0, 2, 2]
+
+            prediction_pixels = torch.round(prediction * 255)
+            target_pixels = torch.round(target_batch * 255)
+
+            error = target_pixels - prediction_pixels
+
+            total_absolute_error += torch.abs(error).sum().item()
+            total_squared_error += (error ** 2).sum().item()
+
+            max_error = max(
+                max_error,
+                torch.abs(error).max().item()
+            )
+
+            exact_predictions += (error == 0).sum().item()
+            total_samples += target_batch.numel()
+
+    mae = total_absolute_error / total_samples
+    rmse = (total_squared_error / total_samples) ** 0.5
+    exact_rate = exact_predictions / total_samples * 100
+
+    print(f"MAE: {mae:.2f}")
+    print(f"RMSE: {rmse:.2f}")
+    print(f"Maximum absolute error: {max_error:.0f}")
+    print(f"Exact prediction rate: {exact_rate:.2f}%")
+training()
+#test_shapes()
+#test_training()
