@@ -68,9 +68,7 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
         ad, b_sym, header_length_error,
     )
 
-    img1_error_map = huffman_decode(
-        codebook_error, compressed_error, N - n_ref
-    )
+    img1_error_map = huffman_decode(codebook_error, compressed_error, N)
 
     # 2. Image2 kernel weights
     img2_kernel_weights, ad = weights_extraction(ad, k)
@@ -88,12 +86,12 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
     img2_ref_pixels = huffman_decode(codebook_pixels, compressed_pixels, n_ref)
     img2_error_map = huffman_decode(codebook_error, compressed_error, N - n_ref)
 
-    # remove delta encoding
-    deltas = torch.cat([img2_ref_pixels[:1], img2_ref_pixels[1:] - 255])
-    error_map = img2_error_map - 255
-    
     # remove offset
-    img2_error_map = [e - 255 for e in img2_error_map]
+    deltas = torch.cat([img2_ref_pixels[:1], img2_ref_pixels[1:] - 255])
+    img2_error_map = img2_error_map - 255
+    
+    # remove delta encoding
+    img2_ref_pixels = delta_decoding(deltas)
 
     return img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, message
 
