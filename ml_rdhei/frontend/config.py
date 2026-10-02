@@ -17,6 +17,7 @@ ICON_SIZE: Final[tuple[int, int]] = (48, 48)
 LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
 ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
 IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
+KEYS_LEN_LIMIT: Final[int] = 20
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 
