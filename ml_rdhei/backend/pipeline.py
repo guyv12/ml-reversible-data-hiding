@@ -146,7 +146,7 @@ def extract(
     ad_decryption_key: str,
     message_decryption_key: str,
     fmt: str
-) -> np.ndarray:
+) -> tuple[np.ndarray, str]:
 
     H, W = source_image.shape[:2]
 
@@ -154,11 +154,12 @@ def extract(
     ba.frombytes(source_image.tobytes())
 
     if fmt.lower() == ".pgm":
-        return receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        image, message = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        return image.numpy(), message
 
     elif fmt.lower() == ".dcm":
-        return receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
-
+        image, message = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+        return image.numpy(), message
     else:
         raise ValueError(f"Unsupported image format: '{fmt}'")
     
