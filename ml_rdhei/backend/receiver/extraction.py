@@ -200,25 +200,26 @@ def weights_extraction(ad: bitarray, k: int) -> (torch.Tensor, bitarray):
     return weights, ad
 
 def huffman_decode(codebook: dict[str, int], compressed_data: str, n: int) -> torch.Tensor:
-    decoded = torch.empty(n, dtype=torch.int64)
+    decoded = array.array('q')
     buffer = ""
-    i = 0
 
     for bit in compressed_data:
         buffer += bit
 
         if buffer in codebook:
-            if i >= n:
+            if len(decoded) >= n:
                 raise CorruptedDataError(f"Data decodes to more than {n} symbols")
 
-            decoded[i] = codebook[buffer]
+            decoded.append(codebook[buffer])
             buffer = ""
-            i += 1
 
-        if i != n or buffer:
-            raise CorruptedDataError(f"Data decodes to {i} symbols, expected {n}")
+    if len(decoded) != n:
+        raise CorruptedDataError(f"Data decodes to {len(decoded)} symbols, expected {n}")
+        
+    if buffer:
+        raise CorruptedDataError(f"Data has {len(buffer)} undecodable bits")
 
-    return decoded
+    return torch.frombuffer(decoded, dtype=torch.int64)
 
 def delta_decoding(deltas: torch.Tensor) -> torch.Tensor:
     return torch.cumsum(deltas, dim=0)
