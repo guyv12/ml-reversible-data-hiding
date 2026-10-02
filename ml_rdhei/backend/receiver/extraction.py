@@ -232,7 +232,7 @@ def msg_extraction(image, key):
     try:
         if padding_start != -1:
             padding = message[padding_start:]
-            is_not_zeros = torch.frombuffer(padding, dtype=torch.uint8).any()
+            is_not_zeros = any(padding)
             if is_not_zeros:
                 raise CorruptedDataError("Corrupted padding")
 
