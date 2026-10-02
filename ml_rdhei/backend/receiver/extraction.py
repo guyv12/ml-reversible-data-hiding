@@ -73,9 +73,7 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
     # 1. Image1 error map
     b_sym = 4
     header_length_error = math.ceil(math.log2(N * b_sym))
-    img1_codebook_error, img1_compressed_error, ad = huffman_extraction(
-        ad, b_sym, header_length_error,
-    )
+    img1_codebook_error, img1_compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
 
     # 2. Image2 kernel weights
     img2_kernel_weights, ad = weights_extraction(ad, k)
@@ -96,9 +94,9 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
         raise CorruptedDataError(f"AD has {len(ad)} leftover bits after last section")
 
     # Decode Huffman
-    img1_error_map = huffman_decode(img1_codebook_error, img1_compressed_error)
-    img2_ref_pixels = huffman_decode(img2_codebook_pixels, img2_compressed_pixels)
-    img2_error_map = huffman_decode(img2_codebook_error, img2_compressed_error)
+    img1_error_map = huffman_decode(img1_codebook_error, img1_compressed_error, N)
+    img2_ref_pixels = huffman_decode(img2_codebook_pixels, img2_compressed_pixels, n_ref)
+    img2_error_map = huffman_decode(img2_codebook_error, img2_compressed_error, N - n_ref)
 
     if len(img2_ref_pixels) != n_ref or len(img2_error_map) != N - n_ref or len(img1_error_map) != N:
         raise CorruptedDataError("Invalid number of extracted reference pixels or errors")

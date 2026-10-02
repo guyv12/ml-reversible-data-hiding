@@ -159,7 +159,7 @@ def extract(
 
     elif fmt.lower() == ".dcm":
         image, message = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
-        return image.numpy(), message
+        return image.numpy().astype(np.uint16), message
     else:
         raise ValueError(f"Unsupported image format: '{fmt}'")
     
