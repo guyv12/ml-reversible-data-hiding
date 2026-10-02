@@ -210,10 +210,15 @@ def huffman_decode(codebook: dict[str, int], compressed_data: str, n: int) -> to
         buffer += bit
 
         if buffer in codebook:
-            symbol = codebook[buffer]
-            decoded[i] =symbol
+            if i >= n:
+                raise CorruptedDataError(f"Data decodes to more than {n} symbols")
+
+            decoded[i] = codebook[buffer]
             buffer = ""
             i += 1
+
+        if i != n or buffer:
+            raise CorruptedDataError(f"Data decodes to {i} symbols, expected {n}")
 
     return decoded
 
