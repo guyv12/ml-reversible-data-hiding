@@ -185,7 +185,6 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
 
 def weights_extraction(ad: bitarray, k: int) -> (torch.Tensor, bitarray):
     num_weights = k ** 2
-    weights = torch.empty(num_weights, dtype=torch.float64)
     
     weights_bits = num_weights * 64
     if len(ad) < weights_bits:
@@ -193,11 +192,10 @@ def weights_extraction(ad: bitarray, k: int) -> (torch.Tensor, bitarray):
             "AD too short for weigths extraction: "
             f"need {weights_bits} bits, {len(ad)} left"
         )
-
-    for i in range(num_weights):
-        weight_bytes = ad[:64].tobytes() # Assume storing W as 64bit
-        weights[i] = struct.unpack('>d', weight_bytes)[0]
-        ad = ad[64:]
+    
+    weight_bytes = ad[:weights_bits].tobytes() # Assume storing W as 64bit
+    weights = torch.tensor(struct.unpack(f'>{num_weights}d', weight_bytes), dtype=torch.float64)
+    ad = ad[weights_bits:]
 
     return weights, ad
 
