@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
 	QVBoxLayout, QLabel, QPushButton
 )
 
+from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 from backend.pipeline import extract, transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
@@ -58,8 +59,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.add_widget(self.image_uploader)
-		in_section.add_widget(self.in_histogram)
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
@@ -80,8 +81,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.add_widget(self.out_preview_manager)
-		out_section.add_widget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
@@ -101,12 +102,14 @@ class ExtractionView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
-		image_data = transform_image_to_ndarray(image_path)
-
-		self.in_preview_manager.set_image(image_path, image_data)
-
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+		except (ValueError, OSError) as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
+		
 		self._session = Session(image_path, image_data)
-
+		self.in_preview_manager.set_image(image_path, image_data)
 		self.decryption_panel.enable()
 
 	def _on_image_removed(self):
@@ -131,6 +134,14 @@ class ExtractionView(QWidget):
 			)
 			
 			self.decryption_panel.display_message(message)
+		except (InvalidImageKeyError, InvalidMessageKeyError) as e:
+			QMessageBox.warning(self, "Extracting failed", str(e))
+		except Exception:
+			QMessageBox.critical(
+				self,
+				"Extracting failed",
+				"An unexpected error occurred while extracting the data."
+			)
 		finally:
 			self.decryption_panel.set_busy(False)
 			

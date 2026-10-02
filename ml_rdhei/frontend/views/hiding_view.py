@@ -59,8 +59,8 @@ class HidingView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.add_widget(self.image_uploader)
-		in_section.add_widget(self.in_histogram)
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
@@ -83,8 +83,8 @@ class HidingView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.add_widget(self.out_preview_manager)
-		out_section.add_widget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
@@ -104,12 +104,16 @@ class HidingView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
-		image_data = transform_image_to_ndarray(image_path)
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+			session = HideSession(image_path, image_data)
+			session.prediction = predict(image_data, session.image_format)
+		except Exception as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
 
+		self._session = session
 		self.in_preview_manager.set_image(image_path, image_data)
-
-		self._session = HideSession(image_path, image_data)
-		self._session.prediction = predict(image_data, self._session.image_format)
 
 		metrics = self._session.prediction.metrics
 		self.quality_metrics_panel.set_metrics(metrics)	
@@ -136,5 +140,11 @@ class HidingView(QWidget):
 		try:
 			self._session.marked_image = hide(self._session.prediction, ad_encryption_key, message_encryption_key, message)
 			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
+		except Exception:
+			QMessageBox.critical(
+				self,
+				"Hiding failed",
+				"An unexpected error occurred while hiding the data."
+			)
 		finally:
 			self.encryption_panel.set_busy(False)
