@@ -1,5 +1,6 @@
 import math
 import struct
+import array
 import torch
 from bitarray import bitarray
 from backend.exceptions import CorruptedDataError
