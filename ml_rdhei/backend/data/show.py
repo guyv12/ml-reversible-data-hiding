@@ -1,10 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 
 
-def show_image(bytes, dtype=np.uint8, width=512, height=512, title="Image"):
-    stego_array = np.frombuffer(bytes, dtype=dtype)
+def show_image(image: torch.Tensor, width=512, height=512, title="Image"):
+    image.reshape(height, width)
 
+    plt.figure(figsize=(8, 8))
+    plt.imshow(image, cmap='gray')
+    plt.title(title)
+    plt.axis('off')
+    plt.show()
+
+
+def show_bytes(image, width=512, height=512, title="Image"):
+    stego_array = np.frombuffer(image, dtype=np.uint8)
     image_2d = stego_array.reshape((height, width))
 
     plt.figure(figsize=(8, 8))
@@ -12,14 +22,3 @@ def show_image(bytes, dtype=np.uint8, width=512, height=512, title="Image"):
     plt.title(title)
     plt.axis('off')
     plt.show()
-
-def check_images(original: bytes, reconstructed: bytes):
-    if original == reconstructed:
-        print("MATCH 100%")
-    else:
-        print("ERROR")
-        byte_errors = 0
-        for b1, b2 in zip(original, reconstructed):
-            xor_byte = b1 ^ b2
-            if xor_byte == 1: byte_errors += 1
-        print(byte_errors)
