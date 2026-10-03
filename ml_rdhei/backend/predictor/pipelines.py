@@ -1,7 +1,8 @@
 import torch
 from collections.abc import Callable, Iterator
 
-from backend.predictor.features import lr_decompose
+from backend.predictor.features import lr_decompose, mask_batch
+from backend.predictor.predictors import cnn_prediction
 
 
 def reference_mask(H: int, W: int) -> torch.Tensor:
@@ -33,6 +34,7 @@ def get_ad(batch: torch.Tensor, mask: torch.Tensor, feature_fn: Callable, predic
     
             yield kernel_weights, ref_pixels, error_map, batch[i]
 
+
 def get_dicom_ad(batch: torch.Tensor, mask: torch.Tensor, feature_fn: Callable, predictor_fn: Callable
                  ) -> Iterator[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
     """
@@ -63,6 +65,31 @@ def get_dicom_ad(batch: torch.Tensor, mask: torch.Tensor, feature_fn: Callable, 
     
         yield img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, batch[i]
 
+
+def get_ad_cnn(batch: torch.Tensor, mask: torch.Tensor, model_fn: Callable
+               ) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+    """
+    Predicts the image using a CNN model, one image at a time.
+    Yields the reference pixels, error map and the image for each image in the batch.
+    Args:
+        batch (torch.Tensor): batch of images (B, H, W)
+        mask (torch.Tensor): mask to retrieve ref_pixels (H, W)
+        model_fn (Callable): function to create the CNN model
+    
+    Yields:
+        tuple[torch.Tensor, torch.Tensor]:
+        ref_pixels, error_map, image - per image
+    """
+    X_batch, y_batch, ref_pixels_batch = mask_batch(batch, mask)
+
+    # Use the model predictor to predict the img from ref_pixels
+    for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
+        error_map = cnn_prediction(X, y, model_fn, mask)
+        
+        yield ref_pixels, error_map, batch[i]
+
+
+# ----- Batch versions -----
 
 def get_ad_batch(batch: torch.Tensor, mask: torch.Tensor, feature_fn: Callable, batch_predictor_fn: Callable
                  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

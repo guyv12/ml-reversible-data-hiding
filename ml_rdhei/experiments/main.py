@@ -53,7 +53,7 @@ def test_dicom_ad_unfold_ridge_border(show=False):
     )
 
 
-def test_ad_mobilenet_v2_ridge(show=False):
+def test_ad_unet_mobilenet_v2_ridge(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_mobilenet_v2_unet_model(classes=K ** 2)
@@ -80,7 +80,7 @@ def test_ad_mobilenet_v2_ridge(show=False):
         show=show,
     )
 
-def test_unet_resnet50_ridge(show=False):
+def test_ad_unet_resnet50_ridge(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_resnet_50_unet_model(classes=K ** 2)
@@ -103,6 +103,32 @@ def test_unet_resnet50_ridge(show=False):
         ),
         bpp=8,
         K=K,
+        dtype="uint8",
+        show=show,
+    )
+
+def test_ad_mobilenet_v2(show=False):
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    model = get_mobilenet_v2_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+    
+    run_linear(
+        loader,
+        predictor_fn=prediction.ad_mobilenetv2,
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        receiver_fn=partial(
+            receiver.receive_cnn_features, 
+            model_fn=partial(
+                get_mobilenet_v2_unet_model, 
+                path="unet_mobilenetv2.pth",
+                classes=1
+            )
+        ),
+        bpp=8,
+        K=0,
         dtype="uint8",
         show=show,
     )
@@ -170,6 +196,12 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
                 K_h,
             )
 
+            print(f"Hidden Message: {message}")
+            print(f"ER: {prediction.metrics.embedding_rate}")
+            print(f"PSNR: {prediction.metrics.psnr}")
+            print(f"SSIM: {prediction.metrics.ssim}")
+            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
+
             reconstructed, message = receiver_fn(
                 stego_image=stego,
                 key_ad=K_e,
@@ -216,12 +248,22 @@ def prepare_dicom(raw_ad):
         original,
     )
 
+def prepare_cnn(raw_ad):
+    ref_pixels, error_map, original = raw_ad
+
+    return (
+        (ref_pixels, error_map),
+        {"original": original, "error_map": error_map},
+        original,
+    )
+
 
 def main():
     #test_ad_unfold_ridge_border()
     #test_dicom_ad_unfold_ridge_border()
-    #test_ad_mobilenet_v2_ridge()
-    test_unet_resnet50_ridge()
+    #test_ad_unet_mobilenet_v2_ridge()
+    #test_ad_unet_resnet50_ridge()
+    test_ad_mobilenet_v2()
 
 if __name__ == "__main__":
     main()
