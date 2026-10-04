@@ -2,6 +2,7 @@ import torch
 from collections.abc import Callable
 from backend.predictor.predict import reference_mask
 
+
 def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
              img_size: tuple[int, int], k: int = 5) -> torch.Tensor:
 
@@ -76,28 +77,26 @@ def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.T
     return reconstructed_img
 
 
-def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_pixels: list[int], img2_err_map: list[int],
+def dicom_recovery(img1_err_map: torch.Tensor, img2_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_err_map: torch.Tensor,
                    img_size: tuple[int, int], K: int = 5) -> torch.Tensor:
     H, W = img_size
     half = K // 2
 
     # Image 1
-    img1 = 15 - torch.tensor(img1_err_map, dtype=torch.int16).reshape(H, W)
+    img1 = 15 - img1_err_map.to(torch.int16).reshape(H, W)
 
     # Image2
     # reference pixels
     img2 = torch.zeros((H, W), dtype=torch.int16)
-    img2[::2, ::2] = (torch.tensor(img2_ref_pixels, dtype=torch.uint8).reshape(img2[::2, ::2].shape))
+    img2[::2, ::2] = img2_ref_pixels.to(torch.uint8).reshape(img2[::2, ::2].shape)
     only_ref_pixels = img2.clone()
 
     # error map
     target_mask = torch.ones((H, W), dtype=torch.bool)
     target_mask[::2, ::2] = False
     error_img = torch.zeros((H, W), dtype=torch.int64)
-    error_img[target_mask] = torch.tensor(img2_err_map, dtype=torch.int64)
+    error_img[target_mask] = img2_err_map
 
-    # weights
-    weights = torch.tensor(img2_weights, dtype=torch.float64)
 
     # INTERIOR CASE
     #windows = torch.lib.stride_tricks.sliding_window_view(only_ref_pixels,(k, k))
@@ -107,7 +106,7 @@ def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_
     feature_matrix = windows.reshape(-1, K * K).to(torch.float64)
     feature_matrix = feature_matrix[interior_mask.ravel()]
 
-    predictions = torch.round(feature_matrix @ weights)
+    predictions = torch.round(feature_matrix @ img2_weights)
     predictions = predictions.clamp(0, 255)
 
     errors = error_img[half : H -half, half : W - half][interior_mask]
@@ -151,23 +150,20 @@ def dicom_recovery(img1_err_map: list[int], img2_weights: list[float], img2_ref_
     return reconstructed_image
 
 
-def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: list[int],
-                      model_fn: Callable, img_size: tuple[int, int], k: int = 5) -> torch.Tensor:
+def cnn_feat_recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
+                      model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:
     h, w = img_size
 
     # reference pixels
     reconstructed_img = torch.zeros((h, w), dtype=torch.uint8)
-    reconstructed_img[::2, ::2] = (torch.tensor(ref_pixels, dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape))
+    reconstructed_img[::2, ::2] = (ref_pixels.to(dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape))
     only_ref_pixels = reconstructed_img.clone()
 
     # error map
     target_mask = torch.ones((h, w), dtype=torch.bool)
     target_mask[::2, ::2] = False
     error_img = torch.zeros((h, w), dtype=torch.int64)
-    error_img[target_mask] = torch.tensor(error_map, dtype=torch.int64)
-
-    # weights
-    weights = torch.tensor(weights, dtype=torch.float64)
+    error_img[target_mask] = error_map
 
     # rest
     model = model_fn()
@@ -186,10 +182,49 @@ def cnn_feat_recovery(weights: list[float], ref_pixels: list[int], error_map: li
     predictions = torch.round(X.to(weights.dtype) @ weights)
     predictions = predictions.clamp(0, 255)
 
-    errors = torch.tensor(error_map, dtype=torch.int64)
+    errors = error_map.to(dtype=torch.int64)
 
     reconstructed_img[target_mask] = torch.clamp(
         predictions.to(torch.int64) + errors,
+        0,
+        255,
+    ).to(torch.uint8)
+
+    return reconstructed_img
+
+
+def cnn_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor, 
+                 model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:
+    H, W = img_size
+
+    # reference pixels
+    reconstructed_img = torch.zeros((H, W), dtype=torch.uint8)
+    reconstructed_img[::2, ::2] = ref_pixels.to(dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape)
+
+    # error map
+    target_mask = torch.ones((H, W), dtype=torch.bool)
+    target_mask[::2, ::2] = False
+    error_img = torch.zeros((H, W), dtype=torch.int64)
+    error_img[target_mask] = error_map
+
+    # rest
+    model = model_fn()
+    model.eval()
+
+    # Normalize for CNN input
+    X_pre = reconstructed_img.clone().unsqueeze(0).unsqueeze(0).float() / 255.0
+
+    with torch.inference_mode():
+        # (B, C, H, W) output
+        y_pred = model(X_pre)
+
+    y_pred = y_pred.squeeze(0).squeeze(0)[target_mask] # remove batch and channel dimensions, and ref pixels
+    y_pred = y_pred.clamp(torch.iinfo(ref_pixels.dtype).min, torch.iinfo(ref_pixels.dtype).max)
+
+    errors = error_map.to(dtype=torch.int64)
+
+    reconstructed_img[target_mask] = torch.clamp(
+        y_pred.to(torch.int64) + errors,
         0,
         255,
     ).to(torch.uint8)
