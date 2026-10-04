@@ -218,7 +218,8 @@ def cnn_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor,
         # (B, C, H, W) output
         y_pred = model(X_pre)
 
-    y_pred = y_pred.squeeze(0).squeeze(0).clamp(torch.iinfo(ref_pixels.dtype).min, torch.iinfo(ref_pixels.dtype).max)
+    y_pred = y_pred.squeeze(0).squeeze(0)[target_mask] # remove batch and channel dimensions, and ref pixels
+    y_pred = y_pred.clamp(torch.iinfo(ref_pixels.dtype).min, torch.iinfo(ref_pixels.dtype).max)
 
     errors = error_map.to(dtype=torch.int64)
 

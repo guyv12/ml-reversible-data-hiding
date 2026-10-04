@@ -21,16 +21,20 @@ def test_ad_unfold_ridge_border(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
     K = 5
 
-    run_linear(
+    run_experiment(
         loader,
-        predictor_fn=prediction.ad_unfold_ridge_border,
+        predictor_fn=partial(
+            prediction.ad_unfold_ridge_border,
+            K=K
+        ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
         metrics_fn=compute_metrics,
-        receiver_fn=receiver.receive,
-        K=K,
+        receiver_fn=partial(
+            receiver.receive,
+            K=K
+        ),
         bpp=8,
-        dtype="uint8",
         show=show,
     )
 
@@ -39,16 +43,20 @@ def test_dicom_ad_unfold_ridge_border(show=False):
     loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
     K = 5
 
-    run_linear(
+    run_experiment(
         loader,
-        predictor_fn=prediction.dicom_ad_unfold_ridge_border,
+        predictor_fn=partial(
+            prediction.dicom_ad_unfold_ridge_border,
+            K=K
+        ),
         prep_fn=prepare_dicom,
         compressor_fn=compression.compress_dicom_ad,
         metrics_fn=compute_dicom_metrics,
-        receiver_fn=receiver.receive_dicom,
+        receiver_fn=partial(
+            receiver.receive_dicom,
+            K=K
+        ),
         bpp=16,
-        K=K,
-        dtype="int16",
         show=show,
     )
 
@@ -59,24 +67,27 @@ def test_ad_unet_mobilenet_v2_ridge(show=False):
     model = get_mobilenet_v2_unet_model(classes=K ** 2)
     model.eval()
     save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+
+    model_fn = partial(
+        get_mobilenet_v2_unet_model,
+        path="unet_mobilenetv2.pth",
+        classes=K ** 2
+    )
     
-    run_linear(
+    run_experiment(
         loader,
-        predictor_fn=prediction.ad_mobilenetv2_ridge,
+        predictor_fn=partial(
+            prediction.ad_cnn_ridge,
+            model_fn=model_fn
+        ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
         metrics_fn=compute_metrics,
         receiver_fn=partial(
             receiver.receive_cnn_features, 
-            model_fn=partial(
-                get_mobilenet_v2_unet_model, 
-                path="unet_mobilenetv2.pth",
-                classes=K ** 2
-            )
+            model_fn=model_fn
         ),
         bpp=8,
-        K=K,
-        dtype="uint8",
         show=show,
     )
 
@@ -86,24 +97,27 @@ def test_ad_unet_resnet50_ridge(show=False):
     model = get_resnet_50_unet_model(classes=K ** 2)
     model.eval()
     save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_resnet_50_unet_model, 
+        path="unet_resnet50.pth",
+        classes=K ** 2
+    )
     
-    run_linear(
+    run_experiment(
         loader,
-        predictor_fn=prediction.ad_resnet50_ridge,
+        predictor_fn=partial(
+            prediction.ad_cnn_ridge,
+            model_fn=model_fn
+        ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
         metrics_fn=compute_metrics,
          receiver_fn=partial(
             receiver.receive_cnn_features, 
-            model_fn=partial(
-                get_resnet_50_unet_model, 
-                path="unet_resnet50.pth",
-                classes=K ** 2
-            )
+            model_fn=model_fn
         ),
         bpp=8,
-        K=K,
-        dtype="uint8",
         show=show,
     )
 
@@ -112,32 +126,67 @@ def test_ad_mobilenet_v2(show=False):
     model = get_mobilenet_v2_unet_model(classes=1)
     model.eval()
     save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_mobilenet_v2_unet_model, 
+        path="unet_mobilenetv2.pth",
+        classes=1
+    )
     
-    run_linear(
+    run_experiment(
         loader,
-        predictor_fn=prediction.ad_mobilenetv2,
+        predictor_fn=partial(
+            prediction.ad_cnn,
+            model_fn=model_fn
+        ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
         metrics_fn=compute_metrics,
         receiver_fn=partial(
             receiver.receive_cnn, 
-            model_fn=partial(
-                get_mobilenet_v2_unet_model, 
-                path="unet_mobilenetv2.pth",
-                classes=1
-            )
+            model_fn=model_fn
         ),
         bpp=8,
-        K=0,
-        dtype="uint8",
+        show=show,
+    )
+
+def test_ad_resnet_50(show=False):
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    model = get_resnet_50_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_resnet_50_unet_model, 
+        path="unet_resnet50.pth",
+        classes=1
+    )
+    
+    run_experiment(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        receiver_fn=partial(
+            receiver.receive_cnn, 
+            model_fn=model_fn
+        ),
+        bpp=8,
         show=show,
     )
 
 #---- Generic runner ----
 
-def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, compressor_fn: Callable, 
-               receiver_fn: Callable, metrics_fn: Callable, K: int, bpp: int, show: bool = False):
-    """Runs experiment with linear predictor
+def run_experiment(loader: DataLoader, predictor_fn: Callable,
+               prep_fn: Callable, compressor_fn: Callable, 
+               receiver_fn: Callable, metrics_fn: Callable,
+               bpp: int,
+               show: bool = False) -> None:
+    """Runs experiment
 
     Args:
         loader (DataLoader): data loader for the image dataset
@@ -166,7 +215,7 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
         H, W = batch.shape[-2:]
         mask = reference_mask(H, W)
 
-        for raw_ad in predictor_fn(batch, K):
+        for raw_ad in predictor_fn(batch):
             ad_args, metric_args, original = prep_fn(raw_ad)
 
             ad = compressor_fn((H, W), *ad_args)
@@ -201,7 +250,6 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
                 key_ad=K_e,
                 key_msg=K_h,
                 img_size=prediction.shape,
-                K=K,
             )
 
             test_receiver.test_image_reconstruction(
@@ -252,12 +300,17 @@ def prepare_cnn(raw_ad):
     )
 
 
-def main():
-    #test_ad_unfold_ridge_border()
-    #test_dicom_ad_unfold_ridge_border()
-    #test_ad_unet_mobilenet_v2_ridge()
-    #test_ad_unet_resnet50_ridge()
-    test_ad_mobilenet_v2()
+def main(dicom: bool = False):
+    if not dicom:
+        #test_ad_unfold_ridge_border()
+        #test_ad_unet_mobilenet_v2_ridge()
+        #test_ad_unet_resnet50_ridge()
+        #test_ad_mobilenet_v2()
+        #test_ad_resnet_50()
+        return
+    
+    if dicom:
+        test_dicom_ad_unfold_ridge_border()
 
 if __name__ == "__main__":
     main()
