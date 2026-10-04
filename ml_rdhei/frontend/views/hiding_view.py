@@ -137,7 +137,7 @@ class HidingView(QWidget):
 		self.quality_metrics_panel.clear()
 		self.encryption_panel.clear()
 
-	def _on_hide_finished(self, result: object):
+	def _on_hide_results(self, result: object):
 		if self._session is None: 
 			return
 
@@ -156,7 +156,7 @@ class HidingView(QWidget):
 				"An unexpected error occurred while hiding the data."
 			)
 
-	def _on_extract_finished(self):
+	def _on_hide_finished(self):
 		self.encryption_panel.set_busy(False)
 		self.in_preview_manager.deletion_disabled(False)
 
@@ -172,8 +172,8 @@ class HidingView(QWidget):
 			message
 		)
 
-		worker.signals.result.connect(self._on_hide_finished)
+		worker.signals.result.connect(self._on_hide_results)
 		worker.signals.error.connect(self._on_hide_error)
-		worker.signals.finished.connect(self._on_extract_finished)
+		worker.signals.finished.connect(self._on_hide_finished)
 		
 		self.threadpool.start(worker)

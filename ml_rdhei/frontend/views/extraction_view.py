@@ -119,7 +119,7 @@ class ExtractionView(QWidget):
 		self.in_histogram.clear()
 		self.decryption_panel.clear()
 
-	def _on_extract_finished(self, result: object):
+	def _on_extract_results(self, result: object):
 		if self._session is None: 
 			return
 
@@ -159,7 +159,7 @@ class ExtractionView(QWidget):
 			self._session.image_format
 		)
 
-		worker.signals.result.connect(self._on_extract_finished)
+		worker.signals.result.connect(self._on_extract_results)
 		worker.signals.error.connect(self._on_extract_error)
 		worker.signals.finished.connect(self._on_extract_finished)
 		
