@@ -156,8 +156,13 @@ class HidingView(QWidget):
 				"An unexpected error occurred while hiding the data."
 			)
 
+	def _on_extract_finished(self):
+		self.encryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(False)
+
 	def _on_hide_request(self, ad_encryption_key: str, message_encryption_key: str, message: str):
 		self.encryption_panel.set_busy(True)
+		self.in_preview_manager.deletion_disabled(True)
 
 		worker = Worker(
 			hide,
@@ -169,17 +174,6 @@ class HidingView(QWidget):
 
 		worker.signals.result.connect(self._on_hide_finished)
 		worker.signals.error.connect(self._on_hide_error)
-		worker.signals.finished.connect(lambda: self.encryption_panel.set_busy(False))
+		worker.signals.finished.connect(self._on_extract_finished)
 		
 		self.threadpool.start(worker)
-		# try:
-		# 	self._session.marked_image = hide(self._session.prediction, ad_encryption_key, message_encryption_key, message)
-		# 	self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
-		# except Exception:
-		# 	QMessageBox.critical(
-		# 		self,
-		# 		"Hiding failed",
-		# 		"An unexpected error occurred while hiding the data."
-		# 	)
-		# finally:
-		# 	self.encryption_panel.set_busy(False)

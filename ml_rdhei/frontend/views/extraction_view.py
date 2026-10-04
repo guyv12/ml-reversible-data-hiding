@@ -143,8 +143,13 @@ class ExtractionView(QWidget):
 				"An unexpected error occurred while extracting the data."
 			)
 
+	def _on_extract_finished(self):
+		self.decryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(False)
+
 	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
 		self.decryption_panel.set_busy(True)
+		self.in_preview_manager.deletion_disabled(True)
 		
 		worker = Worker(
 			extract,
@@ -156,7 +161,7 @@ class ExtractionView(QWidget):
 
 		worker.signals.result.connect(self._on_extract_finished)
 		worker.signals.error.connect(self._on_extract_error)
-		worker.signals.finished.connect(lambda: self.decryption_panel.set_busy(False))
+		worker.signals.finished.connect(self._on_extract_finished)
 		
 		self.threadpool.start(worker)
 			
