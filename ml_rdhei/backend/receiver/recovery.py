@@ -2,6 +2,7 @@ import torch
 from collections.abc import Callable
 from backend.predictor.predict import reference_mask
 
+
 def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
              img_size: tuple[int, int], k: int = 5) -> torch.Tensor:
 
@@ -150,7 +151,7 @@ def dicom_recovery(img1_err_map: torch.Tensor, img2_weights: torch.Tensor, img2_
 
 
 def cnn_feat_recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
-                      model_fn: Callable, img_size: tuple[int, int], k: int = 5) -> torch.Tensor:
+                      model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:
     h, w = img_size
 
     # reference pixels
@@ -185,6 +186,44 @@ def cnn_feat_recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map
 
     reconstructed_img[target_mask] = torch.clamp(
         predictions.to(torch.int64) + errors,
+        0,
+        255,
+    ).to(torch.uint8)
+
+    return reconstructed_img
+
+
+def cnn_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor, 
+                 model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:
+    H, W = img_size
+
+    # reference pixels
+    reconstructed_img = torch.zeros((H, W), dtype=torch.uint8)
+    reconstructed_img[::2, ::2] = ref_pixels.to(dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape)
+
+    # error map
+    target_mask = torch.ones((H, W), dtype=torch.bool)
+    target_mask[::2, ::2] = False
+    error_img = torch.zeros((H, W), dtype=torch.int64)
+    error_img[target_mask] = error_map
+
+    # rest
+    model = model_fn()
+    model.eval()
+
+    # Normalize for CNN input
+    X_pre = reconstructed_img.clone().unsqueeze(0).unsqueeze(0).float() / 255.0
+
+    with torch.inference_mode():
+        # (B, C, H, W) output
+        y_pred = model(X_pre)
+
+    y_pred = y_pred.squeeze(0).squeeze(0).clamp(torch.iinfo(ref_pixels.dtype).min, torch.iinfo(ref_pixels.dtype).max)
+
+    errors = error_map.to(dtype=torch.int64)
+
+    reconstructed_img[target_mask] = torch.clamp(
+        y_pred.to(torch.int64) + errors,
         0,
         255,
     ).to(torch.uint8)

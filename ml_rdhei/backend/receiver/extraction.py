@@ -7,7 +7,8 @@ from backend.compressor.encryption import encrypt_data
 from backend.predictor.predict import reference_mask
 
 
-def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 8, k: int = 5) -> (torch.Tensor, torch.Tensor, torch.Tensor, bitarray):
+def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 8, k: int = 5
+                  ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, bitarray]:
     H, W = image_size
     n = H * W
     n_ref = int(reference_mask(H, W).sum().item())
@@ -55,7 +56,8 @@ def ad_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bp
 
     return weights_float, pixels, error_map, message
 
-def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 16, k: int = 5):
+def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 16, k: int = 5
+                        ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, bitarray]:
     H, W = image_size
     N = H * W
     n_ref = int(reference_mask(H, W).sum().item())
@@ -109,6 +111,50 @@ def ad_dicom_extraction(bitstream: bitarray, key: str, image_size: tuple[int, in
     img2_ref_pixels = delta_decoding(deltas)
 
     return img1_error_map, img2_kernel_weights, img2_ref_pixels, img2_error_map, message
+
+
+def ad_cnn_extraction(bitstream: bitarray, key: str, image_size: tuple[int, int], bpp: int = 8,
+                      ) -> tuple[torch.Tensor, torch.Tensor, bitarray]:
+    H, W = image_size
+    N = H * W
+    n_ref = int(reference_mask(H, W).sum().item())
+    
+    # AD length
+    length = math.ceil(math.log2(N * bpp))
+    ad_length = bitstream[:length]
+    ad_and_message = bitstream[length:]
+    ad_length_int = int(ad_length.to01(), 2)
+    ad = ad_and_message[:ad_length_int]
+    message = ad_and_message[ad_length_int:]
+
+    ad = encrypt_data(ad, key)  # decrypting
+
+    # Compressed reference pixels
+    b_sym = 9
+    header_length_pixels = math.ceil(math.log2(n_ref * b_sym))
+    codebook_pixels, compressed_pixels, ad = huffman_extraction(ad, b_sym, header_length_pixels)
+    # Compressed error map
+    header_length_error = math.ceil(math.log2((N - n_ref) * b_sym))
+    codebook_error, compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
+
+    if len(ad) > 0:
+        raise CorruptedDataError(f"AD has {len(ad)} leftover bits after last section")
+
+    # Decode Huffman
+    ref_pixels = huffman_decode(codebook_pixels, compressed_pixels, n_ref)
+    error_map = huffman_decode(codebook_error, compressed_error, N - n_ref)
+
+    if len(ref_pixels) != n_ref or len(error_map) != N - n_ref:
+        raise CorruptedDataError("Invalid number of extracted reference pixels or errors")
+
+    # remove offset
+    deltas = torch.cat([ref_pixels[:1], ref_pixels[1:] - 255])
+    error_map = error_map - 255
+
+    # remove delta encoding
+    pixels = delta_decoding(deltas)
+
+    return pixels, error_map, message
 
 
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
@@ -183,7 +229,7 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
 
     return extracted_codebook, compressed_data, ad
 
-def weights_extraction(ad: bitarray, k: int) -> (torch.Tensor, bitarray):
+def weights_extraction(ad: bitarray, k: int) -> tuple[torch.Tensor, bitarray]:
     num_weights = k ** 2
     weights = torch.empty(num_weights, dtype=torch.float64)
     

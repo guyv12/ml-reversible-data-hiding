@@ -120,7 +120,7 @@ def test_ad_mobilenet_v2(show=False):
         compressor_fn=compression.compress_cnn_ad,
         metrics_fn=compute_metrics,
         receiver_fn=partial(
-            receiver.receive_cnn_features, 
+            receiver.receive_cnn, 
             model_fn=partial(
                 get_mobilenet_v2_unet_model, 
                 path="unet_mobilenetv2.pth",
@@ -136,7 +136,7 @@ def test_ad_mobilenet_v2(show=False):
 #---- Generic runner ----
 
 def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, compressor_fn: Callable, 
-               receiver_fn: Callable, metrics_fn: Callable, K: int, bpp: int, dtype: str, show: bool = False):
+               receiver_fn: Callable, metrics_fn: Callable, K: int, bpp: int, show: bool = False):
     """Runs experiment with linear predictor
 
     Args:
@@ -195,12 +195,6 @@ def run_linear(loader: DataLoader, predictor_fn: Callable, prep_fn: Callable, co
                 message,
                 K_h,
             )
-
-            print(f"Hidden Message: {message}")
-            print(f"ER: {prediction.metrics.embedding_rate}")
-            print(f"PSNR: {prediction.metrics.psnr}")
-            print(f"SSIM: {prediction.metrics.ssim}")
-            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
 
             reconstructed, message = receiver_fn(
                 stego_image=stego,
