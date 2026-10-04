@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 	QWidget, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
+from PySide6.QtCore import QThreadPool
 
 from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 from backend.pipeline import extract, transform_image_to_ndarray
@@ -16,6 +17,7 @@ from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
 from frontend.components.decryption_panel import DecryptionPanel
+from frontend.worker import Worker
 from frontend.session import Session
 from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
@@ -31,7 +33,7 @@ class ExtractionView(QWidget):
 		super().__init__()
 		
 		self._session: Session | None = None
-
+		self.threadpool = QThreadPool()
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
@@ -117,31 +119,44 @@ class ExtractionView(QWidget):
 		self.in_histogram.clear()
 		self.decryption_panel.clear()
 
-	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
-		self.decryption_panel.set_busy(True)
-		try:
-			self._session.marked_image, message = extract(
-				self._session.source_image,
-				ad_decryption_key,
-				message_decryption_key,
-				self._session.image_format
-			)
+	def _on_extract_finished(self, result: object):
+		if self._session is None: 
+			return
 
-			self.out_preview_manager.set_image(
-				self._session.output_path,
-				self._session.marked_image,
-				self._session.source_path
-			)
+		self._session.marked_image, message = result
+		self.out_preview_manager.set_image(
+			self._session.output_path,
+			self._session.marked_image,
+			self._session.source_path
+		)
 			
-			self.decryption_panel.display_message(message)
-		except (InvalidImageKeyError, InvalidMessageKeyError) as e:
-			QMessageBox.warning(self, "Extracting failed", str(e))
-		except Exception:
+		self.decryption_panel.display_message(message)
+
+	def _on_extract_error(self, error):
+		if isinstance(error, (InvalidImageKeyError, InvalidMessageKeyError)):
+			QMessageBox.warning(self, "Extracting failed", str(error))
+		
+		elif isinstance(error, Exception):
 			QMessageBox.critical(
 				self,
 				"Extracting failed",
 				"An unexpected error occurred while extracting the data."
 			)
-		finally:
-			self.decryption_panel.set_busy(False)
+
+	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
+		self.decryption_panel.set_busy(True)
+		
+		worker = Worker(
+			extract,
+			self._session.source_image,
+			ad_decryption_key,
+			message_decryption_key,
+			self._session.image_format
+		)
+
+		worker.signals.result.connect(self._on_extract_finished)
+		worker.signals.error.connect(self._on_extract_error)
+		worker.signals.finished.connect(lambda: self.decryption_panel.set_busy(False))
+		
+		self.threadpool.start(worker)
 			
