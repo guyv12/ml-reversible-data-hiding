@@ -5,13 +5,77 @@ from PySide6.QtWidgets import (
 	QFrame, QWidget, QVBoxLayout, QStackedLayout,
 	QLabel
 )
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon, QPixmap, QPainter
 
 from frontend.utils import load_stylesheet
 from frontend.config import (
-	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE
+	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE,
+	HISTOGRAM_GRID_COLOR, HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
 )
+
+class ThrottledResizeContainer(QWidget):
+	def __init__(self, child: QWidget, interval_ms: int, settle_ms: int):
+		super().__init__()
+		self._child = child
+		self._child.setParent(self)
+		self._resizing = False
+		self._size_pending = False
+		self._snapshot: QPixmap | None = None
+
+		self._settle_timer = QTimer(self)
+		self._settle_timer.setSingleShot(True)
+		self._settle_timer.setInterval(settle_ms)
+		self._settle_timer.timeout.connect(self._finish_resizing)
+
+		self._throttle_timer = QTimer(self)
+		self._throttle_timer.setSingleShot(True)
+		self._throttle_timer.setInterval(interval_ms)
+		self._throttle_timer.timeout.connect(self._apply_pending_size)
+
+		
+
+	def resizeEvent(self, event):
+		super().resizeEvent(event)
+
+		if not self.isVisible():
+			self._child.setGeometry(self.rect())
+			return
+
+		if not self._resizing:
+			self._resizing = True
+			self._child.hide()
+
+		self._settle_timer.start()
+		self._size_pending = True
+
+		if not self._throttle_timer.isActive():
+			self._apply_pending_size()
+
+	def _apply_pending_size(self):
+		if not self._size_pending:
+			return
+
+		self._size_pending = False
+		self._child.setGeometry(self.rect())
+
+		if self._resizing:
+			self._snapshot = self._child.grab()
+			self.update()
+
+		self._throttle_timer.start()
+
+	def _finish_resizing(self):
+		self._throttle_timer.stop()
+		self._resizing = False
+		self._apply_pending_size()
+		self._snapshot = None
+		self._child.show()
+
+	def paintEvent(self, event):
+		if self._snapshot is not None:
+			painter = QPainter(self)
+			painter.drawPixmap(0, 0, self._snapshot)
 
 class Histogram(QFrame):
 	"""
@@ -37,7 +101,7 @@ class Histogram(QFrame):
 		self._setup_plot_widget()
 
 		self.stacked_layout.addWidget(self.empty_widget)
-		self.stacked_layout.addWidget(self.plot_widget)
+		self.stacked_layout.addWidget(self.plot_container)
 
 		load_stylesheet(self, "histogram.css")
 		self._update_ui()
@@ -87,9 +151,21 @@ class Histogram(QFrame):
 		self.plot_widget.setBackground("#323232")
 		self.plot_widget.showGrid(x=True, y=True, alpha=0.2)
 
+		for axis_name in ("left", "bottom"):
+			axis = self.plot_widget.getAxis(axis_name)
+			axis.setStyle(maxTickLevel=1, tickAlpha=255)
+			axis.setTickPen(pg.mkPen(HISTOGRAM_GRID_COLOR))
+			axis.setZValue(-1)
+
+		self.plot_container = ThrottledResizeContainer(
+			self.plot_widget,
+			HISTOGRAM_RESIZE_INTERVAL_MS,
+			HISTOGRAM_RESIZE_SETTLE_MS
+		)
+
 	def _update_ui(self):
 		if self.has_image:
-			self.stacked_layout.setCurrentWidget(self.plot_widget)
+			self.stacked_layout.setCurrentWidget(self.plot_container)
 		else:
 			self.plot_widget.clear()
 			self.stacked_layout.setCurrentWidget(self.empty_widget)

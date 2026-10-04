@@ -20,6 +20,9 @@ LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
 ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
 IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
 KEYS_LEN_LIMIT: Final[int] = 20
+HISTOGRAM_GRID_COLOR: Final[str] = "#424242"
+HISTOGRAM_RESIZE_INTERVAL_MS: Final[int] = 20
+HISTOGRAM_RESIZE_SETTLE_MS: Final[int] = 100
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 
