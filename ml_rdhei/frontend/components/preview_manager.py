@@ -64,3 +64,6 @@ class PreviewManager(QFrame):
 			self.stacked_layout.setCurrentWidget(self.image_preview)
 		else:
 			self.stacked_layout.setCurrentWidget(self.empty_preview)
+
+	def deletion_disabled(self, disable: bool):
+		self.image_preview.delete_btn.setEnabled(not disable)
