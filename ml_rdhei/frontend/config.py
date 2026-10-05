@@ -3,7 +3,9 @@ from typing import Final
 from PySide6.QtCore import QSize
 
 APP_VERSION: Final[str] = "1.0"
-APP_SHELL_SIZE: Final[QSize] = QSize(720, 540)
+MENU_VIEW_SIZE: Final[QSize] = QSize(720, 540)
+MIN_PROCESSING_VIEW_SIZE: Final[QSize] = MENU_VIEW_SIZE
+MAX_PROCESSING_VIEW_SIZE: Final[QSize] = QSize(16777215, 16777215)
 ABOUT_DIALOG_SIZE: Final[QSize] = QSize(300, 200)
 MENU_WIDTH: Final[int] = 320
 SECTIONS_LABEL_HEIGHT: Final[int] = 20
@@ -18,6 +20,9 @@ LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
 ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
 IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
 KEYS_LEN_LIMIT: Final[int] = 20
+HISTOGRAM_GRID_COLOR: Final[str] = "#424242"
+HISTOGRAM_RESIZE_INTERVAL_MS: Final[int] = 20
+HISTOGRAM_RESIZE_SETTLE_MS: Final[int] = 100
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 
