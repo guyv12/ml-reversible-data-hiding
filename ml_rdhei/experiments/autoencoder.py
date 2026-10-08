@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import DataLoader
 import ml_rdhei.backend.data.loader as dloader
 import ml_rdhei.experiments.dataset as ddataset
+import ml_rdhei.backend.compressor.compress as compressor
 
 class Autoencoder(nn.Module):
     def __init__(self):
@@ -81,7 +82,6 @@ image = image / 255.0
 
 dataset = ddataset.PixelMaskDataset(image)
 loader = DataLoader(dataset, batch_size=256, shuffle=True)
-input_batch, target_batch = next(iter(loader))
 
 def training():
     model = Autoencoder()
@@ -118,6 +118,9 @@ def training():
             f"Loss: {average_loss:.6f}"
         )
 
+    torch.save(model, "autoencoder_model.pth")
+
+def eval(model):
     model.eval()
 
     test_image = next(iter(set)).reshape(512, 512)
@@ -125,12 +128,15 @@ def training():
     test_dataset = ddataset.PixelMaskDataset(test_image)
     test_loader = DataLoader(test_dataset, batch_size=256, shuffle=True)
 
+    errors = torch.zeros(len(test_dataset), dtype=torch.int64)
+
     total_absolute_error = 0.0
     total_squared_error = 0.0
     total_samples = 0
 
     max_error = 0
     exact_predictions = 0
+    sample_offset = 0
 
     with torch.no_grad():
         for input_batch, target_batch in test_loader:
@@ -143,6 +149,10 @@ def training():
 
             error = target_pixels - prediction_pixels
 
+            batch_end = sample_offset + error.numel()
+            errors[sample_offset:batch_end] = error
+            sample_offset = batch_end
+
             total_absolute_error += torch.abs(error).sum().item()
             total_squared_error += (error ** 2).sum().item()
 
@@ -152,7 +162,7 @@ def training():
             )
 
             exact_predictions += (error == 0).sum().item()
-            total_samples += target_batch.numel()
+            total_samples += error.numel()
 
     mae = total_absolute_error / total_samples
     rmse = (total_squared_error / total_samples) ** 0.5
@@ -162,6 +172,15 @@ def training():
     print(f"RMSE: {rmse:.2f}")
     print(f"Maximum absolute error: {max_error:.0f}")
     print(f"Exact prediction rate: {exact_rate:.2f}%")
+
+    error_map = torch.zeros((test_dataset.height, test_dataset.width), dtype=torch.int64)
+    for idx, (row, col) in enumerate(test_dataset.coords):
+        error_map[row, col] = errors[idx]
+
+    #print(f"Error map: {error_map[:16, :16]}")
+    #compressor.__compress_error_map(error_map)
+    
 training()
+eval(torch.load("autoencoder_model.pth", weights_only=False))
 #test_shapes()
 #test_training()
