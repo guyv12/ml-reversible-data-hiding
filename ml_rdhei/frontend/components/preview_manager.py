@@ -31,7 +31,7 @@ class PreviewManager(QFrame):
 		self.stacked_layout.addWidget(self.empty_preview)
 		self.stacked_layout.addWidget(self.image_preview)
 
-		self.image_preview.delete_requested.connect(self._clear_image)
+		self.image_preview.delete_requested.connect(self.clear_image)
 		
 		load_stylesheet(self,"image_frames.css")
 		self.update_ui()
@@ -48,7 +48,7 @@ class PreviewManager(QFrame):
 		self.image_loaded.emit(image_data)
 		
 
-	def _clear_image(self):
+	def clear_image(self):
 		self._image_path = None
 		self._image_data = None
 		self.image_preview.clear_image()

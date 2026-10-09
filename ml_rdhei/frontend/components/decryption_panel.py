@@ -95,8 +95,8 @@ class DecryptionPanel(QFrame):
 	def _update_button(self):
 		self.extraction_button.setEnabled(
 			bool(self.ad_decryption_key.text())
-			and bool(self.message_decryption_key.text())
-			)
+			or bool(self.message_decryption_key.text())
+		)
 
 	def display_message(self, message: str):
 		self.message.setPlainText(message)

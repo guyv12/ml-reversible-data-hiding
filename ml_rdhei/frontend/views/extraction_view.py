@@ -6,7 +6,10 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QThreadPool
 
-from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
+from backend.exceptions import (
+	InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError
+)
+
 from backend.pipeline import extract, transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
@@ -124,16 +127,20 @@ class ExtractionView(QWidget):
 			return
 
 		self._session.marked_image, message = result
-		self.out_preview_manager.set_image(
-			self._session.output_path,
-			self._session.marked_image,
-			self._session.source_path
-		)
+
+		if self._session.marked_image is not None:
+			self.out_preview_manager.set_image(
+				self._session.output_path,
+				self._session.marked_image,
+				self._session.source_path
+			)
+		else:
+			self.out_preview_manager.clear_image()
 			
 		self.decryption_panel.display_message(message)
 
 	def _on_extract_error(self, error):
-		if isinstance(error, (InvalidImageKeyError, InvalidMessageKeyError)):
+		if isinstance(error,(InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError)):
 			QMessageBox.warning(self, "Extracting failed", str(error))
 		
 		elif isinstance(error, Exception):
