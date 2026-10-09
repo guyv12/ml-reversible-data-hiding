@@ -10,7 +10,7 @@ from PySide6.QtGui import QIcon, QPixmap, QPainter
 
 from frontend.utils import load_stylesheet
 from frontend.config import (
-	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE,
+	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE, HISTOGRAM_BINS, 
 	HISTOGRAM_GRID_COLOR, HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
 )
 
@@ -178,13 +178,13 @@ class Histogram(QFrame):
 		self.plot_widget.clear()
 
 		if image_data.dtype == "uint8":
-			_range = (0, 256)
+			_range = (0, 255)
 		else:
-			_range = (float(image_data.min()), float(image_data.max()))
+			_range = (image_data.min(), image_data.max())
 
 		counts, bins = np.histogram(
 			image_data,
-			bins=256,
+			bins=HISTOGRAM_BINS,
 			range=_range
 		)
 

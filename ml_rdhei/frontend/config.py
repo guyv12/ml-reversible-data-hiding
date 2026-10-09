@@ -23,6 +23,7 @@ KEYS_LEN_LIMIT: Final[int] = 20
 HISTOGRAM_GRID_COLOR: Final[str] = "#424242"
 HISTOGRAM_RESIZE_INTERVAL_MS: Final[int] = 20
 HISTOGRAM_RESIZE_SETTLE_MS: Final[int] = 100
+HISTOGRAM_BINS = 15
 
 FRONTEND_DIR = Path(__file__).resolve().parent
 
