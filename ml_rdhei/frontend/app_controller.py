@@ -18,7 +18,7 @@ class AppController:
 	def __init__(self):
 		"Creating and configuring app container that display views"
 		self.app_shell = QMainWindow()
-		self.app_shell.setWindowTitle("RDHEI Application")
+		self.app_shell.setWindowTitle("RDHEI Studio")
 		self.app_shell.setFixedSize(MENU_VIEW_SIZE)
 
 		self.stack = QStackedWidget()
