@@ -69,7 +69,7 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor, model_fn: Callable) ->
 
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
-        raise TypeError("Left-Right Decomposition requires (u)int16/int32")
+        raise TypeError("Left-Right Decomposition requires (u)int16/int32, got {}".format(batch.dtype))
 
     image1_batch = (batch >> 8).to(torch.uint8) # left
     image2_batch = (batch & 0x00FF).to(torch.uint8) # right

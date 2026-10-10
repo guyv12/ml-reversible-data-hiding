@@ -3,6 +3,21 @@ import segmentation_models_pytorch as smp
 import torch
 from pathlib import Path
 
+from backend.models.linear import *
+from backend.models.cnn import *
+
+
+# ----- Utils -----
+
+def save_model(model: torch.nn.Module, path: Path | str = None) -> None:
+    torch.save(model, path)
+
+def load_model(path: Path | str = None) -> torch.nn.Module:
+    model = torch.load(path, weights_only=False)
+    model.eval()
+    return model
+
+# ----- Getters -----
 
 def get_ridge_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
@@ -42,32 +57,3 @@ def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1,
         in_channels=in_channels,
         classes=classes,
     )
-
-# ----- Classes ----
-
-class TorchRidge:
-    def __init__(self, lambda_: float = 1e-1) -> None:
-        self.L = lambda_
-        self.weights = None
-
-    def fit(self, X: torch.Tensor, y: torch.Tensor) -> None:
-        Features = X.shape[1]
-        I = torch.eye(Features, dtype=X.dtype)
-        self.weights = torch.linalg.solve(X.T @ X + self.L * I, X.T @ y)
-
-    def predict(self, X: torch.Tensor) -> torch.Tensor:
-        if self.weights is None:
-            raise TypeError("Model weights need to be set first")
-
-        return self.weights @ X
-
-
-#----- Utils -----
-
-def save_model(model: torch.nn.Module, path: Path | str = None) -> None:
-    torch.save(model, path)
-
-def load_model(path: Path | str = None) -> torch.nn.Module:
-    model = torch.load(path, weights_only=False)
-    model.eval()
-    return model
