@@ -80,6 +80,30 @@ def test_ad_mobilenet_v2_ridge(show=False):
         show=show,
     )
 
+
+def test_ad_autoencoder_ridge(show=False):
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1)
+    K = 5
+
+    run_linear(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_autoencoder_ridge,
+            model_fn=partial(get_autoencoder_model, path="../autoencoder_model.pth")
+        ),
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_metrics,
+        receiver_fn=partial(
+            receiver.receive,
+        ),
+        bpp=8,
+        K=K,
+        dtype="uint8",
+        show=show,
+    )
+
+
 def test_unet_resnet50_ridge(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
@@ -218,10 +242,11 @@ def prepare_dicom(raw_ad):
 
 
 def main():
-    #test_ad_unfold_ridge_border()
-    #test_dicom_ad_unfold_ridge_border()
-    #test_ad_mobilenet_v2_ridge()
-    test_unet_resnet50_ridge()
+    # test_ad_unfold_ridge_border()
+    # test_dicom_ad_unfold_ridge_border()
+    # test_ad_mobilenet_v2_ridge()
+    # test_unet_resnet50_ridge()
+    test_ad_autoencoder_ridge()
 
 if __name__ == "__main__":
     main()

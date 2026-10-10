@@ -78,3 +78,26 @@ def ad_resnet50_ridge(batch: torch.Tensor, K: int = 5):
     )
         
     yield from get_ad(batch, mask, feature_fn, predictor_fn)
+
+
+def ad_autoencoder_ridge(batch: torch.Tensor, K: int = 5, model_fn: callable | None = None):
+    _, H, W = batch.shape
+    mask = reference_mask(H, W)
+
+    if model_fn is None:
+        def default_autoencoder_model():
+            from ml_rdhei.experiments.autoencoder import Autoencoder
+            return Autoencoder()
+
+        model_fn = default_autoencoder_model
+
+    feature_fn = partial(
+        autoencoder_features,
+        model_fn=model_fn,
+    )
+    predictor_fn = partial(
+        ridge_prediction,
+        pred_fn=dot_product
+    )
+
+    yield from get_ad(batch, mask, feature_fn, predictor_fn)

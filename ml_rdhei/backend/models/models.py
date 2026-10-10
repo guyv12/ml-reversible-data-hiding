@@ -3,7 +3,6 @@ import segmentation_models_pytorch as smp
 import torch
 from pathlib import Path
 
-
 def get_ridge_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
 
@@ -43,6 +42,13 @@ def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1,
         classes=classes,
     )
 
+def get_autoencoder_model(path: Path | str = None):
+    if path is not None:
+        model = torch.load(path, weights_only=False)
+        model.eval()
+        return model
+    return Autoencoder()
+
 # ----- Classes ----
 
 class TorchRidge:
@@ -60,6 +66,33 @@ class TorchRidge:
             raise TypeError("Model weights need to be set first")
 
         return self.weights @ X
+
+
+class Autoencoder(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.encoder = torch.nn.Sequential(
+            torch.nn.Conv2d(2, 16, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Flatten(),
+            torch.nn.Linear(32 * 5 * 5, 64),
+        )
+
+        self.decoder = torch.nn.Sequential(
+            torch.nn.Linear(64, 32 * 5 * 5),
+            torch.nn.ReLU(),
+            torch.nn.Unflatten(1, (32, 5, 5)),
+            torch.nn.Conv2d(32, 16, kernel_size=3, padding=1),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(16, 1, kernel_size=3, padding=1),
+        )
+
+    def forward(self, x):
+        latent = self.encoder(x)
+        reconstructed = self.decoder(latent)
+        return reconstructed
 
 
 #----- Utils -----
