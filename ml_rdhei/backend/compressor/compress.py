@@ -124,3 +124,24 @@ def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_m
     ad_bits = bitarray(ad)
 
     return ad_bits
+
+def compress_cnn_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
+                          img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                          ) -> bitarray:
+    H, W = img_size
+    N = H * W
+    bpp = 16
+    header_width = math.ceil(math.log2(N * bpp))
+
+    ad = __compress_error_map(img1_error_map, N, 0, 4, add_offset=False) # range [0, 15] so 4 bits are required
+
+    ad += __compress_ref_pixels(img2_ref_pixels)
+    ad += __compress_error_map(img2_error_map, N, len(img2_ref_pixels), 9)
+
+    # add len(ad) at the beggining
+    ad = format(len(ad), f'0{header_width}b') + ad
+
+    # change bits string to bytes
+    ad_bits = bitarray(ad)
+
+    return ad_bits

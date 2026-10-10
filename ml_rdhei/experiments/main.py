@@ -17,6 +17,94 @@ from backend.predictor.results import Prediction, compute_dicom_metrics, compute
 from backend.predictor.pipelines import reference_mask ## <--- bad should be elevated higher not owned by the predictor
 
 
+# ----- Preprocessing tests -----
+
+def test_preprocessing_ad_unfold_ridge_border():
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    K = 5
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_unfold_ridge_border,
+            K=K
+        ),
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+    )
+
+
+def test_preprocessing_dicom_ad_unfold_ridge_border():
+    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
+    K = 5
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_unfold_ridge_border,
+            K=K
+        ),
+        prep_fn=prepare_dicom,
+        compressor_fn=compression.compress_dicom_ad,
+        metrics_fn=compute_dicom_metrics,
+        bpp=16,
+    )
+
+
+def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
+    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300") # Keep batch size as 1 to avoid discrepancy
+    K = 5
+    model = get_mobilenet_v2_unet_model(classes=K ** 2)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+
+    model_fn = partial(
+        get_mobilenet_v2_unet_model,
+        path="unet_mobilenetv2.pth",
+        classes=K ** 2
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn_ridge,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom,
+        compressor_fn=compression.compress_dicom_ad,
+        metrics_fn=compute_dicom_metrics,
+        bpp=16,
+    )
+
+
+def test_preprocessing_dicom_ad_mobilenet_v2():
+    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
+    model = get_mobilenet_v2_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_mobilenet_v2_unet_model, 
+        path="unet_mobilenetv2.pth",
+        classes=1
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom_cnn,
+        compressor_fn=compression.compress_cnn_dicom_ad,
+        metrics_fn=compute_dicom_metrics,
+        bpp=16,
+    )
+
+# ----- All pipeline tests -----
+
 def test_ad_unfold_ridge_border(show=False):
     loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
     K = 5
@@ -269,6 +357,51 @@ def run_experiment(loader: DataLoader, predictor_fn: Callable,
                 dshow.show_image(reconstructed, title="Reconstructed Image")
 
 
+def run_preprocessing(loader: DataLoader, predictor_fn: Callable, 
+                      prep_fn: Callable, compressor_fn: Callable,
+                      metrics_fn: Callable, bpp: int) -> None:
+    """Runs preprocessing for the experiment
+
+    Args:
+        loader (DataLoader): data loader for the image dataset
+        predictor_fn (Callable): function for the prediction
+        prep_fn (Callable): function for retrieving AD args
+        compressor_fn (Callable): function for the compression
+    """
+    def avg_er(new_er: float) -> float:
+        avg_er.img_no += 1
+        avg_er.rates += new_er
+        return avg_er.rates / avg_er.img_no
+    avg_er.img_no = 0; avg_er.rates = 0
+
+    torch.manual_seed(0)
+
+    for batch in loader:
+        H, W = batch.shape[-2:]
+        mask = reference_mask(H, W)
+
+        for raw_ad in predictor_fn(batch):
+            ad_args, metric_args, _ = prep_fn(raw_ad)
+
+            ad = compressor_fn((H, W), *ad_args)
+
+            prediction = Prediction(
+                ad=ad,
+                bpp=bpp,
+                shape=(H, W),
+                metrics=metrics_fn(
+                    **metric_args,
+                    mask=mask,
+                    ad_bits=len(ad),
+                ),
+            )
+
+            print(f"ER: {prediction.metrics.embedding_rate}")
+            print(f"PSNR: {prediction.metrics.psnr}")
+            print(f"SSIM: {prediction.metrics.ssim}")
+            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
+
+
 #---- Functions for getting the AD for PGM/Dicom ----
 
 def prepare_pgm(raw_ad):
@@ -299,18 +432,42 @@ def prepare_cnn(raw_ad):
         original,
     )
 
+def prepare_dicom_cnn(raw_ad):
+    img1_error_map, img2_ref_pixels, img2_error_map, original = raw_ad
 
-def main(dicom: bool = False):
-    if not dicom:
-        #test_ad_unfold_ridge_border()
-        #test_ad_unet_mobilenet_v2_ridge()
-        #test_ad_unet_resnet50_ridge()
-        #test_ad_mobilenet_v2()
-        #test_ad_resnet_50()
-        return
+    return (
+        (img1_error_map, img2_ref_pixels, img2_error_map),
+        {"original": original, "lsb_error_map": img2_error_map},
+        original,
+    )
+
+# ---------- RUN ------------
+
+def pipeline():
+    #test_ad_unfold_ridge_border(show=True)
+    #test_dicom_ad_unfold_ridge_border(show=True)
     
-    if dicom:
-        test_dicom_ad_unfold_ridge_border()
+    #test_ad_unet_mobilenet_v2_ridge(show=True)
+    #test_ad_unet_resnet50_ridge(show=True)
+    
+    #test_ad_mobilenet_v2(show=True)
+    #test_ad_resnet_50(show=True)
+    return
+
+def preprocessing():
+    #test_preprocessing_ad_unfold_ridge_border()
+    #test_preprocessing_dicom_ad_unfold_ridge_border()
+    #test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge()
+    test_preprocessing_dicom_ad_mobilenet_v2()
+    return
+
+
+def main(p: bool = False):
+    if p:
+        preprocessing()
+    else:
+        pipeline()
+
 
 if __name__ == "__main__":
-    main()
+    main(True)
