@@ -11,17 +11,17 @@ import backend.models.cnn as cnn
 
 
 def data_split():
-    train_loader, train_len = get_loader("../datasets/pgm/train", regex=None)
-    val_loader, val_len = get_loader("../datasets/pgm/val", regex=None)
-    test_loader, test_len = get_loader("../datasets/pgm/test", regex=None)
+    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=4)
+    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=4)
+    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=4)
 
     return train_loader, val_loader, test_loader
 
 
 def dicom_data_split():
-    train_loader, train_len = get_dicom_loader("../datasets/dcm/train", regex=None)
-    val_loader, val_len = get_dicom_loader("../datasets/dcm/val", regex=None)
-    test_loader, test_len = get_dicom_loader("../datasets/dcm/test", regex=None)
+    train_loader, train_len = get_dicom_loader("../datasets/dcm/train", batch_size=4)
+    val_loader, val_len = get_dicom_loader("../datasets/dcm/val", batch_size=4)
+    test_loader, test_len = get_dicom_loader("../datasets/dcm/test", batch_size=4)
 
     return train_loader, val_loader, test_loader
 
@@ -56,7 +56,7 @@ def train_model(model: nn.Module, path: Path | str,
 
         for batch in train_loader:
             # 1. Prepare
-            batch = batch.to(device)
+            batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
 
             masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
             X = masked_batch.unsqueeze(1) # transform to (B, C, H, W)
@@ -133,7 +133,7 @@ def main():
         kernel_size=args.kernel_size,
     )
 
-    mask = reference_mask()
+    mask = reference_mask(512, 512)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 

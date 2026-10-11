@@ -20,7 +20,7 @@ def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[to
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
     # apply mask to all images in the batch
-    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch = torch.zeros_like(batch)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     pad = K // 2 # Last 2 dimensions padded with K // 2 0s
@@ -47,7 +47,7 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor, model_fn: Callable) ->
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
-    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch = torch.zeros_like(batch)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     # Add channel dimension and normalize to <0, 1>
@@ -92,7 +92,7 @@ def mask_batch(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, t
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
     # apply mask to all images in the batch
-    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch = torch.zeros_like(batch)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     non_ref_p = batch.view(B, H * W)[:, ~mask.flatten()]
