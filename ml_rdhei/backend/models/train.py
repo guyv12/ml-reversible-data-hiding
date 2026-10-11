@@ -1,8 +1,13 @@
 import torch
 import torch.nn as nn
+import argparse
+from pathlib import Path
 
 from backend.models.models import save_model, load_model
+from backend.predictor.features import mask_batch
+from backend.predictor.pipelines import reference_mask
 from backend.data.loader import get_loader, get_dicom_loader
+import backend.models.cnn as cnn
 
 
 def data_split():
@@ -21,35 +26,130 @@ def dicom_data_split():
     return train_loader, val_loader, test_loader
 
 
-def train_model(model: nn.Module, train_loader: torch.utils.data.DataLoader,
-                val_loader: torch.utils.data.DataLoader, criterion: nn.Module,
-                optimizer: torch.optim.Optimizer, num_epochs: int = 10) -> None:
-    torch.manual_seed(0)
+def train_model(model: nn.Module, path: Path | str,
+                mask: torch.Tensor, num_epochs: int,
+                criterion: nn.Module, optimizer: torch.optim.Optimizer,
+                train_loader: torch.utils.data.DataLoader,
+                val_loader: torch.utils.data.DataLoader):
+    """_summary_
+
+    Args:
+        model (nn.Module): model to train
+        num_epochs (int): training epochs
+        criterion (nn.Module): _description_
+        optimizer (torch.optim.Optimizer): _description_
+        train_loader (torch.utils.data.DataLoader): _description_
+        val_loader (torch.utils.data.DataLoader): _description_
+    """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
+
+    model.to(device)
+    mask.to(device)
+
+    best_val_loss = float("inf")
     
     for epoch in range(num_epochs):
+        # 1. Train loop
         model.train()
         running_loss = 0.0
-        for inputs in train_loader:
+
+        for batch in train_loader:
+            # 1. Prepare
+            batch = batch.to(device)
+
+            masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
+            X = masked_batch.unsqueeze(1) # transform to (B, C, H, W)
+            y = non_ref_pixels
+
+            # 2. Fw pass
+            y_pred = model(X)
+            y_pred = y_pred.squeeze(1) # transform back to (B, H, W)
+            loss = criterion(y_pred[:, ~mask], y)
+
+            # 3. Bw pass
             optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, inputs)
             loss.backward()
+
+            # 4. Update weights
             optimizer.step()
+
+            # 5. Info
             running_loss += loss.item()
-
-        epoch_loss = running_loss / len(train_loader)
-        print(f"Epoch {epoch + 1}/{num_epochs}, Loss: {epoch_loss:.4f}")
-
-        # Validation step
+        
+        # 2. Validation loop
         model.eval()
-        val_loss = 0.0
-        with torch.no_grad():
-            for inputs in val_loader:
-                outputs = model(inputs)
-                loss = criterion(outputs, inputs)
-                val_loss += loss.item()
+        val_running_loss = 0.0
 
-        val_epoch_loss = val_loss / len(val_loader)
-        print(f"Validation Loss: {val_epoch_loss:.4f}")
+        with torch.inference_mode():
+            for batch in val_loader:
+                # 1. Prepare
+                batch = batch.to(device)
 
-    save_model(model, "mdl.pth")
+                masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
+                X = masked_batch.unsqueeze(1)
+                y = non_ref_pixels
+
+                # 2. Fw pass
+                y_pred = model(X)
+                y_pred = y_pred.squeeze(1)
+                loss = criterion(y_pred[:, ~mask], y)
+
+                # 3. Info
+                val_running_loss += loss.item()
+
+        # 3. Info
+        train_loss = running_loss / len(train_loader)
+        val_loss = val_running_loss / len(val_loader)
+        print(f"Epoch [{epoch + 1}/{num_epochs}]")
+        print(f"Train Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}")
+
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            save_model(model, path)
+
+    #save_model(model, path)
+
+
+def main():
+    torch.manual_seed(0) # Repro
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(0)
+
+    parser = argparse.ArgumentParser(description="Train the pixel predictor")
+
+    parser.add_argument("--path", type=Path, required=True)
+    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--batch-size", type=int, default=4)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--channels", type=int, default=32)
+    parser.add_argument("--kernel-size", type=int, default=3)
+
+    args = parser.parse_args()
+
+    # Model
+    model = cnn.CNNPredictor(
+        channels=args.channels,
+        kernel_size=args.kernel_size,
+    )
+
+    mask = reference_mask()
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+
+    train_loader, val_loader, _ = data_split()
+
+    train_model(
+        model=model,
+        path=args.path,
+        mask=mask,
+        num_epochs=args.epochs,
+        criterion=criterion,
+        optimizer=optimizer,
+        train_loader=train_loader,
+        val_loader=val_loader,
+    )
+
+
+if __name__ == '__main__':
+    main()
