@@ -1,4 +1,5 @@
 import torch
+import re
 from torch.utils.data import DataLoader
 from collections.abc import Callable
 from functools import partial
@@ -79,8 +80,55 @@ def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
     )
 
 
+def test_preprocessing_ad_mobilenet_v2():
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
+    model = get_mobilenet_v2_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_mobilenet_v2_unet_model, 
+        path="unet_mobilenetv2.pth",
+        classes=1
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+    )
+
+
+def test_preprocessing_ad_cnn():
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
+    model = get_custom_model('unet_resnet50.pth')
+
+    model_fn=partial(
+        get_custom_model,
+        path="unet_resnet50.pth",
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+    )
+
+
 def test_preprocessing_dicom_ad_mobilenet_v2():
-    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
     model = get_mobilenet_v2_unet_model(classes=1)
     model.eval()
     save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
@@ -458,7 +506,9 @@ def preprocessing():
     #test_preprocessing_ad_unfold_ridge_border()
     #test_preprocessing_dicom_ad_unfold_ridge_border()
     #test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge()
-    test_preprocessing_dicom_ad_mobilenet_v2()
+    #test_preprocessing_ad_mobilenet_v2()
+    #test_preprocessing_dicom_ad_mobilenet_v2()
+    test_preprocessing_ad_cnn()
     return
 
 

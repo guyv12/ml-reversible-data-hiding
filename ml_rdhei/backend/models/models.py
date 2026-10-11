@@ -47,13 +47,5 @@ def get_resnet_50_unet_model(path: Path | str = None, in_channels: int = 1, clas
         classes=classes,
     )
 
-def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
-    if path is not None:
-        return load_model(path)
-    
-    return smp.UnetPlusPlus(
-        encoder_name="mobilenet_v2",
-        encoder_weights="imagenet",
-        in_channels=in_channels,
-        classes=classes,
-    )
+def get_custom_model(path: Path | str, target_dev: torch.device = 'cpu'):
+    return load_model(path).to(device=target_dev)
