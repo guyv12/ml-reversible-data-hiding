@@ -2,11 +2,11 @@ import numpy as np
 import pyqtgraph as pg
 
 from PySide6.QtWidgets import (
-	QFrame, QWidget, QVBoxLayout, QStackedLayout,
-	QLabel
+	QFrame, QWidget, QLabel,
+	QVBoxLayout, QStackedLayout,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap, QPainter
+from PySide6.QtGui import QPixmap, QPainter
 
 from frontend.utils import load_stylesheet
 from frontend.config import (
@@ -131,11 +131,10 @@ class Histogram(QFrame):
 	
 	def _setup_icon(self, icon_name: str):
 		self.icon_label = QLabel()
-		icon = QIcon.fromTheme(icon_name)
-		self.icon_label.setPixmap(icon.pixmap(*ICON_SIZE))
-		self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.icon_label.setObjectName(icon_name)
+		self.icon_label.setFixedSize(*ICON_SIZE)
 		
-		self.empty_layout.addWidget(self.icon_label)
+		self.empty_layout.addWidget(self.icon_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
 	def _setup_title(self, title: str):
 		self.title_label = QLabel(title)

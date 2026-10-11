@@ -52,7 +52,7 @@ class ExtractionView(QWidget):
 
 		self.in_empty_preview = EmptyPreview(
 			"Drop Grayscale or DICOM image",
-			"system-file-manager",
+			"folderIcon",
 			"or click to browse",
 			ACCEPTED_FORMATS
 		)
@@ -60,7 +60,7 @@ class ExtractionView(QWidget):
 		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
 		self.image_uploader = ImageUploader(self.in_preview_manager)
 		self.in_histogram = Histogram(
-			"emblem-important",
+			"importantIcon",
 			"Upload an image to see the histogram"
 		)
 
@@ -77,12 +77,12 @@ class ExtractionView(QWidget):
 
 		self.out_empty_preview = EmptyPreview(
 			"Output image",
-			"insert-image",
+			"infoIcon",
 		)
 		self.out_image_preview = OutputImagePreview()
 		self.out_preview_manager = PreviewManager(self.out_empty_preview, self.out_image_preview)
 		self.out_histogram = Histogram(
-			"emblem-important",
+			"importantIcon",
 			"Upload an image to see the histogram"
 		)
 

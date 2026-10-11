@@ -33,10 +33,7 @@ PreviewManager #titleLabel
     color: #ececec
 }
 
-PreviewManager #subtitleLabel
-{
-    font-size: 12px;
-}
+PreviewManager #subtitleLabel {font-size: 12px;}
 
 PreviewManager #chipLabel
 {
@@ -48,46 +45,22 @@ PreviewManager #chipLabel
     font-weight: bold;
 }
 
-PreviewManager #deleteBtn 
+PreviewManager #deleteBtn,
+PreviewManager #downloadBtn
 {
-    background-color: transparent;
+    background: transparent;
     border: none;
-    color: #888888;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 0px;
-    margin: 0px;
+    padding: 3px;
 }
 
-PreviewManager #deleteBtn:hover:enabled
-{
-    background-color: transparent;
-    color: #e74c3c;
-}
+PreviewManager #deleteBtn {image: url(buttons:dismiss/normal.svg);}
+PreviewManager #deleteBtn:hover {image: url(buttons:dismiss/hover.svg);}
+PreviewManager #deleteBtn:pressed {image: url(buttons:dismiss/pressed.svg);}
+PreviewManager #deleteBtn:disabled {image: url(buttons:dismiss/disabled.svg);}
 
-PreviewManager #deleteBtn:pressed:enabled
-{
-    color: #c0392b;
-}
+PreviewManager #downloadBtn {image: url(buttons:download/normal.svg);}
+PreviewManager #downloadBtn:hover {image: url(buttons:download/hover.svg);}
+PreviewManager #downloadBtn:pressed {image: url(buttons:download/pressed.svg);}
 
-PreviewManager #downloadBtn 
-{
-    background-color: transparent;
-    border: none;
-    color: #888888;
-    font-size: 14px;
-    font-weight: bold;
-    padding: 0px;
-    margin: 0px;
-}
-
-PreviewManager #downloadBtn:hover 
-{
-    background-color: transparent;
-    color: #3498db;
-}
-
-PreviewManager #downloadBtn:pressed 
-{
-    color: #2b7fb7;
-}
+PreviewManager #folderIcon {image: url(icons:folder.svg);}
+PreviewManager #infoIcon {image: url(icons:info.svg);}
