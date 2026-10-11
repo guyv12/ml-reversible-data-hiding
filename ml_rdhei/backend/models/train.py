@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import time
+import logging
 import argparse
 from pathlib import Path
 
@@ -11,9 +13,9 @@ import backend.models.cnn as cnn
 
 
 def data_split():
-    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=4, num_workers=0)
-    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=4, shuffle=False, num_workers=0)
-    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=4, shuffle=False, num_workers=0)
+    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
+    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
+    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
@@ -24,6 +26,29 @@ def dicom_data_split():
     test_loader, test_len = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
+
+
+def setup_logger(log_path: str | Path) -> logging.Logger:
+    log_path = Path(log_path)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger("training")
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+    logger.propagate = False
+
+    formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+
+    return logger
 
 
 def train_model(model: nn.Module, path: Path | str,
@@ -41,8 +66,11 @@ def train_model(model: nn.Module, path: Path | str,
         train_loader (torch.utils.data.DataLoader): _description_
         val_loader (torch.utils.data.DataLoader): _description_
     """
+    logger = setup_logger("../logs/train.log")
+    logger.info("Training Starts")
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(f"Using device: {device}")
+    logger.info("Using device: %s", device)
 
     model = model.to(device)
     mask = mask.to(device)
@@ -50,6 +78,8 @@ def train_model(model: nn.Module, path: Path | str,
     best_val_loss = float("inf")
     
     for epoch in range(num_epochs):
+        start = time.perf_counter()
+
         # 1. Train loop
         model.train()
         running_loss = 0.0
@@ -76,6 +106,7 @@ def train_model(model: nn.Module, path: Path | str,
 
             # 5. Info
             running_loss += loss.item()
+            print(f"train batch {batch + 1}")
         
         # 2. Validation loop
         model.eval()
@@ -97,12 +128,19 @@ def train_model(model: nn.Module, path: Path | str,
 
                 # 3. Info
                 val_running_loss += loss.item()
+                print(f"validation batch {batch + 1}")
 
         # 3. Info
         train_loss = running_loss / len(train_loader)
         val_loss = val_running_loss / len(val_loader)
-        print(f"Epoch [{epoch + 1}/{num_epochs}]")
-        print(f"Train Loss: {train_loss:.6f}, Validation Loss: {val_loss:.6f}")
+        if device.type == 'cuda':
+            torch.cuda.synchronize() # to sync time for perf_counter
+        duration = time.perf_counter() - start
+
+        logger.info(
+            "Epoch [%d/%d] | Train Loss: %.6f | Validation Loss: %.6f | Duration: %.1f s (%.2f min)",
+            epoch + 1, num_epochs, train_loss, val_loss, duration, duration / 60,
+        )
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
