@@ -105,6 +105,7 @@ http-client.private.env.json
 
 
 # ----- datasets -----
+
 datasets/pgm/train/*
 datasets/pgm/val/*
 datasets/pgm/test/*
@@ -120,6 +121,12 @@ datasets/dcm/test/*
 !datasets/dcm/train/.gitkeep
 !datasets/dcm/val/.gitkeep
 !datasets/dcm/test/.gitkeep
+
+
+# ----- logs -----
+
+logs/*
+!logs/.gitkeep
 
 
 # ----- pyproj.toml -----
