@@ -14,7 +14,7 @@ def _excepthook(exc_type, exc, tb):
 
 try:
     from ctypes import windll
-    myappid = 'RDHEI Studio'
+    myappid = 'RDHEI.Studio'
     windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 except ImportError:
     pass
