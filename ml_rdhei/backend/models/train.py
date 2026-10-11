@@ -84,7 +84,7 @@ def train_model(model: nn.Module, path: Path | str,
         with torch.inference_mode():
             for batch in val_loader:
                 # 1. Prepare
-                batch = batch.to(device)
+                batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
 
                 masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
                 X = masked_batch.unsqueeze(1)
