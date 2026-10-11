@@ -11,17 +11,17 @@ import backend.models.cnn as cnn
 
 
 def data_split():
-    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=4)
-    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=4)
-    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=4)
+    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=4, num_workers=0)
+    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=4, shuffle=False, num_workers=0)
+    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=4, shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
 
 def dicom_data_split():
-    train_loader, train_len = get_dicom_loader("../datasets/dcm/train", batch_size=4)
-    val_loader, val_len = get_dicom_loader("../datasets/dcm/val", batch_size=4)
-    test_loader, test_len = get_dicom_loader("../datasets/dcm/test", batch_size=4)
+    train_loader, train_len = get_dicom_loader("../datasets/dcm/train")
+    val_loader, val_len = get_dicom_loader("../datasets/dcm/val", shuffle=False, num_workers=0)
+    test_loader, test_len = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
