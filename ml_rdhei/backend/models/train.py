@@ -44,8 +44,8 @@ def train_model(model: nn.Module, path: Path | str,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    model.to(device)
-    mask.to(device)
+    model = model.to(device)
+    mask = mask.to(device)
 
     best_val_loss = float("inf")
     
