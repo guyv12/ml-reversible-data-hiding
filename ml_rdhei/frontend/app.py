@@ -3,6 +3,7 @@ import sys
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QIcon
 
+from frontend.theme import apply_theme
 from frontend.app_controller import AppController
 from frontend.config import ASSETS_DIR
 
@@ -19,6 +20,7 @@ except ImportError:
 
 def main():
 	app = QApplication(sys.argv)
+	apply_theme(app)
 	app.setWindowIcon(QIcon(str(ASSETS_DIR / "app.svg")))
 	sys.excepthook = _excepthook
 	controller = AppController()

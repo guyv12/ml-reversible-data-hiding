@@ -10,7 +10,7 @@ dependencies = ["torch", "torchvision",
                 "pydicom", "opencv-python",
                 "scikit-learn", "scikit-image",
                 "bitarray", "matplotlib",
-                "PySide6", "pyqtgraph"
+                "PySide6>=6.8", "pyqtgraph"
 ]
 requires-python = ">=3.13.0"
 authors = [
