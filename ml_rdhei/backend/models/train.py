@@ -84,7 +84,7 @@ def train_model(model: nn.Module, path: Path | str,
         model.train()
         running_loss = 0.0
 
-        for batch in train_loader:
+        for i, batch in enumerate(train_loader):
             # 1. Prepare
             batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
 
@@ -106,14 +106,14 @@ def train_model(model: nn.Module, path: Path | str,
 
             # 5. Info
             running_loss += loss.item()
-            print(f"train batch {batch + 1}")
+            print(f"train batch {i + 1}")
         
         # 2. Validation loop
         model.eval()
         val_running_loss = 0.0
 
         with torch.inference_mode():
-            for batch in val_loader:
+            for i, batch in enumerate(val_loader):
                 # 1. Prepare
                 batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
 
@@ -128,7 +128,7 @@ def train_model(model: nn.Module, path: Path | str,
 
                 # 3. Info
                 val_running_loss += loss.item()
-                print(f"validation batch {batch + 1}")
+                print(f"validation batch {i + 1}")
 
         # 3. Info
         train_loss = running_loss / len(train_loader)
