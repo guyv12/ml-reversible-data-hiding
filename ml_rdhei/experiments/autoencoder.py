@@ -4,32 +4,33 @@ from torch.utils.data import DataLoader
 import ml_rdhei.backend.data.loader as dloader
 import ml_rdhei.experiments.dataset as ddataset
 import ml_rdhei.backend.compressor.compress as compressor
+from ml_rdhei.backend.models.models import save_model
 
 class Autoencoder(nn.Module):
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(2, 16, kernel_size=3, padding=1),
+            nn.Conv2d(2, 32, kernel_size=3, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(),
 
             nn.Flatten(),
 
-            nn.Linear(32*5*5, 64)
+            nn.Linear(64*5*5, 128)
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(64, 32*5*5),
+            nn.Linear(128, 64*5*5),
             nn.ReLU(),
 
-            nn.Unflatten(1, (32, 5, 5)),
+            nn.Unflatten(1, (64, 5, 5)),
             
-            nn.Conv2d(32, 16, kernel_size=3, padding=1),
+            nn.Conv2d(64, 32, kernel_size=3, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(16, 1, kernel_size=3, padding=1)
+            nn.Conv2d(32, 1, kernel_size=3, padding=1)
         )
 
     def forward(self, x):
@@ -39,14 +40,7 @@ class Autoencoder(nn.Module):
         return reconstructed
 
 
-set, _ = dloader.get_loader("datasets\BOSSbase_512", batch_size=1, num_workers=0)
-image = next(iter(set)).reshape(512, 512)
-image = image / 255.0
-
-dataset = ddataset.PixelMaskDataset(image)
-loader = DataLoader(dataset, batch_size=256, shuffle=True)
-
-def training():
+def train(epochs, train_loader, val_loader):
     model = Autoencoder()
 
     criterion = nn.MSELoss()
@@ -54,92 +48,70 @@ def training():
         model.parameters(),
         lr=0.001
     )
+    best_val_loss = float("inf")
 
-    epochs = 10
-
+    # train loop
     for epoch in range(epochs):
-        total_loss = 0.0
+        model.train()
+        train_total_loss = 0.0
 
-        for input_batch, target_batch in loader:
+        for x, target, ref_mask in train_loader:
             optimizer.zero_grad()
 
-            output = model(input_batch)
+            pred = model(x)[:, 0]
 
-            prediction = output[:, 0, 2, 2]
-
-            loss = criterion(prediction, target_batch)
+            loss = criterion(pred[:, ~ref_mask], target)
 
             loss.backward()
             optimizer.step()
 
-            total_loss += loss.item()
+            train_total_loss += loss.item()
 
-        average_loss = total_loss / len(loader)
+        train_loss = train_total_loss / len(train_loader)
 
         print(
             f"Epoch: {epoch + 1}/{epochs}, "
-            f"Loss: {average_loss:.6f}"
+            f"Loss: {train_loss:.6f}"
         )
 
-    torch.save(model, "autoencoder_model.pth")
 
-def eval(model):
-    model.eval()
+        # validation loop
+        model.eval()
+        val_total_loss = 0.0
 
-    test_image = next(iter(set)).reshape(512, 512)
-    test_image = test_image / 255.0
-    test_dataset = ddataset.PixelMaskDataset(test_image)
-    test_loader = DataLoader(test_dataset, batch_size=256, shuffle=True)
 
-    errors = torch.zeros(len(test_dataset), dtype=torch.int64)
+        with torch.no_grad():
+            for x, target, ref_mask in val_loader:
+                pred = model(x)[:, 0]
 
-    total_absolute_error = 0.0
-    total_squared_error = 0.0
-    total_samples = 0
+                loss = criterion(pred[:, ~ref_mask], target)
+                val_total_loss += loss.item()
 
-    max_error = 0
-    exact_predictions = 0
-    sample_offset = 0
+                #prediction_pixels = torch.round(pred * 255)
+                #target_pixels = torch.round(target * 255)
 
-    with torch.no_grad():
-        for input_batch, target_batch in test_loader:
-            output = model(input_batch)
 
-            prediction = output[:, 0, 2, 2]
+        val_loss = val_total_loss / len(val_loader)
+        print(
+            f"Epoch: {epoch + 1}/{epochs}, "
+            f"Loss: {val_loss:.6f}"
+        )
 
-            prediction_pixels = torch.round(prediction * 255)
-            target_pixels = torch.round(target_batch * 255)
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            save_model(model, "autoencoder.pth")
 
-            error = target_pixels - prediction_pixels
+def main():
+    train_loader = None
+    val_loader = None
+    epochs = 10
 
-            batch_end = sample_offset + error.numel()
-            errors[sample_offset:batch_end] = error
-            sample_offset = batch_end
+    #set, _ = dloader.get_loader("datasets\BOSSbase_512", batch_size=1, num_workers=0)
+    #image = next(iter(set)).reshape(512, 512)
+    #dataset = ddataset.PixelMaskDataset(image)
+    #loader = DataLoader(dataset, batch_size=256, shuffle=True)
 
-            total_absolute_error += torch.abs(error).sum().item()
-            total_squared_error += (error ** 2).sum().item()
+    train(epochs, train_loader, val_loader)
 
-            max_error = max(
-                max_error,
-                torch.abs(error).max().item()
-            )
-
-            exact_predictions += (error == 0).sum().item()
-            total_samples += error.numel()
-
-    mae = total_absolute_error / total_samples
-    rmse = (total_squared_error / total_samples) ** 0.5
-    exact_rate = exact_predictions / total_samples * 100
-
-    print(f"MAE: {mae:.2f}")
-    print(f"RMSE: {rmse:.2f}")
-    print(f"Maximum absolute error: {max_error:.0f}")
-    print(f"Exact prediction rate: {exact_rate:.2f}%")
-
-    error_map = torch.zeros((test_dataset.height, test_dataset.width), dtype=torch.int64)
-    for idx, (row, col) in enumerate(test_dataset.coords):
-        error_map[row, col] = errors[idx]
-
-    
-training()
-eval(torch.load("autoencoder_model.pth", weights_only=False))
+if __name__ == "__main__":
+    main()
