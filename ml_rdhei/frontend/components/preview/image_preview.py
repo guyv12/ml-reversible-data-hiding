@@ -6,7 +6,7 @@ import numpy as np
 
 from PySide6.QtWidgets import (
 	QWidget, QMessageBox, QVBoxLayout, QHBoxLayout,
-	QLabel, QPushButton, QFileDialog
+	QLabel, QPushButton, QFileDialog, QSizePolicy
 ) 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QPixmap, QImage, QFontMetrics
@@ -35,6 +35,7 @@ class ImagePreview(QWidget):
 		self.photo_display = QLabel()
 		self.photo_display.setContentsMargins(*PHOTO_DISPLAY_MARGIN)
 		self.photo_display.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.photo_display.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
 
 		self.main_layout.addLayout(self.image_header_layout)
 		self.main_layout.addWidget(self.photo_display)
@@ -62,7 +63,7 @@ class ImagePreview(QWidget):
 				)
 				self._cached_pix = None
 
-		else:
+		elif self._image_path.suffix.lower() == ".pgm":
 			image = convert_ndarray_to_QImage(self._image_data)
 			self._cached_pix = QPixmap.fromImage(image)
 
@@ -190,6 +191,7 @@ class InputImagePreview(ImagePreview):
 		self.file_label.setTextFormat(Qt.TextFormat.PlainText)
 		self.file_label.setObjectName("fileLabel")
 		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
+		self.file_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
 		self.delete_btn = QPushButton("✕")
 		self.delete_btn.setObjectName("deleteBtn")
@@ -309,3 +311,10 @@ class OutputImagePreview(ImagePreview):
 
 		elif file_path.suffix.lower() == ".dcm":
 			self._save_dicom(file_path)
+		
+		else:
+			QMessageBox.warning(
+				self,
+				"Write error",
+				f"Could not write {file_path} (unsupported extension or unwritable path)"
+			)

@@ -59,13 +59,13 @@ PreviewManager #deleteBtn
     margin: 0px;
 }
 
-PreviewManager #deleteBtn:hover 
+PreviewManager #deleteBtn:hover:enabled
 {
     background-color: transparent;
     color: #e74c3c;
 }
 
-PreviewManager #deleteBtn:pressed 
+PreviewManager #deleteBtn:pressed:enabled
 {
     color: #c0392b;
 }

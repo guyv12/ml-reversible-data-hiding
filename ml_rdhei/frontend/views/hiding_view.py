@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
 	QWidget, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
+from PySide6.QtCore import QThreadPool
 
 from backend.pipeline import predict, hide, transform_image_to_ndarray
 
@@ -16,6 +17,7 @@ from frontend.components.preview import (
 )
 from frontend.components.quality_metrics_panel import QualityMetricsPanel
 from frontend.components.encryption_panel import EncryptionPanel
+from frontend.worker import Worker
 from frontend.session import HideSession
 from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
@@ -31,7 +33,7 @@ class HidingView(QWidget):
 		super().__init__()
 		
 		self._session: HideSession | None = None
-
+		self.threadpool = QThreadPool()
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
@@ -59,8 +61,8 @@ class HidingView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.add_widget(self.image_uploader)
-		in_section.add_widget(self.in_histogram)
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
@@ -83,8 +85,8 @@ class HidingView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.add_widget(self.out_preview_manager)
-		out_section.add_widget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
@@ -104,12 +106,16 @@ class HidingView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
-		image_data = transform_image_to_ndarray(image_path)
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+			session = HideSession(image_path, image_data)
+			session.prediction = predict(image_data, session.image_format)
+		except Exception as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
 
+		self._session = session
 		self.in_preview_manager.set_image(image_path, image_data)
-
-		self._session = HideSession(image_path, image_data)
-		self._session.prediction = predict(image_data, self._session.image_format)
 
 		metrics = self._session.prediction.metrics
 		self.quality_metrics_panel.set_metrics(metrics)	
@@ -131,10 +137,43 @@ class HidingView(QWidget):
 		self.quality_metrics_panel.clear()
 		self.encryption_panel.clear()
 
+	def _on_hide_results(self, result: object):
+		if self._session is None: 
+			return
+
+		self._session.marked_image = result
+		self.out_preview_manager.set_image(
+			self._session.output_path,
+			self._session.marked_image,
+			self._session.source_path
+		)
+
+	def _on_hide_error(self, error):
+		if isinstance(error, Exception):
+			QMessageBox.critical(
+				self,
+				"Hiding failed",
+				"An unexpected error occurred while hiding the data."
+			)
+
+	def _on_hide_finished(self):
+		self.encryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(False)
+
 	def _on_hide_request(self, ad_encryption_key: str, message_encryption_key: str, message: str):
 		self.encryption_panel.set_busy(True)
-		try:
-			self._session.marked_image = hide(self._session.prediction, ad_encryption_key, message_encryption_key, message)
-			self.out_preview_manager.set_image(self._session.output_path, self._session.marked_image, self._session.source_path)
-		finally:
-			self.encryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(True)
+
+		worker = Worker(
+			hide,
+			self._session.prediction,
+			ad_encryption_key,
+			message_encryption_key,
+			message
+		)
+
+		worker.signals.result.connect(self._on_hide_results)
+		worker.signals.error.connect(self._on_hide_error)
+		worker.signals.finished.connect(self._on_hide_finished)
+		
+		self.threadpool.start(worker)

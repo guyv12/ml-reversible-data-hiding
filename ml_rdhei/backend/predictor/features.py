@@ -20,7 +20,7 @@ def unfold_features(batch: torch.Tensor, mask: torch.Tensor, K: int) -> tuple[to
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
     # apply mask to all images in the batch
-    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch = torch.zeros_like(batch)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     pad = K // 2 # Last 2 dimensions padded with K // 2 0s
@@ -47,7 +47,7 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor, model_fn: Callable) ->
     B, H, W = batch.shape
     ref_p = batch.view(B, H * W)[:, mask.flatten()]
 
-    masked_batch = torch.zeros(batch.shape, dtype=batch.dtype)
+    masked_batch = torch.zeros_like(batch)
     masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
 
     # Add channel dimension and normalize to <0, 1>
@@ -69,17 +69,32 @@ def cnn_features(batch: torch.Tensor, mask: torch.Tensor, model_fn: Callable) ->
 
 def lr_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
     if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
-        raise TypeError("Left-Right Decomposition requires (u)int16/int32")
+        raise TypeError("Left-Right Decomposition requires (u)int16/int32, got {}".format(batch.dtype))
 
     image1_batch = (batch >> 8).to(torch.uint8) # left
     image2_batch = (batch & 0x00FF).to(torch.uint8) # right
     
     return image1_batch, image2_batch
 
-def oe_decompose(batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-    raise NotImplementedError("Odd-Even Decomposition is not implemented yet...")
 
-    if not batch.dtype in (torch.int16, torch.int32, torch.uint16, torch.uint32):
-        raise TypeError("Odd-Even Decomposition requires (u)int16/int32")
-    
-    pass
+def mask_batch(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    Returns a masked batch of pixels, the non-reference pixels, and the reference pixels.
+    Works on a batched input. Requires no channel dimension.
+
+    :return: masked_batch
+    :rtype: torch.Tensor, torch.Tensor - image's dtype
+    """
+    if batch.dim() != 3:
+        raise TypeError("Masking requires a batch of single-channel images (B, H, W)")
+
+    B, H, W = batch.shape
+    ref_p = batch.view(B, H * W)[:, mask.flatten()]
+
+    # apply mask to all images in the batch
+    masked_batch = torch.zeros_like(batch)
+    masked_batch.view(B, H * W)[:, mask.flatten()] = ref_p
+
+    non_ref_p = batch.view(B, H * W)[:, ~mask.flatten()]
+
+    return masked_batch, non_ref_p, ref_p

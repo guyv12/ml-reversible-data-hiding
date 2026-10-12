@@ -52,7 +52,7 @@ class DicomDataset(Dataset):
                                                   # which are 99% just pure black, so we can clamp to 0
 
 def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
-               batch_size: int = 64, num_workers: int = 4) -> tuple[DataLoader, int]:
+               shuffle: bool = True, batch_size: int = 64, num_workers: int = 4) -> tuple[DataLoader, int]:
     # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
     # apparently this is a known headache for Windows machines - bruh
     
@@ -60,7 +60,7 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
     loader = DataLoader(
         dataset,
         pin_memory=True,
-        shuffle=True,
+        shuffle=shuffle,
         batch_size=batch_size,
         num_workers=num_workers
     )
@@ -68,13 +68,13 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
     return loader, len(dataset)
 
 def get_dicom_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
-                     num_workers: int = 4) -> tuple[DataLoader, int]:
+                     shuffle: bool = True, num_workers: int = 4) -> tuple[DataLoader, int]:
     
     dataset = DicomDataset(dataset_dir, regex)
     loader = DataLoader(
         dataset,
         pin_memory=True,
-        shuffle=True,
+        shuffle=shuffle,
         batch_size=1, # batch_size = 1 because DICOM images can be different shapes
         num_workers=num_workers
     )

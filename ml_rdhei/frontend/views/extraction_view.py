@@ -4,6 +4,11 @@ from PySide6.QtWidgets import (
 	QWidget, QHBoxLayout, QMessageBox,
 	QVBoxLayout, QLabel, QPushButton
 )
+from PySide6.QtCore import QThreadPool
+
+from backend.exceptions import (
+	InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError
+)
 
 from backend.pipeline import extract, transform_image_to_ndarray
 
@@ -15,6 +20,7 @@ from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
 from frontend.components.decryption_panel import DecryptionPanel
+from frontend.worker import Worker
 from frontend.session import Session
 from frontend.config import ACCEPTED_FORMATS
 from frontend.utils import load_stylesheet
@@ -30,7 +36,7 @@ class ExtractionView(QWidget):
 		super().__init__()
 		
 		self._session: Session | None = None
-
+		self.threadpool = QThreadPool()
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
@@ -58,8 +64,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		in_section.add_widget(self.image_uploader)
-		in_section.add_widget(self.in_histogram)
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
 
 		metrics_section = SectionFrame("Metrics", "metricsSection")
 
@@ -80,8 +86,8 @@ class ExtractionView(QWidget):
 			"Upload an image to see the histogram"
 		)
 
-		out_section.add_widget(self.out_preview_manager)
-		out_section.add_widget(self.out_histogram)
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
@@ -101,12 +107,14 @@ class ExtractionView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
-		image_data = transform_image_to_ndarray(image_path)
-
-		self.in_preview_manager.set_image(image_path, image_data)
-
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+		except (ValueError, OSError) as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
+		
 		self._session = Session(image_path, image_data)
-
+		self.in_preview_manager.set_image(image_path, image_data)
 		self.decryption_panel.enable()
 
 	def _on_image_removed(self):
@@ -114,23 +122,53 @@ class ExtractionView(QWidget):
 		self.in_histogram.clear()
 		self.decryption_panel.clear()
 
-	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
-		self.decryption_panel.set_busy(True)
-		try:
-			self._session.marked_image, message = extract(
-				self._session.source_image,
-				ad_decryption_key,
-				message_decryption_key,
-				self._session.image_format
-			)
+	def _on_extract_results(self, result: object):
+		if self._session is None: 
+			return
 
+		self._session.marked_image, message = result
+
+		if self._session.marked_image is not None:
 			self.out_preview_manager.set_image(
 				self._session.output_path,
 				self._session.marked_image,
 				self._session.source_path
 			)
+		else:
+			self.out_preview_manager.clear_image()
 			
-			self.decryption_panel.display_message(message)
-		finally:
-			self.decryption_panel.set_busy(False)
+		self.decryption_panel.display_message(message)
+
+	def _on_extract_error(self, error):
+		if isinstance(error,(InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError)):
+			QMessageBox.warning(self, "Extracting failed", str(error))
+		
+		elif isinstance(error, Exception):
+			QMessageBox.critical(
+				self,
+				"Extracting failed",
+				"An unexpected error occurred while extracting the data."
+			)
+
+	def _on_extract_finished(self):
+		self.decryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(False)
+
+	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
+		self.decryption_panel.set_busy(True)
+		self.in_preview_manager.deletion_disabled(True)
+		
+		worker = Worker(
+			extract,
+			self._session.source_image,
+			ad_decryption_key,
+			message_decryption_key,
+			self._session.image_format
+		)
+
+		worker.signals.result.connect(self._on_extract_results)
+		worker.signals.error.connect(self._on_extract_error)
+		worker.signals.finished.connect(self._on_extract_finished)
+		
+		self.threadpool.start(worker)
 			
