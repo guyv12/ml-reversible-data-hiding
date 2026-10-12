@@ -15,7 +15,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.components.quality_metrics_panel import QualityMetricsPanel
+from frontend.components.metrics_panel import QualityMetricsPanel
 from frontend.components.encryption_panel import EncryptionPanel
 from frontend.worker import Worker
 from frontend.session import HideSession
