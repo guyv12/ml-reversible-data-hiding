@@ -38,43 +38,6 @@ class Autoencoder(nn.Module):
 
         return reconstructed
 
-def test_shapes():
-    model = Autoencoder()
-    x = torch.randn(8, 2, 5, 5)
-    output = model(x)
-
-    print(f"Input shape: {x.shape}")
-    print(f"Output shape: {output.shape}")
-
-    latent = model.encoder(x)
-    print(f"Latent shape: {latent.shape}")
-
-def test_training():
-    model = Autoencoder()
-
-    x = torch.rand(1, 2, 5, 5)
-    target = x[:, 0:1, :, :]
-
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-
-    for epoch in range (1000):
-        optimizer.zero_grad()
-
-        output = model(x)
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
-
-        if epoch % 100 == 0:
-            print(f"Epoch: {epoch}, Loss: {loss.item():.6f}")
-
-    with torch.no_grad():
-        output = model(x)
-
-    print(f"Target:\n{target[0, 0]}")
-    print(f"\nReconstructed:\n{output[0, 0]}")
-
 
 set, _ = dloader.get_loader("datasets\BOSSbase_512", batch_size=1, num_workers=0)
 image = next(iter(set)).reshape(512, 512)
@@ -177,10 +140,6 @@ def eval(model):
     for idx, (row, col) in enumerate(test_dataset.coords):
         error_map[row, col] = errors[idx]
 
-    #print(f"Error map: {error_map[:16, :16]}")
-    #compressor.__compress_error_map(error_map)
     
 training()
 eval(torch.load("autoencoder_model.pth", weights_only=False))
-#test_shapes()
-#test_training()
