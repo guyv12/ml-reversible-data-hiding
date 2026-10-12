@@ -21,7 +21,7 @@ from backend.predictor.pipelines import reference_mask ## <--- bad should be ele
 # ----- Preprocessing tests -----
 
 def test_preprocessing_ad_unfold_ridge_border():
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
     K = 5
 
     run_preprocessing(
@@ -38,7 +38,7 @@ def test_preprocessing_ad_unfold_ridge_border():
 
 
 def test_preprocessing_dicom_ad_unfold_ridge_border():
-    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
     K = 5
 
     run_preprocessing(
@@ -55,7 +55,7 @@ def test_preprocessing_dicom_ad_unfold_ridge_border():
 
 
 def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
-    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300") # Keep batch size as 1 to avoid discrepancy
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test") # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_mobilenet_v2_unet_model(classes=K ** 2)
     model.eval()
@@ -107,11 +107,10 @@ def test_preprocessing_ad_mobilenet_v2():
 
 def test_preprocessing_ad_cnn():
     loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
-    model = get_custom_model('unet_resnet50.pth')
 
     model_fn=partial(
         get_custom_model,
-        path="unet_resnet50.pth",
+        path="dilated_cnn_3blocks_3epochs.pth",
     )
     
     run_preprocessing(
@@ -198,7 +197,7 @@ def test_dicom_ad_unfold_ridge_border(show=False):
 
 
 def test_ad_unet_mobilenet_v2_ridge(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
+    loader, _ = dloader.get_loader("../datasets/pgm/test", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_mobilenet_v2_unet_model(classes=K ** 2)
     model.eval()
@@ -228,7 +227,7 @@ def test_ad_unet_mobilenet_v2_ridge(show=False):
     )
 
 def test_ad_unet_resnet50_ridge(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512", batch_size=1) # Keep batch size as 1 to avoid discrepancy
+    loader, _ = dloader.get_loader("../datasets/pgm/test", batch_size=1) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_resnet_50_unet_model(classes=K ** 2)
     model.eval()
@@ -258,7 +257,7 @@ def test_ad_unet_resnet50_ridge(show=False):
     )
 
 def test_ad_mobilenet_v2(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
     model = get_mobilenet_v2_unet_model(classes=1)
     model.eval()
     save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
@@ -287,7 +286,7 @@ def test_ad_mobilenet_v2(show=False):
     )
 
 def test_ad_resnet_50(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
     model = get_resnet_50_unet_model(classes=1)
     model.eval()
     save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
@@ -297,7 +296,7 @@ def test_ad_resnet_50(show=False):
         path="unet_resnet50.pth",
         classes=1
     )
-    
+
     run_experiment(
         loader,
         predictor_fn=partial(
@@ -444,10 +443,10 @@ def run_preprocessing(loader: DataLoader, predictor_fn: Callable,
                 ),
             )
 
-            print(f"ER: {prediction.metrics.embedding_rate}")
-            print(f"PSNR: {prediction.metrics.psnr}")
-            print(f"SSIM: {prediction.metrics.ssim}")
-            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
+            print(f"ER: {prediction.metrics.embedding_rate:.3f}")
+            print(f"PSNR: {prediction.metrics.psnr:.3f}")
+            print(f"SSIM: {prediction.metrics.ssim:.3f}")
+            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate):.3f}")
 
 
 #---- Functions for getting the AD for PGM/Dicom ----

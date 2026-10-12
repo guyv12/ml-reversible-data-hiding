@@ -156,7 +156,8 @@ def main():
 
     parser = argparse.ArgumentParser(description="Train the pixel predictor")
 
-    parser.add_argument("--path", type=Path, required=True)
+    parser.add_argument("--save-path", type=Path, required=True)
+    parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
@@ -165,12 +166,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Model
-    model = cnn.CNNPredictor(
-        channels=args.channels,
-        kernel_size=args.kernel_size,
-    )
-
+    model = load_model(args.model)
     mask = reference_mask(512, 512)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)

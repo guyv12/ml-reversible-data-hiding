@@ -92,7 +92,7 @@ def cnn_prediction(X: torch.Tensor, y: torch.Tensor,
         y_pred = model(X_pre)
 
     y_pred = y_pred.squeeze(0).squeeze(0)[~mask] # remove batch and channel dimensions, and ref pixels
-    y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
+    y_pred = y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
 
     error_map = y.to(torch.int16) - y_pred.to(torch.int16)
 
