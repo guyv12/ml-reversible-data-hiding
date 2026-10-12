@@ -38,3 +38,11 @@ class QualityMetricsPanel(MetricsPanel):
         ("Payload capacity", "payload_capacity", "{} B"),
         ("Embedding rate", "embedding_rate", "{:.4f} bpp"),
     )
+
+class EncryptionMetricsPanel(MetricsPanel):
+    _ROWS = (
+        ("NPCR", "npcr", "{:.4f} %"),
+        ("UACI", "uaci", "{:.4f} %"),
+        ("Information entropy", "information_entropy", "{:.4f} bits"),
+        ("Histogram uniformity", "histogram_uniformity", "p = {:.3f}"),
+    )

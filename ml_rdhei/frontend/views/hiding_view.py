@@ -15,7 +15,7 @@ from frontend.components.preview_manager import PreviewManager
 from frontend.components.preview import (
 	EmptyPreview, InputImagePreview, OutputImagePreview
 )
-from frontend.components.metrics_panel import QualityMetricsPanel
+from frontend.components.metrics_panel import QualityMetricsPanel, EncryptionMetricsPanel
 from frontend.components.encryption_panel import EncryptionPanel
 from frontend.worker import Worker
 from frontend.session import HideSession
@@ -60,17 +60,17 @@ class HidingView(QWidget):
 			"importantIcon",
 			"Upload an image to see the histogram"
 		)
+		self.quality_metrics_panel = QualityMetricsPanel()
 
 		in_section.add_widget(self.image_uploader, stretch=1)
 		in_section.add_widget(self.in_histogram, stretch=1)
+		in_section.add_widget(self.quality_metrics_panel)
 
-		metrics_section = SectionFrame("Metrics", "metricsSection")
-
-		self.quality_metrics_panel = QualityMetricsPanel()
+		embedding_section = SectionFrame("Embedding", "embeddingSection")
+	
 		self.encryption_panel = EncryptionPanel()
 	
-		metrics_section.add_widget(self.quality_metrics_panel)
-		metrics_section.add_widget(self.encryption_panel)
+		embedding_section.add_widget(self.encryption_panel)
 
 		out_section = SectionFrame("Output", "outputSection")
 
@@ -84,12 +84,14 @@ class HidingView(QWidget):
 			"importantIcon",
 			"Upload an image to see the histogram"
 		)
+		self.encryption_metrics_panel = EncryptionMetricsPanel()
 
 		out_section.add_widget(self.out_preview_manager, stretch=1)
 		out_section.add_widget(self.out_histogram, stretch=1)
+		out_section.add_widget(self.encryption_metrics_panel)
 
 		sections_layout.addWidget(in_section, stretch=1)
-		sections_layout.addWidget(metrics_section, stretch=1)
+		sections_layout.addWidget(embedding_section, stretch=1)
 		sections_layout.addWidget(out_section, stretch=1)
 
 		layout.addWidget(self.return_btn)
@@ -97,13 +99,13 @@ class HidingView(QWidget):
 
 	def _manage_signals(self):
 		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
-		self.image_uploader.image_removed.connect(self._on_image_removed)
+		self.image_uploader.image_removed.connect(self._on_input_image_removed)
 
 		self.encryption_panel.hide_request.connect(self._on_hide_request)
 		
 		self.in_preview_manager.image_loaded.connect(self.in_histogram.plot_histogram)
 		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
-		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
+		self.out_preview_manager.image_removed.connect(self._on_output_image_removed)
 
 	def _on_image_uploaded(self, image_path: Path):
 		try:
@@ -131,17 +133,22 @@ class HidingView(QWidget):
         	"encrypted or contain very little detail."
 			)
 
-	def _on_image_removed(self):
+	def _on_input_image_removed(self):
 		self._session = None
 		self.in_histogram.clear()
 		self.quality_metrics_panel.clear()
 		self.encryption_panel.clear()
 
+	def _on_output_image_removed(self):
+		self.out_histogram.clear()
+		self.encryption_metrics_panel.clear()
+
 	def _on_hide_results(self, result: object):
 		if self._session is None: 
 			return
 
-		self._session.marked_image = result
+		self._session.marked_image, metrics = result
+		self.encryption_metrics_panel.set_metrics(metrics)	
 		self.out_preview_manager.set_image(
 			self._session.output_path,
 			self._session.marked_image,
@@ -166,6 +173,7 @@ class HidingView(QWidget):
 
 		worker = Worker(
 			hide,
+			self._session.source_image,
 			self._session.prediction,
 			ad_encryption_key,
 			message_encryption_key,
