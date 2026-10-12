@@ -9,7 +9,7 @@ from pathlib import Path
 from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 import backend.predictor.predict as ppredict
 from backend.predictor.results import (
-    compute_metrics, compute_dicom_metrics, Prediction
+    compute_quality_metrics, compute_dicom_quality_metrics, Prediction
 )
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
@@ -91,7 +91,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         kernel_weights, ref_pixels, error_map, _ = next(raw_ad)
 
         ad = ccompress.compress_pgm_ad((H, W), kernel_weights, ref_pixels, error_map)
-        metrics = compute_metrics(tensor, error_map, mask, len(ad), bpp)
+        metrics = compute_quality_metrics(tensor, error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
     elif fmt.lower() == ".dcm":
@@ -111,7 +111,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
             lsb_error_map
         )
 
-        metrics = compute_dicom_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
+        metrics = compute_dicom_quality_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
     else:
