@@ -1,9 +1,7 @@
 import torch.nn as nn
 import torch
-from torch.utils.data import DataLoader
-import ml_rdhei.backend.data.loader as dloader
-import ml_rdhei.experiments.dataset as ddataset
-import ml_rdhei.backend.compressor.compress as compressor
+from ml_rdhei.experiments.dataset import *
+from ml_rdhei.backend.data.loader import get_loader
 from ml_rdhei.backend.models.models import save_model
 
 class Autoencoder(nn.Module):
@@ -39,8 +37,14 @@ class Autoencoder(nn.Module):
 
         return reconstructed
 
+def data_split():
+    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
+    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
+    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
 
-def train(epochs, train_loader, val_loader):
+    return train_loader, val_loader, test_loader, train_len, val_len, test_len
+
+def train(epochs, train_loader, val_loader, train_len, val_len):
     model = Autoencoder()
 
     criterion = nn.MSELoss()
@@ -55,17 +59,21 @@ def train(epochs, train_loader, val_loader):
         model.train()
         train_total_loss = 0.0
 
-        for x, target, ref_mask in train_loader:
-            optimizer.zero_grad()
+        for _ in range(train_len):
+            image = next(iter(train_loader)).reshape(512, 512)
+            train_dataset = PatchDataset(image)
 
-            pred = model(x)[:, 0]
+            for x, target, ref_mask in train_dataset:
+                optimizer.zero_grad()
 
-            loss = criterion(pred[:, ~ref_mask], target)
+                pred = model(x)[:, 0]
 
-            loss.backward()
-            optimizer.step()
+                loss = criterion(pred[:, ~ref_mask], target)
 
-            train_total_loss += loss.item()
+                loss.backward()
+                optimizer.step()
+
+                train_total_loss += loss.item()
 
         train_loss = train_total_loss / len(train_loader)
 
@@ -81,15 +89,16 @@ def train(epochs, train_loader, val_loader):
 
 
         with torch.no_grad():
-            for x, target, ref_mask in val_loader:
-                pred = model(x)[:, 0]
+            for _ in range(val_len):
+                image = next(iter(val_loader)).reshape(512, 512)
+                val_dataset = PatchDataset(image)
 
-                loss = criterion(pred[:, ~ref_mask], target)
-                val_total_loss += loss.item()
+                for x, target, ref_mask in val_dataset:
+                    pred = model(x)[:, 0]
 
-                #prediction_pixels = torch.round(pred * 255)
-                #target_pixels = torch.round(target * 255)
-
+                    loss = criterion(pred[:, ~ref_mask], target)
+                    val_total_loss += loss.item()
+                    
 
         val_loss = val_total_loss / len(val_loader)
         print(
@@ -102,16 +111,10 @@ def train(epochs, train_loader, val_loader):
             save_model(model, "autoencoder.pth")
 
 def main():
-    train_loader = None
-    val_loader = None
     epochs = 10
+    train_loader, val_loader, test_loader, train_len, val_len, test_len = data_split()
 
-    #set, _ = dloader.get_loader("datasets\BOSSbase_512", batch_size=1, num_workers=0)
-    #image = next(iter(set)).reshape(512, 512)
-    #dataset = ddataset.PixelMaskDataset(image)
-    #loader = DataLoader(dataset, batch_size=256, shuffle=True)
-
-    train(epochs, train_loader, val_loader)
+    train(epochs, train_loader, val_loader, train_len, val_len)
 
 if __name__ == "__main__":
     main()
