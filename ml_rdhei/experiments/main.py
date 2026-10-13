@@ -127,6 +127,28 @@ def test_preprocessing_ad_cnn():
     )
 
 
+def test_preprocessing_autoencoder():
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
+    model = get_custom_model("autoencoder.pth")
+
+    model_fn = partial(
+        get_custom_model,
+        path="autoencoder.pth",
+    )
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_autoencoder,
+            model_fn=model_fn,
+        ),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+    )
+
+
 def test_preprocessing_dicom_ad_mobilenet_v2():
     loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
     model = get_mobilenet_v2_unet_model(classes=1)
@@ -508,7 +530,8 @@ def preprocessing():
     #test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge()
     #test_preprocessing_ad_mobilenet_v2()
     #test_preprocessing_dicom_ad_mobilenet_v2()
-    test_preprocessing_ad_cnn()
+    #test_preprocessing_ad_cnn()
+    test_preprocessing_autoencoder()
     return
 
 

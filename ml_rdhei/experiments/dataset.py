@@ -1,6 +1,9 @@
 from torch.utils.data import Dataset
 import torch
 
+from backend.predictor.features import build_patch_input
+
+
 class PatchDataset(Dataset):
     def __init__(self, image: torch.Tensor, patch_size: int = 64, stride: int | None = None):
         super().__init__()
@@ -31,9 +34,6 @@ class PatchDataset(Dataset):
         ref_mask[::2, ::2] = True
         target = patch.clone()
 
-        input_patch = patch.clone()
-        input_patch[~ref_mask] = 0.0
-
-        input_tensor = torch.stack([input_patch, ref_mask.to(torch.float32)])
+        input_tensor = build_patch_input(patch, ref_mask)
 
         return input_tensor, target, ref_mask

@@ -4,10 +4,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from ml_rdhei.experiments.dataset import PatchDataset
-from ml_rdhei.backend.data.loader import get_loader
-from ml_rdhei.backend.models.models import save_model
-from ml_rdhei.backend.models.train import setup_logger
+from experiments.dataset import PatchDataset
+from backend.data.loader import get_loader
+from backend.models.models import save_model
+from backend.models.train import setup_logger
 
 
 DEFAULT_PATCH_SIZE = 64
@@ -241,13 +241,13 @@ def main():
         patch_batch_size=args.patch_batch_size,
     )
 
-    test(
-        model=model,
-        test_loader=test_loader,
-        criterion=criterion,
-        patch_size=args.patch_size,
-        patch_batch_size=args.patch_batch_size,
-    )
+    #test(
+    #    model=model,
+    #    test_loader=test_loader,
+    #    criterion=criterion,
+    #    patch_size=args.patch_size,
+    #    patch_batch_size=args.patch_batch_size,
+    #)
 
 if __name__ == "__main__":
     main()
