@@ -38,9 +38,9 @@ class Autoencoder(nn.Module):
             nn.MaxPool2d(kernel_size=2, stride=2),
         )
         self.flatten = nn.Flatten()
-        self.encoder_head = nn.Linear(self.latent_channels * reduced_size * reduced_size, latent_dim)
+        self.to_latent = nn.Linear(self.latent_channels * reduced_size * reduced_size, latent_dim)
 
-        self.decoder_head = nn.Sequential(
+        self.from_latent = nn.Sequential(
             nn.Linear(latent_dim, self.latent_channels * reduced_size * reduced_size),
             nn.ReLU(),
             nn.Unflatten(1, (self.latent_channels, reduced_size, reduced_size)),
@@ -63,10 +63,10 @@ class Autoencoder(nn.Module):
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         features = self.feature_extractor(x)
         flattened = self.flatten(features)
-        return self.encoder_head(flattened)
+        return self.to_latent(flattened)
 
     def decode(self, latent: torch.Tensor) -> torch.Tensor:
-        restored = self.decoder_head(latent)
+        restored = self.from_latent(latent)
         return self.decoder(restored)
 
     def forward(self, x: torch.Tensor, return_latent: bool = False):
@@ -85,9 +85,6 @@ def data_split(image_batch_size: int):
 
     return train_loader, val_loader, test_loader
 
-def patch_loss(prediction: torch.Tensor, target: torch.Tensor, ref_mask: torch.Tensor) -> torch.Tensor:
-    return ((prediction - target) ** 2)[~ref_mask].mean()
-
 
 def iter_patch_loaders(image_batch: torch.Tensor, patch_size: int, patch_batch_size: int, shuffle: bool):
     for image in image_batch:
@@ -98,7 +95,7 @@ def iter_patch_loaders(image_batch: torch.Tensor, patch_size: int, patch_batch_s
         )
 
 
-def run_epoch(model, image_loader, optimizer, device, patch_size, patch_batch_size, train_mode):
+def run_epoch(model, image_loader, criterion, optimizer, device, patch_size, patch_batch_size, train_mode):
     if train_mode:
         model.train()
         grad_context = torch.enable_grad()
@@ -120,9 +117,9 @@ def run_epoch(model, image_loader, optimizer, device, patch_size, patch_batch_si
                     if train_mode:
                         optimizer.zero_grad()
 
-                    reconstructed, latent = model(input_batch, return_latent=True)
+                    reconstructed, _ = model(input_batch, return_latent=True)
                     prediction = reconstructed[:, 0]
-                    loss = patch_loss(prediction, target_batch, ref_mask_batch)
+                    loss = criterion(prediction[~ref_mask_batch], target_batch[~ref_mask_batch])
 
                     if train_mode:
                         loss.backward()
@@ -135,7 +132,7 @@ def run_epoch(model, image_loader, optimizer, device, patch_size, patch_batch_si
     return average_loss
 
 
-def train(model, epochs, optimizer, train_loader, val_loader, path, patch_size, patch_batch_size):
+def train(model, epochs, criterion, optimizer, train_loader, val_loader, path, patch_size, patch_batch_size):
 
     logger = setup_logger("../logs/train.log")
     logger.info("Training Starts")
@@ -153,6 +150,7 @@ def train(model, epochs, optimizer, train_loader, val_loader, path, patch_size, 
         train_loss = run_epoch(
             model=model,
             image_loader=train_loader,
+            criterion=criterion,
             optimizer=optimizer,
             device=device,
             patch_size=patch_size,
@@ -162,6 +160,7 @@ def train(model, epochs, optimizer, train_loader, val_loader, path, patch_size, 
         val_loss = run_epoch(
             model=model,
             image_loader=val_loader,
+            criterion=criterion,
             optimizer=optimizer,
             device=device,
             patch_size=patch_size,
@@ -183,7 +182,7 @@ def train(model, epochs, optimizer, train_loader, val_loader, path, patch_size, 
             save_model(model, path)
 
 
-def test(model, test_loader, patch_size, patch_batch_size):
+def test(model, test_loader, criterion, patch_size, patch_batch_size):
     logger = setup_logger("../logs/test.log")
     logger.info("Testing Starts")
 
@@ -194,6 +193,7 @@ def test(model, test_loader, patch_size, patch_batch_size):
     test_loss = run_epoch(
         model=model,
         image_loader=test_loader,
+        criterion=criterion,
         optimizer=None,
         device=device,
         patch_size=patch_size,
@@ -224,6 +224,7 @@ def main():
         latent_dim=args.latent_dim,
     )
 
+    criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     train_loader, val_loader, test_loader = data_split(args.image_batch_size)
@@ -231,6 +232,7 @@ def main():
     train(
         model=model,
         epochs=args.epochs,
+        criterion=criterion,
         optimizer=optimizer,
         train_loader=train_loader,
         val_loader=val_loader,
@@ -242,6 +244,7 @@ def main():
     test(
         model=model,
         test_loader=test_loader,
+        criterion=criterion,
         patch_size=args.patch_size,
         patch_batch_size=args.patch_batch_size,
     )
