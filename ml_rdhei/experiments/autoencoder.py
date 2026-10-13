@@ -1,8 +1,10 @@
+import argparse
 import torch.nn as nn
 import torch
 from ml_rdhei.experiments.dataset import *
 from ml_rdhei.backend.data.loader import get_loader
 from ml_rdhei.backend.models.models import save_model
+from ml_rdhei.backend.models.train import setup_logger
 
 class Autoencoder(nn.Module):
     def __init__(self):
@@ -44,14 +46,16 @@ def data_split():
 
     return train_loader, val_loader, test_loader, train_len, val_len, test_len
 
-def train(epochs, train_loader, val_loader, train_len, val_len):
-    model = Autoencoder()
+def train(model, epochs, criterion, optimizer, train_loader, val_loader, train_len, val_len):
 
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=0.001
-    )
+    logger = setup_logger("../logs/train.log")
+    logger.info("Training Starts")
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info("Using device: %s", device)
+
+    model = model.to(device)
+
     best_val_loss = float("inf")
 
     # train loop
@@ -98,7 +102,7 @@ def train(epochs, train_loader, val_loader, train_len, val_len):
 
                     loss = criterion(pred[:, ~ref_mask], target)
                     val_total_loss += loss.item()
-                    
+
 
         val_loss = val_total_loss / len(val_loader)
         print(
@@ -111,10 +115,40 @@ def train(epochs, train_loader, val_loader, train_len, val_len):
             save_model(model, "autoencoder.pth")
 
 def main():
-    epochs = 10
+    torch.manual_seed(0) # Repro
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(0)
+
+    parser = argparse.ArgumentParser(description="Train the pixel predictor")
+
+    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--channels", type=int, default=32)
+    parser.add_argument("--kernel-size", type=int, default=3)
+
+    args = parser.parse_args()
+
+    # Model
+    model = Autoencoder(
+        channels=args.channels,
+        kernel_size=args.kernel_size,
+    )
+
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+
     train_loader, val_loader, test_loader, train_len, val_len, test_len = data_split()
 
-    train(epochs, train_loader, val_loader, train_len, val_len)
+    train(
+        model=model,
+        epochs=args.epochs,
+        criterion=criterion,
+        optimizer=optimizer,
+        train_loader=train_loader,
+        val_loader=val_loader,
+        train_len=train_len,
+        val_len=val_len,
+    )
 
 if __name__ == "__main__":
     main()
