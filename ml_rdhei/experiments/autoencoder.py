@@ -1,52 +1,141 @@
 import argparse
-import torch.nn as nn
+import time
 import torch
-from ml_rdhei.experiments.dataset import *
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+from ml_rdhei.experiments.dataset import PatchDataset
 from ml_rdhei.backend.data.loader import get_loader
 from ml_rdhei.backend.models.models import save_model
 from ml_rdhei.backend.models.train import setup_logger
 
+
+DEFAULT_PATCH_SIZE = 64
+DEFAULT_LATENT_DIM = 256
+
 class Autoencoder(nn.Module):
-    def __init__(self):
+    def __init__(self, patch_size: int = DEFAULT_PATCH_SIZE, latent_dim: int = DEFAULT_LATENT_DIM):
         super().__init__()
-        self.encoder = nn.Sequential(
+        if patch_size % 8 != 0:
+            raise ValueError("patch_size must be divisible by 8 to match pooling depth")
+
+        reduced_size = patch_size // 8
+        self.patch_size = patch_size
+        self.latent_dim = latent_dim
+        self.latent_channels = 128
+
+        self.feature_extractor = nn.Sequential(
             nn.Conv2d(2, 32, kernel_size=3, padding=1),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Flatten(),
+            nn.Conv2d(64, self.latent_channels, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        self.flatten = nn.Flatten()
+        self.encoder_head = nn.Linear(self.latent_channels * reduced_size * reduced_size, latent_dim)
 
-            nn.Linear(64*5*5, 128)
+        self.decoder_head = nn.Sequential(
+            nn.Linear(latent_dim, self.latent_channels * reduced_size * reduced_size),
+            nn.ReLU(),
+            nn.Unflatten(1, (self.latent_channels, reduced_size, reduced_size)),
         )
 
         self.decoder = nn.Sequential(
-            nn.Linear(128, 64*5*5),
+            nn.ConvTranspose2d(self.latent_channels, 64, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Unflatten(1, (64, 5, 5)),
-            
-            nn.Conv2d(64, 32, kernel_size=3, padding=1),
+            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
 
-            nn.Conv2d(32, 1, kernel_size=3, padding=1)
+            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
+            nn.ReLU(),
+
+            nn.Conv2d(16, 1, kernel_size=3, padding=1),
+            nn.Sigmoid(),
         )
 
-    def forward(self, x):
-        latent = self.encoder(x)
-        reconstructed = self.decoder(latent)
+    def encode(self, x: torch.Tensor) -> torch.Tensor:
+        features = self.feature_extractor(x)
+        flattened = self.flatten(features)
+        return self.encoder_head(flattened)
+
+    def decode(self, latent: torch.Tensor) -> torch.Tensor:
+        restored = self.decoder_head(latent)
+        return self.decoder(restored)
+
+    def forward(self, x: torch.Tensor, return_latent: bool = False):
+        latent = self.encode(x)
+        reconstructed = self.decode(latent)
+
+        if return_latent:
+            return reconstructed, latent
 
         return reconstructed
 
-def data_split():
-    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
-    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
-    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
+def data_split(image_batch_size: int):
+    train_loader, _ = get_loader("../datasets/pgm/train", batch_size=image_batch_size, num_workers=0)
+    val_loader, _ = get_loader("../datasets/pgm/val", batch_size=image_batch_size, shuffle=False, num_workers=0)
+    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=image_batch_size, shuffle=False, num_workers=0)
 
-    return train_loader, val_loader, test_loader, train_len, val_len, test_len
+    return train_loader, val_loader, test_loader
 
-def train(model, epochs, criterion, optimizer, train_loader, val_loader, train_len, val_len):
+def patch_loss(prediction: torch.Tensor, target: torch.Tensor, ref_mask: torch.Tensor) -> torch.Tensor:
+    return ((prediction - target) ** 2)[~ref_mask].mean()
+
+
+def iter_patch_loaders(image_batch: torch.Tensor, patch_size: int, patch_batch_size: int, shuffle: bool):
+    for image in image_batch:
+        yield DataLoader(
+            PatchDataset(image, patch_size=patch_size),
+            batch_size=patch_batch_size,
+            shuffle=shuffle,
+        )
+
+
+def run_epoch(model, image_loader, optimizer, device, patch_size, patch_batch_size, train_mode):
+    if train_mode:
+        model.train()
+        grad_context = torch.enable_grad()
+    else:
+        model.eval()
+        grad_context = torch.no_grad()
+
+    total_loss = 0.0
+    total_patch_batches = 0
+
+    with grad_context:
+        for image_batch in image_loader:
+            for patch_loader in iter_patch_loaders(image_batch, patch_size, patch_batch_size, shuffle=train_mode):
+                for input_batch, target_batch, ref_mask_batch in patch_loader:
+                    input_batch = input_batch.to(device)
+                    target_batch = target_batch.to(device)
+                    ref_mask_batch = ref_mask_batch.to(device)
+
+                    if train_mode:
+                        optimizer.zero_grad()
+
+                    reconstructed, latent = model(input_batch, return_latent=True)
+                    prediction = reconstructed[:, 0]
+                    loss = patch_loss(prediction, target_batch, ref_mask_batch)
+
+                    if train_mode:
+                        loss.backward()
+                        optimizer.step()
+
+                    total_loss += loss.item()
+                    total_patch_batches += 1
+
+    average_loss = total_loss / max(total_patch_batches, 1)
+    return average_loss
+
+
+def train(model, epochs, optimizer, train_loader, val_loader, path, patch_size, patch_batch_size):
 
     logger = setup_logger("../logs/train.log")
     logger.info("Training Starts")
@@ -58,96 +147,103 @@ def train(model, epochs, criterion, optimizer, train_loader, val_loader, train_l
 
     best_val_loss = float("inf")
 
-    # train loop
     for epoch in range(epochs):
-        model.train()
-        train_total_loss = 0.0
+        start = time.perf_counter()
 
-        for _ in range(train_len):
-            image = next(iter(train_loader)).reshape(512, 512)
-            train_dataset = PatchDataset(image)
-
-            for x, target, ref_mask in train_dataset:
-                optimizer.zero_grad()
-
-                pred = model(x)[:, 0]
-
-                loss = criterion(pred[:, ~ref_mask], target)
-
-                loss.backward()
-                optimizer.step()
-
-                train_total_loss += loss.item()
-
-        train_loss = train_total_loss / len(train_loader)
-
-        print(
-            f"Epoch: {epoch + 1}/{epochs}, "
-            f"Loss: {train_loss:.6f}"
+        train_loss = run_epoch(
+            model=model,
+            image_loader=train_loader,
+            optimizer=optimizer,
+            device=device,
+            patch_size=patch_size,
+            patch_batch_size=patch_batch_size,
+            train_mode=True,
+        )
+        val_loss = run_epoch(
+            model=model,
+            image_loader=val_loader,
+            optimizer=optimizer,
+            device=device,
+            patch_size=patch_size,
+            patch_batch_size=patch_batch_size,
+            train_mode=False,
         )
 
+        if device.type == 'cuda':
+            torch.cuda.synchronize() # to sync time for perf_counter
+        duration = time.perf_counter() - start
 
-        # validation loop
-        model.eval()
-        val_total_loss = 0.0
-
-
-        with torch.no_grad():
-            for _ in range(val_len):
-                image = next(iter(val_loader)).reshape(512, 512)
-                val_dataset = PatchDataset(image)
-
-                for x, target, ref_mask in val_dataset:
-                    pred = model(x)[:, 0]
-
-                    loss = criterion(pred[:, ~ref_mask], target)
-                    val_total_loss += loss.item()
-
-
-        val_loss = val_total_loss / len(val_loader)
-        print(
-            f"Epoch: {epoch + 1}/{epochs}, "
-            f"Loss: {val_loss:.6f}"
+        logger.info(
+            "Epoch [%d/%d] | Train Loss: %.6f | Validation Loss: %.6f | Duration: %.1f s (%.2f min)",
+            epoch + 1, epochs, train_loss, val_loss, duration, duration / 60,
         )
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            save_model(model, "autoencoder.pth")
+            save_model(model, path)
+
+
+def test(model, test_loader, patch_size, patch_batch_size):
+    logger = setup_logger("../logs/test.log")
+    logger.info("Testing Starts")
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    logger.info("Using device: %s", device)
+
+    model = model.to(device)
+    test_loss = run_epoch(
+        model=model,
+        image_loader=test_loader,
+        optimizer=None,
+        device=device,
+        patch_size=patch_size,
+        patch_batch_size=patch_batch_size,
+        train_mode=False,
+    )
+    logger.info("Test Loss: %.6f", test_loss)
 
 def main():
-    torch.manual_seed(0) # Repro
+    torch.manual_seed(0)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(0)
 
-    parser = argparse.ArgumentParser(description="Train the pixel predictor")
+    parser = argparse.ArgumentParser(description="Train the patch autoencoder")
 
+    parser.add_argument("--path", type=str, default="autoencoder.pth")
     parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--image-batch-size", type=int, default=8)
+    parser.add_argument("--patch-batch-size", type=int, default=16)
+    parser.add_argument("--patch-size", type=int, default=DEFAULT_PATCH_SIZE)
+    parser.add_argument("--latent-dim", type=int, default=DEFAULT_LATENT_DIM)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--channels", type=int, default=32)
-    parser.add_argument("--kernel-size", type=int, default=3)
 
     args = parser.parse_args()
 
-    # Model
     model = Autoencoder(
-        channels=args.channels,
-        kernel_size=args.kernel_size,
+        patch_size=args.patch_size,
+        latent_dim=args.latent_dim,
     )
 
-    criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    train_loader, val_loader, test_loader, train_len, val_len, test_len = data_split()
+    train_loader, val_loader, test_loader = data_split(args.image_batch_size)
 
     train(
         model=model,
         epochs=args.epochs,
-        criterion=criterion,
         optimizer=optimizer,
         train_loader=train_loader,
         val_loader=val_loader,
-        train_len=train_len,
-        val_len=val_len,
+        path=args.path,
+        patch_size=args.patch_size,
+        patch_batch_size=args.patch_batch_size,
+    )
+
+    test(
+        model=model,
+        test_loader=test_loader,
+        patch_size=args.patch_size,
+        patch_batch_size=args.patch_batch_size,
     )
 
 if __name__ == "__main__":
