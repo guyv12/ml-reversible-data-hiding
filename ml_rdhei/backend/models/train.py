@@ -13,17 +13,17 @@ import backend.models.cnn as cnn
 
 
 def data_split():
-    train_loader, train_len = get_loader("../datasets/pgm/train", batch_size=16, num_workers=0)
-    val_loader, val_len = get_loader("../datasets/pgm/val", batch_size=16, shuffle=False, num_workers=0)
-    test_loader, test_len = get_loader("../datasets/pgm/test", batch_size=16, shuffle=False, num_workers=0)
+    train_loader, _ = get_loader("../datasets/pgm/train", batch_size=16, num_workers=0)
+    val_loader, _ = get_loader("../datasets/pgm/val", batch_size=16, shuffle=False, num_workers=0)
+    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=16, shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
 
 def dicom_data_split():
-    train_loader, train_len = get_dicom_loader("../datasets/dcm/train")
-    val_loader, val_len = get_dicom_loader("../datasets/dcm/val", shuffle=False, num_workers=0)
-    test_loader, test_len = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
+    train_loader, _ = get_dicom_loader("../datasets/dcm/train")
+    val_loader, _ = get_dicom_loader("../datasets/dcm/val", shuffle=False, num_workers=0)
+    test_loader, _ = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
@@ -51,20 +51,23 @@ def setup_logger(log_path: str | Path) -> logging.Logger:
     return logger
 
 
-def train_model(model: nn.Module, path: Path | str,
-                mask: torch.Tensor, num_epochs: int,
-                criterion: nn.Module, optimizer: torch.optim.Optimizer,
-                train_loader: torch.utils.data.DataLoader,
-                val_loader: torch.utils.data.DataLoader):
-    """_summary_
+def train_cnn_model(model: nn.Module, path: Path | str,
+                    mask: torch.Tensor, num_epochs: int,
+                    criterion: nn.Module, optimizer: torch.optim.Optimizer,
+                    train_loader: torch.utils.data.DataLoader,
+                    val_loader: torch.utils.data.DataLoader):
+    """
+    Trains the CNN model with given params.
+    Performs a validation check - saving the model with the smallest
+    validation error.
 
     Args:
         model (nn.Module): model to train
         num_epochs (int): training epochs
-        criterion (nn.Module): _description_
-        optimizer (torch.optim.Optimizer): _description_
-        train_loader (torch.utils.data.DataLoader): _description_
-        val_loader (torch.utils.data.DataLoader): _description_
+        criterion (nn.Module): loss function
+        optimizer (torch.optim.Optimizer): optimizer
+        train_loader (torch.utils.data.DataLoader): dataloader for train dataset
+        val_loader (torch.utils.data.DataLoader): dataloader for validation dataset
     """
     logger = setup_logger("../logs/train.log")
     logger.info("Training Starts")
@@ -160,9 +163,7 @@ def main():
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--batch-size", type=int, default=4)
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--channels", type=int, default=32)
-    parser.add_argument("--kernel-size", type=int, default=3)
+    parser.add_argument("--learning-rate", type=float, default=1e-2)
 
     args = parser.parse_args()
 
@@ -173,9 +174,9 @@ def main():
 
     train_loader, val_loader, _ = data_split()
 
-    train_model(
+    train_cnn_model(
         model=model,
-        path=args.path,
+        path=args.save_path,
         mask=mask,
         num_epochs=args.epochs,
         criterion=criterion,
