@@ -13,9 +13,9 @@ import backend.models.cnn as cnn
 
 
 def data_split():
-    train_loader, _ = get_loader("../datasets/pgm/train", batch_size=16, num_workers=0)
-    val_loader, _ = get_loader("../datasets/pgm/val", batch_size=16, shuffle=False, num_workers=0)
-    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=16, shuffle=False, num_workers=0)
+    train_loader, _ = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
+    val_loader, _ = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
+    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
 
     return train_loader, val_loader, test_loader
 
