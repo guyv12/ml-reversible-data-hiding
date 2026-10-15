@@ -1,6 +1,7 @@
 import torch
 from collections.abc import Callable
 from backend.predictor.predict import reference_mask
+from backend.predictor.predictors import autoencoder_predict_image
 
 
 def recovery(weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
@@ -226,6 +227,32 @@ def cnn_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor,
 
     reconstructed_img[target_mask] = torch.clamp(
         y_pred.to(torch.int64) + errors,
+        0,
+        255,
+    ).to(torch.uint8)
+
+    return reconstructed_img
+
+
+def autoencoder_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor,
+                         model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:
+    H, W = img_size
+
+    reconstructed_img = torch.zeros((H, W), dtype=torch.uint8)
+    reconstructed_img[::2, ::2] = ref_pixels.to(dtype=torch.uint8).reshape(reconstructed_img[::2, ::2].shape)
+
+    target_mask = torch.ones((H, W), dtype=torch.bool)
+    target_mask[::2, ::2] = False
+
+    model = model_fn()
+    model.eval()
+
+    patch_size = getattr(model, "patch_size", 64)
+    y_pred = autoencoder_predict_image(reconstructed_img, model, ~target_mask, patch_size)
+    y_pred = torch.round(y_pred)[target_mask].clamp(0, 255)
+
+    reconstructed_img[target_mask] = torch.clamp(
+        y_pred.to(torch.int64) + error_map.to(torch.int64),
         0,
         255,
     ).to(torch.uint8)

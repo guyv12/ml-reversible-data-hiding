@@ -87,3 +87,22 @@ def receive_cnn(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Call
         raise InvalidMessageKeyError("Invalid message decryption key") from e
 
     return original_image, message
+
+
+def receive_autoencoder(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
+                        img_size: tuple[int, int] = (512, 512), bpp: int = 8) -> tuple[torch.Tensor, str]:
+    original_image, message = None, None
+    try:
+        ad, message_bits = split_payload(stego_image, img_size, bpp)
+        ref_pixels, error_map = ad_cnn_extraction(ad, key_ad, img_size)
+    except CorruptedDataError as e:
+        raise InvalidImageKeyError("Invalid image or image decryption key") from e
+
+    original_image = autoencoder_recovery(ref_pixels, error_map, model_fn, img_size)
+
+    try:
+        message = msg_decryption(message_bits, key_msg)
+    except CorruptedDataError as e:
+        raise InvalidMessageKeyError("Invalid message decryption key") from e
+
+    return original_image, message

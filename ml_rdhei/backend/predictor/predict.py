@@ -84,6 +84,18 @@ def ad_cnn(batch: torch.Tensor, model_fn: Callable):
     yield from get_ad_cnn(batch, mask, model_fn)
 
 
+def ad_autoencoder(batch: torch.Tensor, model_fn: Callable):
+    _, H, W = batch.shape
+    mask = reference_mask(H, W)
+
+    X_batch, y_batch, ref_pixels_batch = mask_batch(batch, mask)
+
+    for i, (X, y, ref_pixels) in enumerate(zip(X_batch, y_batch, ref_pixels_batch)):
+        error_map = autoencoder_prediction(X, y, model_fn, mask)
+
+        yield ref_pixels, error_map, batch[i]
+
+
 def dicom_ad_cnn(batch: torch.Tensor, model_fn: Callable):
     _, H, W = batch.shape
     mask = reference_mask(H, W)
