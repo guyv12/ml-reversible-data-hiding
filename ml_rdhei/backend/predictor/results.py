@@ -15,7 +15,7 @@ class QualityMetrics:
 	def allow_embedding(self) -> bool:
 		return self.payload_capacity > 0
 
-def compute_metrics(
+def compute_quality_metrics(
 	original: Tensor,
 	error_map: Tensor,
 	mask: Tensor,
@@ -36,7 +36,7 @@ def compute_metrics(
 		embedding_rate=capacity / pixels,
 	)
 
-def compute_dicom_metrics(
+def compute_dicom_quality_metrics(
 	original: Tensor,
 	lsb_error_map: Tensor,
 	mask: Tensor,

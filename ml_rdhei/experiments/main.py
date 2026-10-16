@@ -14,7 +14,7 @@ import backend.receiver.receive as receiver
 import backend.receiver.test as test_receiver
 
 from backend.models.models import *
-from backend.predictor.results import Prediction, compute_dicom_metrics, compute_metrics
+from backend.predictor.results import Prediction, compute_quality_metrics, compute_dicom_quality_metrics
 from backend.predictor.pipelines import reference_mask ## <--- bad should be elevated higher not owned by the predictor
 
 
@@ -164,7 +164,7 @@ def test_ad_unfold_ridge_border(show=False):
         ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         receiver_fn=partial(
             receiver.receive,
             K=K
@@ -186,7 +186,7 @@ def test_dicom_ad_unfold_ridge_border(show=False):
         ),
         prep_fn=prepare_dicom,
         compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_metrics,
+        metrics_fn=compute_dicom_quality_metrics,
         receiver_fn=partial(
             receiver.receive_dicom,
             K=K
@@ -217,7 +217,7 @@ def test_ad_unet_mobilenet_v2_ridge(show=False):
         ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         receiver_fn=partial(
             receiver.receive_cnn_features, 
             model_fn=model_fn
@@ -247,7 +247,7 @@ def test_ad_unet_resnet50_ridge(show=False):
         ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
          receiver_fn=partial(
             receiver.receive_cnn_features, 
             model_fn=model_fn
@@ -276,7 +276,7 @@ def test_ad_mobilenet_v2(show=False):
         ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         receiver_fn=partial(
             receiver.receive_cnn, 
             model_fn=model_fn
@@ -305,7 +305,7 @@ def test_ad_resnet_50(show=False):
         ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         receiver_fn=partial(
             receiver.receive_cnn, 
             model_fn=model_fn
