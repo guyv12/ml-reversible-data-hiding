@@ -3,3 +3,5 @@ Histogram
     border-radius: 10px;
     background-color: #323232;
 }
+
+#importantIcon { image: url(icons:important.svg); }
