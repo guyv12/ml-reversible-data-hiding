@@ -32,7 +32,7 @@ def test_preprocessing_ad_unfold_ridge_border():
         ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         bpp=8,
     )
 
@@ -49,7 +49,7 @@ def test_preprocessing_dicom_ad_unfold_ridge_border():
         ),
         prep_fn=prepare_dicom,
         compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_metrics,
+        metrics_fn=compute_dicom_quality_metrics,
         bpp=16,
     )
 
@@ -75,7 +75,7 @@ def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
         ),
         prep_fn=prepare_dicom,
         compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_metrics,
+        metrics_fn=compute_dicom_quality_metrics,
         bpp=16,
     )
 
@@ -100,7 +100,7 @@ def test_preprocessing_ad_mobilenet_v2():
         ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         bpp=8,
     )
 
@@ -110,7 +110,7 @@ def test_preprocessing_ad_cnn():
 
     model_fn=partial(
         get_custom_model,
-        path="dilated_cnn_3blocks_3epochs.pth",
+        path="parallel_dilated_cnn_30E_lr1e-3.pth",
     )
     
     run_preprocessing(
@@ -121,7 +121,7 @@ def test_preprocessing_ad_cnn():
         ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         bpp=8,
     )
 
@@ -146,7 +146,7 @@ def test_preprocessing_dicom_ad_mobilenet_v2():
         ),
         prep_fn=prepare_dicom_cnn,
         compressor_fn=compression.compress_cnn_dicom_ad,
-        metrics_fn=compute_dicom_metrics,
+        metrics_fn=compute_dicom_quality_metrics,
         bpp=16,
     )
 
