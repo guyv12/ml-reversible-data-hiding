@@ -23,7 +23,7 @@ def get_ridge_model():
     return Ridge(alpha=1, solver="svd", fit_intercept=False)
 
 def get_batch_ridge_model():
-    raise NotImplementedError("Torch model is not implemented yet...")
+    raise NotImplementedError("Torch model is not implemented")
 
 def get_mobilenet_v2_unet_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
     if path is not None:
