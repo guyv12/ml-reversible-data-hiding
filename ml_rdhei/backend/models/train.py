@@ -57,12 +57,41 @@ def log_model_parameters(model, logger: logging.Logger):
     logger.info("Trainable parameters: %s", f"{trainable_params:,}")
 
 
+def setup_snapshot_saver(save_path: Path | str, logger: logging.Logger,
+    snapshot_epoch: int, snapshot_batches: set[int] | None,
+    num_epochs: int, num_batches: int) -> Callable[[nn.Module, int, int], None]:
+    """Validate snapshot settings and create a callback for selected training steps."""
+    
+    snapshot_batches = set() if snapshot_batches is None else set(snapshot_batches)
+    if snapshot_epoch < 1 or snapshot_epoch > num_epochs:
+        raise ValueError("snapshot_epoch must be between 1 and num_epochs")
+    if any(batch < 1 or batch > num_batches for batch in snapshot_batches):
+        raise ValueError(f"snapshot batches must be between 1 and {num_batches}")
+
+    save_path = Path(save_path)
+
+    def save_snapshot(model: nn.Module, epoch: int, batch_number: int) -> None:
+        if epoch != snapshot_epoch or batch_number not in snapshot_batches:
+            return
+
+        snapshot_path = save_path.with_name(
+            f"{save_path.stem}_epoch{epoch:03d}_batch{batch_number:05d}.pth"
+        )
+        snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+        save_model(model, snapshot_path)
+        logger.info("Saved training snapshot: %s", snapshot_path)
+
+    return save_snapshot
+
+
 def train_cnn_model(model: nn.Module, path: Path | str,
                     mask_fn: Callable,
                     num_epochs: int, patience: int,
                     criterion: nn.Module, optimizer: torch.optim.Optimizer,
                     train_loader: torch.utils.data.DataLoader,
-                    val_loader: torch.utils.data.DataLoader):
+                    val_loader: torch.utils.data.DataLoader,
+                    snapshot_epoch: int = 1,
+                    snapshot_batches: set[int] | None = None):
     """
     Trains the CNN model with given params.
     Performs a validation check - saving the model with the smallest
@@ -78,6 +107,12 @@ def train_cnn_model(model: nn.Module, path: Path | str,
         val_loader (torch.utils.data.DataLoader): dataloader for validation dataset
     """
     logger = setup_logger("../logs/train.log")
+    save_snapshot = setup_snapshot_saver(
+        path, logger,
+        snapshot_epoch, snapshot_batches,
+        num_epochs, len(train_loader)
+    )
+    
     logger.info("Training Starts")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -115,6 +150,9 @@ def train_cnn_model(model: nn.Module, path: Path | str,
 
             # 4. Update weights
             optimizer.step()
+
+            batch_number = i + 1
+            save_snapshot(model, epoch + 1, batch_number)
 
             # 5. Info
             running_loss += loss.item()
@@ -184,6 +222,8 @@ def main():
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--dicom", action="store_true")
+    parser.add_argument("--snapshot-batches", type=int, nargs="+", default=[1, 10, 50, 100, 250, 500, 1000, 1750])
+    parser.add_argument("--snapshot-epoch", type=int, default=1)
 
     args = parser.parse_args()
 
@@ -208,6 +248,8 @@ def main():
         optimizer=optimizer,
         train_loader=train_loader,
         val_loader=val_loader,
+        snapshot_epoch=args.snapshot_epoch,
+        snapshot_batches=set(args.snapshot_batches),
     )
 
 
