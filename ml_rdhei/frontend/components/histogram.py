@@ -191,7 +191,7 @@ class Histogram(QFrame):
 			bins, counts, 
 			stepMode="center", 
 			fillLevel=0, 
-			fillBrush=(74, 144, 226, 100),
+			brush=pg.mkBrush('#4A90E2'),
 			pen=pg.mkPen('#4A90E2', width=1.5)
 		)
 		self.plot_widget.addItem(histogram_item)
