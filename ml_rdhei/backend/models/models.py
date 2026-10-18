@@ -47,5 +47,11 @@ def get_resnet_50_unet_model(path: Path | str = None, in_channels: int = 1, clas
         classes=classes,
     )
 
+def get_res_block_cnn_model():
+    return SeqDilatedCNNP(channels=32, kernel_size=3)
+
+def get_parallel_dilated_res_block_cnn_model():
+    return ParDilatedCCNP(channels=32, kernel_size=3)
+
 def get_custom_model(path: Path | str, target_dev: torch.device = 'cpu'):
     return load_model(path).to(device=target_dev)

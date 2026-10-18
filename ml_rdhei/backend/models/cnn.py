@@ -92,7 +92,7 @@ class SeqDilatedCNNP(nn.Module):
 
 class ParDilatedCCNP(nn.Module):
     def __init__(self, channels: int, kernel_size: int, in_channels: int = 1, out_channels: int = 1, 
-                 block_num: int = 1, use_dilation: bool = True):
+                 block_num: int = 3, use_dilation: bool = True):
         super().__init__()
 
         dilations = [1, 2, 3] if use_dilation else [1, 1, 1]

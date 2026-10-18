@@ -5,11 +5,10 @@ import logging
 import argparse
 from pathlib import Path
 
-from backend.models.models import save_model, load_model
+from backend.models.models import *
 from backend.predictor.features import mask_batch
 from backend.predictor.pipelines import reference_mask
 from backend.data.loader import get_loader, get_dicom_loader
-import backend.models.cnn as cnn
 
 
 def data_split():
@@ -186,6 +185,9 @@ def main():
     parser.add_argument("--dicom", type=bool, default=False)
 
     args = parser.parse_args()
+
+    model = get_parallel_dilated_res_block_cnn_model()
+    save_model(model, "par_dilated_3blocks.pth")
 
     model = load_model(args.model)
     mask = reference_mask(512, 512) # to change for dicoms?
