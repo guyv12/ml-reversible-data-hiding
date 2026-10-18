@@ -186,9 +186,6 @@ def main():
 
     args = parser.parse_args()
 
-    model = get_parallel_dilated_res_block_cnn_model()
-    save_model(model, "par_dilated_3blocks.pth")
-
     model = load_model(args.model)
     mask = reference_mask(512, 512) # to change for dicoms?
     criterion = nn.MSELoss()
