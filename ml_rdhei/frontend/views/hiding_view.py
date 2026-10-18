@@ -6,8 +6,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QThreadPool
 
-from backend.pipeline import predict, hide, transform_image_to_ndarray
-
 from frontend.components.section_frame import SectionFrame
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
@@ -106,6 +104,8 @@ class HidingView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
+		from backend.pipeline import predict, transform_image_to_ndarray
+
 		try:
 			image_data = transform_image_to_ndarray(image_path)
 			session = HideSession(image_path, image_data)
@@ -161,6 +161,8 @@ class HidingView(QWidget):
 		self.in_preview_manager.deletion_disabled(False)
 
 	def _on_hide_request(self, ad_encryption_key: str, message_encryption_key: str, message: str):
+		from backend.pipeline import hide
+
 		self.encryption_panel.set_busy(True)
 		self.in_preview_manager.deletion_disabled(True)
 

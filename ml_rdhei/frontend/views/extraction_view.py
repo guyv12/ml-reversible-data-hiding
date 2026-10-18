@@ -10,8 +10,6 @@ from backend.exceptions import (
 	InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError
 )
 
-from backend.pipeline import extract, transform_image_to_ndarray
-
 from frontend.components.section_frame import SectionFrame
 from frontend.components.image_uploader import ImageUploader
 from frontend.components.histogram import Histogram
@@ -107,6 +105,8 @@ class ExtractionView(QWidget):
 		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
 
 	def _on_image_uploaded(self, image_path: Path):
+		from backend.pipeline import transform_image_to_ndarray
+		
 		try:
 			image_data = transform_image_to_ndarray(image_path)
 		except (ValueError, OSError) as e:
@@ -155,6 +155,8 @@ class ExtractionView(QWidget):
 		self.in_preview_manager.deletion_disabled(False)
 
 	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
+		from backend.pipeline import extract
+		
 		self.decryption_panel.set_busy(True)
 		self.in_preview_manager.deletion_disabled(True)
 		

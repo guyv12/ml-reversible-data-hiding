@@ -1,8 +1,10 @@
 import sys
+import threading
+import importlib
 
 from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QIcon
-from PySide6.QtCore import QDir
+from PySide6.QtCore import QDir, QTimer
 
 from frontend.theme import apply_theme
 from frontend.app_controller import AppController
@@ -11,6 +13,13 @@ from frontend.config import ICONS_DIR, ICON_SET
 def _excepthook(exc_type, exc, tb):
 	sys.__excepthook__(exc_type, exc, tb)  
 	QMessageBox.critical(None, "Unexpected error", "Something went wrong.")
+
+def _start_preload():
+	threading.Thread(
+		target=importlib.import_module,
+		args=("backend.pipeline",),
+		daemon=True
+	).start()
 
 try:
 	from ctypes import windll
@@ -28,6 +37,7 @@ def main():
 	sys.excepthook = _excepthook
 	controller = AppController()
 	controller.run()
+	QTimer.singleShot(10, _start_preload)
 	app.exec()
 
 if __name__ == "__main__":
