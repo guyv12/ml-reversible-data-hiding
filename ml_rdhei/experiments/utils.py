@@ -7,7 +7,8 @@ from pathlib import Path
 def setup_datasets(
     BOSSBase_path: Path | str,
     BOWS2_path: Path | str,
-    CAR_TCIA_path: Path | str) -> None:
+    CAR_path: Path | str,
+    TCIA_path: Path | str) -> None:
     """Copies the datasets into the correct folder structure for training and testing.
 
     Args:
@@ -42,7 +43,8 @@ def setup_datasets(
 
     split_and_copy(BOSSBase_path, "pgm", "boss")
     split_and_copy(BOWS2_path, "pgm", "bows")
-    split_and_copy(CAR_TCIA_path, "dcm", "ct")
+    split_and_copy(CAR_path, "dcm", "car")
+    split_and_copy(TCIA_path, "dcm", "tcia")
 
 
 def main():
@@ -50,14 +52,16 @@ def main():
 
     parser.add_argument("--bossbase", type=Path, required=True, help="Path to BOSSBase")
     parser.add_argument("--bows2", type=Path, required=True, help="Path to BOWS2")
-    parser.add_argument("--car-tcia", type=Path, required=True, help="Path to CAR_TCIA")
+    parser.add_argument("--car", type=Path, required=True, help="Path to CAR")
+    parser.add_argument("--tcia", type=Path, required=True, help="Path to TCIA")
 
     args = parser.parse_args()
 
     setup_datasets(
         BOSSBase_path=args.bossbase,
         BOWS2_path=args.bows2,
-        CAR_TCIA_path=args.car_tcia,
+        CAR_path=args.car,
+        TCIA_path=args.tcia
     )
 
 
