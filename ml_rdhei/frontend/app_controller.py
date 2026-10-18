@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QMainWindow, QStackedWidget, QSizePolicy
+from PySide6.QtWidgets import QMainWindow, QStackedWidget
 
 from frontend.config import(
 	MENU_VIEW_SIZE, MIN_PROCESSING_VIEW_SIZE, MAX_PROCESSING_VIEW_SIZE
