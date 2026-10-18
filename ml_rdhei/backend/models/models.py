@@ -1,5 +1,4 @@
 from sklearn.linear_model import Ridge
-import segmentation_models_pytorch as smp
 import torch
 from pathlib import Path
 
@@ -14,6 +13,8 @@ def get_mobilenet_v2_unet_model(path: Path | str = None, in_channels: int = 1, c
     if path is not None:
         return load_model(path)
 
+    import segmentation_models_pytorch as smp
+
     return smp.Unet(
         encoder_name="mobilenet_v2",
         encoder_weights="imagenet",
@@ -24,6 +25,8 @@ def get_mobilenet_v2_unet_model(path: Path | str = None, in_channels: int = 1, c
 def get_resnet_50_unet_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
     if path is not None:
         return load_model(path)
+
+    import segmentation_models_pytorch as smp
     
     return smp.Unet(
         encoder_name="resnet50",
@@ -35,6 +38,8 @@ def get_resnet_50_unet_model(path: Path | str = None, in_channels: int = 1, clas
 def get_mobilenet_v2_unetpp_model(path: Path | str = None, in_channels: int = 1, classes: int = 1):
     if path is not None:
         return load_model(path)
+
+    import segmentation_models_pytorch as smp
     
     return smp.UnetPlusPlus(
         encoder_name="mobilenet_v2",
