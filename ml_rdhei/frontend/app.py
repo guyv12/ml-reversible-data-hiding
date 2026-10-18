@@ -38,6 +38,7 @@ def main():
 	controller = AppController()
 	controller.run()
 	QTimer.singleShot(10, _start_preload)
+	QTimer.singleShot(10, lambda: controller.app_shell.setWindowOpacity(1))
 	app.exec()
 
 if __name__ == "__main__":
