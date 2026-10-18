@@ -1,522 +1,75 @@
-import torch
 import re
-from torch.utils.data import DataLoader
-from collections.abc import Callable
-from functools import partial
+import argparse
 
-import backend.data.show as dshow
-import backend.data.loader as dloader
-import backend.predictor.predict as prediction
-import backend.compressor.compress as compression
-import backend.compressor.encryption as encryption
-import backend.compressor.hiding as hiding
-import backend.receiver.receive as receiver
-import backend.receiver.test as test_receiver
+from experiments.pipelines import *
 
-from backend.models.models import *
-from backend.predictor.results import Prediction, compute_quality_metrics, compute_dicom_quality_metrics
-from backend.predictor.pipelines import reference_mask ## <--- bad should be elevated higher not owned by the predictor
-
-
-# ----- Preprocessing tests -----
-
-def test_preprocessing_ad_unfold_ridge_border():
-    loader, _ = dloader.get_loader("../datasets/pgm/test")
-    K = 5
-
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_unfold_ridge_border,
-            K=K
-        ),
-        prep_fn=prepare_pgm,
-        compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_quality_metrics,
-        bpp=8,
-    )
-
-
-def test_preprocessing_dicom_ad_unfold_ridge_border():
-    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
-    K = 5
-
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.dicom_ad_unfold_ridge_border,
-            K=K
-        ),
-        prep_fn=prepare_dicom,
-        compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_quality_metrics,
-        bpp=16,
-    )
-
-
-def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
-    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test") # Keep batch size as 1 to avoid discrepancy
-    K = 5
-    model = get_mobilenet_v2_unet_model(classes=K ** 2)
-    model.eval()
-    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
-
-    model_fn = partial(
-        get_mobilenet_v2_unet_model,
-        path="unet_mobilenetv2.pth",
-        classes=K ** 2
-    )
-    
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.dicom_ad_cnn_ridge,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_dicom,
-        compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_quality_metrics,
-        bpp=16,
-    )
-
-
-def test_preprocessing_ad_mobilenet_v2():
-    loader, _ = dloader.get_loader("../datasets/pgm/test")
-    model = get_mobilenet_v2_unet_model(classes=1)
-    model.eval()
-    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
-
-    model_fn=partial(
-        get_mobilenet_v2_unet_model, 
-        path="unet_mobilenetv2.pth",
-        classes=1
-    )
-    
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_cnn,
-        compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_quality_metrics,
-        bpp=8,
-    )
-
-
-def test_preprocessing_ad_cnn():
-    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
-
-    model_fn=partial(
-        get_custom_model,
-        path="parallel_dilated_cnn_30E_lr1e-3.pth",
-    )
-    
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_cnn,
-        compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_quality_metrics,
-        bpp=8,
-    )
-
-
-def test_preprocessing_dicom_ad_mobilenet_v2():
-    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
-    model = get_mobilenet_v2_unet_model(classes=1)
-    model.eval()
-    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
-
-    model_fn=partial(
-        get_mobilenet_v2_unet_model, 
-        path="unet_mobilenetv2.pth",
-        classes=1
-    )
-    
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.dicom_ad_cnn,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_dicom_cnn,
-        compressor_fn=compression.compress_cnn_dicom_ad,
-        metrics_fn=compute_dicom_quality_metrics,
-        bpp=16,
-    )
-
-# ----- All pipeline tests -----
-
-def test_ad_unfold_ridge_border(show=False):
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
-    K = 5
-
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_unfold_ridge_border,
-            K=K
-        ),
-        prep_fn=prepare_pgm,
-        compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_quality_metrics,
-        receiver_fn=partial(
-            receiver.receive,
-            K=K
-        ),
-        bpp=8,
-        show=show,
-    )
-
-
-def test_dicom_ad_unfold_ridge_border(show=False):
-    loader, _ = dloader.get_dicom_loader("../datasets/dicom library 300")
-    K = 5
-
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.dicom_ad_unfold_ridge_border,
-            K=K
-        ),
-        prep_fn=prepare_dicom,
-        compressor_fn=compression.compress_dicom_ad,
-        metrics_fn=compute_dicom_quality_metrics,
-        receiver_fn=partial(
-            receiver.receive_dicom,
-            K=K
-        ),
-        bpp=16,
-        show=show,
-    )
-
-
-def test_ad_unet_mobilenet_v2_ridge(show=False):
-    loader, _ = dloader.get_loader("../datasets/pgm/test", batch_size=1) # Keep batch size as 1 to avoid discrepancy
-    K = 5
-    model = get_mobilenet_v2_unet_model(classes=K ** 2)
-    model.eval()
-    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
-
-    model_fn = partial(
-        get_mobilenet_v2_unet_model,
-        path="unet_mobilenetv2.pth",
-        classes=K ** 2
-    )
-    
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn_ridge,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_pgm,
-        compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_quality_metrics,
-        receiver_fn=partial(
-            receiver.receive_cnn_features, 
-            model_fn=model_fn
-        ),
-        bpp=8,
-        show=show,
-    )
-
-def test_ad_unet_resnet50_ridge(show=False):
-    loader, _ = dloader.get_loader("../datasets/pgm/test", batch_size=1) # Keep batch size as 1 to avoid discrepancy
-    K = 5
-    model = get_resnet_50_unet_model(classes=K ** 2)
-    model.eval()
-    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
-
-    model_fn=partial(
-        get_resnet_50_unet_model, 
-        path="unet_resnet50.pth",
-        classes=K ** 2
-    )
-    
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn_ridge,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_pgm,
-        compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_quality_metrics,
-         receiver_fn=partial(
-            receiver.receive_cnn_features, 
-            model_fn=model_fn
-        ),
-        bpp=8,
-        show=show,
-    )
-
-def test_ad_mobilenet_v2(show=False):
-    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
-    model = get_mobilenet_v2_unet_model(classes=1)
-    model.eval()
-    save_model(model, "unet_mobilenetv2.pth") # save so it's the same for recovery
-
-    model_fn=partial(
-        get_mobilenet_v2_unet_model, 
-        path="unet_mobilenetv2.pth",
-        classes=1
-    )
-    
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_cnn,
-        compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_quality_metrics,
-        receiver_fn=partial(
-            receiver.receive_cnn, 
-            model_fn=model_fn
-        ),
-        bpp=8,
-        show=show,
-    )
-
-def test_ad_resnet_50(show=False):
-    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=re.compile(r"^boss"))
-    model = get_resnet_50_unet_model(classes=1)
-    model.eval()
-    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
-
-    model_fn=partial(
-        get_resnet_50_unet_model, 
-        path="unet_resnet50.pth",
-        classes=1
-    )
-
-    run_experiment(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_cnn,
-            model_fn=model_fn
-        ),
-        prep_fn=prepare_cnn,
-        compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_quality_metrics,
-        receiver_fn=partial(
-            receiver.receive_cnn, 
-            model_fn=model_fn
-        ),
-        bpp=8,
-        show=show,
-    )
-
-#---- Generic runner ----
-
-def run_experiment(loader: DataLoader, predictor_fn: Callable,
-               prep_fn: Callable, compressor_fn: Callable, 
-               receiver_fn: Callable, metrics_fn: Callable,
-               bpp: int,
-               show: bool = False) -> None:
-    """Runs experiment
-
-    Args:
-        loader (DataLoader): data loader for the image dataset
-        predictor_fn (Callable): function for the prediction
-        prep_fn (Callable): function for retrieving AD args
-        compressor_fn (Callable): function for the compression
-        receiver_fn (Callable): function for receiving
-        metric_fn (Callable): function for metrics calculation
-        bpp (int): image bpp
-        dtype (str): image pixel dtype
-        show (bool, optional): option to show the images on each step - defaults to False
-    """
-    def avg_er(new_er: float) -> float:
-        avg_er.img_no += 1
-        avg_er.rates += new_er
-        return avg_er.rates / avg_er.img_no
-    avg_er.img_no = 0; avg_er.rates = 0
-
-    torch.manual_seed(0)
-    
-    K_e = "password1"
-    K_h = "password2"
-    message = "bardzo tajna wiadomosc"
-
-    for batch in loader:
-        H, W = batch.shape[-2:]
-        mask = reference_mask(H, W)
-
-        for raw_ad in predictor_fn(batch):
-            ad_args, metric_args, original = prep_fn(raw_ad)
-
-            ad = compressor_fn((H, W), *ad_args)
-
-            prediction = Prediction(
-                ad=ad,
-                bpp=bpp,
-                shape=(H, W),
-                metrics=metrics_fn(
-                    **metric_args,
-                    mask=mask,
-                    ad_bits=len(ad),
-                ),
-            )
-
-            encrypted = encryption.encrypt_ad(
-                ad,
-                prediction.pixels,
-                prediction.bpp,
-                K_e,
-            )
-
-            stego = hiding.hider(
-                encrypted,
-                prediction.metrics.payload_capacity,
-                message,
-                K_h,
-            )
-
-            reconstructed, message = receiver_fn(
-                stego_image=stego,
-                key_ad=K_e,
-                key_msg=K_h,
-                img_size=prediction.shape,
-            )
-
-            test_receiver.test_image_reconstruction(
-                original,
-                reconstructed
-            )
-
-            print(f"Hidden Message: {message}")
-            print(f"ER: {prediction.metrics.embedding_rate}")
-            print(f"PSNR: {prediction.metrics.psnr}")
-            print(f"SSIM: {prediction.metrics.ssim}")
-            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
-            
-            if show:
-                dshow.show_image(original, title="Original Image")
-                dshow.show_bytes(stego, title="Stego Image")
-                dshow.show_image(reconstructed, title="Reconstructed Image")
-
-
-def run_preprocessing(loader: DataLoader, predictor_fn: Callable, 
-                      prep_fn: Callable, compressor_fn: Callable,
-                      metrics_fn: Callable, bpp: int) -> None:
-    """Runs preprocessing for the experiment
-
-    Args:
-        loader (DataLoader): data loader for the image dataset
-        predictor_fn (Callable): function for the prediction
-        prep_fn (Callable): function for retrieving AD args
-        compressor_fn (Callable): function for the compression
-    """
-    def avg_er(new_er: float) -> float:
-        avg_er.img_no += 1
-        avg_er.rates += new_er
-        return avg_er.rates / avg_er.img_no
-    avg_er.img_no = 0; avg_er.rates = 0
-
-    torch.manual_seed(0)
-
-    for batch in loader:
-        H, W = batch.shape[-2:]
-        mask = reference_mask(H, W)
-
-        for raw_ad in predictor_fn(batch):
-            ad_args, metric_args, _ = prep_fn(raw_ad)
-
-            ad = compressor_fn((H, W), *ad_args)
-
-            prediction = Prediction(
-                ad=ad,
-                bpp=bpp,
-                shape=(H, W),
-                metrics=metrics_fn(
-                    **metric_args,
-                    mask=mask,
-                    ad_bits=len(ad),
-                ),
-            )
-
-            print(f"ER: {prediction.metrics.embedding_rate:.3f}")
-            print(f"PSNR: {prediction.metrics.psnr:.3f}")
-            print(f"SSIM: {prediction.metrics.ssim:.3f}")
-            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate):.3f}")
-
-
-#---- Functions for getting the AD for PGM/Dicom ----
-
-def prepare_pgm(raw_ad):
-    kernel_weights, ref_pixels, error_map, original = raw_ad
-
-    return (
-        (kernel_weights, ref_pixels, error_map),
-        {"original": original, "error_map": error_map},
-        original,
-    )
-
-
-def prepare_dicom(raw_ad):
-    img1_error_map, kernel_weights, ref_pixels, img2_error_map, original = raw_ad
-
-    return (
-        (img1_error_map, kernel_weights, ref_pixels, img2_error_map),
-        {"original": original, "lsb_error_map": img2_error_map},
-        original,
-    )
-
-def prepare_cnn(raw_ad):
-    ref_pixels, error_map, original = raw_ad
-
-    return (
-        (ref_pixels, error_map),
-        {"original": original, "error_map": error_map},
-        original,
-    )
-
-def prepare_dicom_cnn(raw_ad):
-    img1_error_map, img2_ref_pixels, img2_error_map, original = raw_ad
-
-    return (
-        (img1_error_map, img2_ref_pixels, img2_error_map),
-        {"original": original, "lsb_error_map": img2_error_map},
-        original,
-    )
 
 # ---------- RUN ------------
 
-def pipeline():
-    #test_ad_unfold_ridge_border(show=True)
-    #test_dicom_ad_unfold_ridge_border(show=True)
-    
-    #test_ad_unet_mobilenet_v2_ridge(show=True)
-    #test_ad_unet_resnet50_ridge(show=True)
-    
-    #test_ad_mobilenet_v2(show=True)
-    #test_ad_resnet_50(show=True)
-    return
+PIPELINE_EXPERIMENTS = {
+    "pgm_ridge": test_ad_unfold_ridge_border,
+    "dicom_ridge": test_dicom_ad_unfold_ridge_border,
+    "pgm_mobilenet_ridge": test_ad_unet_mobilenet_v2_ridge,
+    "pgm_resnet_ridge": test_ad_unet_resnet50_ridge,
+    #dicom_mobilenet_ridge, -- not needed
+    #dicom_resnet_ridge, -- not needed
+    "pgm_custom_cnn": test_ad_cnn,
+    "pgm_mobilenet_cnn": test_ad_mobilenet_v2,
+    "pgm_resnet_cnn": test_ad_resnet_50,
+    #dicom_custom_cnn, -- not needed
+    #dicom_mobilenet_cnn, --not needed
+    #dicom_resnet_cnn --not needed
+}
 
-def preprocessing():
-    #test_preprocessing_ad_unfold_ridge_border()
-    #test_preprocessing_dicom_ad_unfold_ridge_border()
-    #test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge()
-    #test_preprocessing_ad_mobilenet_v2()
-    #test_preprocessing_dicom_ad_mobilenet_v2()
-    test_preprocessing_ad_cnn()
-    return
+PREPROCESSING_EXPERIMENTS = {
+    "pgm_ridge": test_preprocessing_ad_unfold_ridge_border,
+    "dicom_ridge": test_preprocessing_dicom_ad_unfold_ridge_border,
+    #pgm_mobilenet_ridge,
+    #pgm_resnet_ridge,
+    "dicom_mobilenet_ridge": test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge,
+    #dicom_resnet_ridge,
+    "pgm_custom_cnn": test_preprocessing_ad_cnn,
+    #pgm_mobilenet_cnn
+    #pgm_resnet_cnn
+    #dicom_custom_cnn,
+    "dicom_mobilenet_cnn": test_preprocessing_dicom_ad_mobilenet_v2,
+    #dicom_resnet_cnn
+}
+
+def get_source_regex(source: str):
+    if source == "all":
+        return None
+
+    return re.compile(rf"^{re.escape(source)}", re.IGNORECASE)
 
 
-def main(p: bool = False):
-    if p:
-        preprocessing()
+def main():
+    parser = argparse.ArgumentParser(description="Run pipeline/experiment")
+
+    parser.add_argument("--mode", choices=["pipeline", "preprocessing"], default="preprocessing", help="Experiment mode")
+    parser.add_argument("--experiment", required=True, help="Name of the experiment to run")
+    parser.add_argument("--source", choices=["boss", "bows", "car", "tcia", "all"], default="all")
+    parser.add_argument("--show", action="store_true", help="Display results during a full pipeline experiment")
+    args = parser.parse_args()
+
+    experiments = (PIPELINE_EXPERIMENTS if args.mode == "pipeline"
+        else PREPROCESSING_EXPERIMENTS
+    )
+    source_regex = get_source_regex(args.source)
+
+    if args.experiment not in experiments:
+        parser.error(f"Experiment '{args.experiment}' is not available for mode '{args.mode}'")
+
+    runner = experiments[args.experiment]
+
+    print(f"Mode:       {args.mode}")
+    print(f"Experiment: {args.experiment}")
+
+    if args.mode == "pipeline":
+        runner(show=args.show)
     else:
-        pipeline()
+        runner(source_regex=source_regex)
 
 
 if __name__ == "__main__":
-    main(True)
+    main()
