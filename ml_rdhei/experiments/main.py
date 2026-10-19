@@ -23,17 +23,17 @@ PIPELINE_EXPERIMENTS = {
 
 PREPROCESSING_EXPERIMENTS = {
     "pgm_ridge": test_preprocessing_ad_unfold_ridge_border,
-    "dicom_ridge": test_preprocessing_dicom_ad_unfold_ridge_border,
-    #pgm_mobilenet_ridge,
-    #pgm_resnet_ridge,
-    "dicom_mobilenet_ridge": test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge,
-    #dicom_resnet_ridge,
+    "pgm_mobilenet_ridge": test_preprocessing_ad_unet_mobilenet_v2_ridge,
+    "pgm_resnet_ridge": test_preprocessing_ad_unet_resnet50_ridge,
     "pgm_custom_cnn": test_preprocessing_ad_cnn,
-    #pgm_mobilenet_cnn
-    #pgm_resnet_cnn
-    #dicom_custom_cnn,
+    "pgm_mobilenet_cnn": test_preprocessing_ad_mobilenet_v2,
+    "pgm_resnet_cnn": test_preprocessing_ad_resnet_50,
+    "dicom_ridge": test_preprocessing_dicom_ad_unfold_ridge_border,
+    "dicom_mobilenet_ridge": test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge,
+    "dicom_resnet_ridge": test_preprocessing_dicom_ad_unet_resnet50_ridge,
+    "dicom_custom_cnn": test_preprocessing_dicom_ad_cnn,
     "dicom_mobilenet_cnn": test_preprocessing_dicom_ad_mobilenet_v2,
-    #dicom_resnet_cnn
+    "dicom_resnet_cnn": test_preprocessing_dicom_ad_resnet_50,
 }
 
 def get_source_regex(source: str):

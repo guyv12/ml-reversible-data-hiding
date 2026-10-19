@@ -51,10 +51,51 @@ def test_preprocessing_dicom_ad_unfold_ridge_border(source_regex: re.Pattern):
 
 # --- CNN features + Ridge ---
 # - pgm -
+def test_preprocessing_ad_unet_mobilenet_v2_ridge(source_regex: re.Pattern):
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=source_regex, batch_size=1)
+    K = 5
+    model = get_mobilenet_v2_unet_model(classes=K ** 2)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth")
+
+    model_fn = partial(
+        get_mobilenet_v2_unet_model,
+        path="unet_mobilenetv2.pth",
+        classes=K ** 2,
+    )
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(prediction.ad_cnn_ridge, model_fn=model_fn),
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_quality_metrics,
+        bpp=8,
+    )
+
+def test_preprocessing_ad_unet_resnet50_ridge(source_regex: re.Pattern):
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=source_regex, batch_size=1)
+    K = 5
+    model = get_resnet_50_unet_model(classes=K ** 2)
+    model.eval()
+    save_model(model, "unet_resnet50.pth")
+
+    model_fn = partial(
+        get_resnet_50_unet_model,
+        path="unet_resnet50.pth",
+        classes=K ** 2,
+    )
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(prediction.ad_cnn_ridge, model_fn=model_fn),
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_quality_metrics,
+        bpp=8,
+    )
 
 # - dcm -
-def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
-    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test") # Keep batch size as 1 to avoid discrepancy
+def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge(source_regex: re.Pattern):
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test", regex=source_regex) # Keep batch size as 1 to avoid discrepancy
     K = 5
     model = get_mobilenet_v2_unet_model(classes=K ** 2)
     model.eval()
@@ -63,6 +104,31 @@ def test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge():
     model_fn = partial(
         get_mobilenet_v2_unet_model,
         path="unet_mobilenetv2.pth",
+        classes=K ** 2
+    )
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn_ridge,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom,
+        compressor_fn=compression.compress_dicom_ad,
+        metrics_fn=compute_dicom_quality_metrics,
+        bpp=16,
+    )
+
+def test_preprocessing_dicom_ad_unet_resnet50_ridge(source_regex: re.Pattern):
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test", regex=source_regex, batch_size=1) # Keep batch size as 1 to avoid discrepancy
+    K = 5
+    model = get_resnet_50_unet_model(classes=K ** 2)
+    model.eval()
+    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
+
+    model_fn = partial(
+        get_resnet_50_unet_model,
+        path="unet_resnet50.pth",
         classes=K ** 2
     )
 
@@ -100,7 +166,67 @@ def test_preprocessing_ad_cnn(source_regex: re.Pattern):
         bpp=8,
     )
 
+def test_preprocessing_ad_mobilenet_v2(source_regex: re.Pattern):
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=source_regex)
+    model = get_mobilenet_v2_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_mobilenetv2.pth")
+
+    model_fn = partial(
+        get_mobilenet_v2_unet_model,
+        path="unet_mobilenetv2.pth",
+        classes=1,
+    )
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(prediction.ad_cnn, model_fn=model_fn),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_quality_metrics,
+        bpp=8,
+    )
+
+def test_preprocessing_ad_resnet_50(source_regex: re.Pattern):
+    loader, _ = dloader.get_loader("../datasets/pgm/test", regex=source_regex)
+    model = get_resnet_50_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_resnet50.pth")
+
+    model_fn = partial(
+        get_resnet_50_unet_model,
+        path="unet_resnet50.pth",
+        classes=1,
+    )
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(prediction.ad_cnn, model_fn=model_fn),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_quality_metrics,
+        bpp=8,
+    )
+
 # - dcm -
+def test_preprocessing_dicom_ad_cnn(source_regex: re.Pattern):
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test", regex=source_regex)
+
+    model_fn=partial(
+        get_custom_model,
+        path="cnn.pth",
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom_cnn,
+        compressor_fn=compression.compress_cnn_dicom_ad,
+        metrics_fn=compute_dicom_quality_metrics,
+        bpp=16,
+    )
+
 def test_preprocessing_dicom_ad_mobilenet_v2(source_regex: re.Pattern):
     loader, _ = dloader.get_dicom_loader("../datasets/dcm/test", regex=source_regex)
     model = get_mobilenet_v2_unet_model(classes=1)
@@ -110,6 +236,30 @@ def test_preprocessing_dicom_ad_mobilenet_v2(source_regex: re.Pattern):
     model_fn=partial(
         get_mobilenet_v2_unet_model, 
         path="unet_mobilenetv2.pth",
+        classes=1
+    )
+    
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom_cnn,
+        compressor_fn=compression.compress_cnn_dicom_ad,
+        metrics_fn=compute_dicom_quality_metrics,
+        bpp=16,
+    )
+
+def test_preprocessing_dicom_ad_resnet_50(source_regex: re.Pattern):
+    loader, _ = dloader.get_dicom_loader("../datasets/dcm/test", regex=source_regex)
+    model = get_resnet_50_unet_model(classes=1)
+    model.eval()
+    save_model(model, "unet_resnet50.pth") # save so it's the same for recovery
+
+    model_fn=partial(
+        get_resnet_50_unet_model, 
+        path="unet_resnet50.pth",
         classes=1
     )
     
