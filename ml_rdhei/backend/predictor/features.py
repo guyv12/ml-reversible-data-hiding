@@ -98,3 +98,10 @@ def mask_batch(batch: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, t
     non_ref_p = batch.view(B, H * W)[:, ~mask.flatten()]
 
     return masked_batch, non_ref_p, ref_p
+
+
+def build_patch_input(patch: torch.Tensor, ref_mask: torch.Tensor) -> torch.Tensor:
+    """Builds the 2-channel (masked patch, reference mask) autoencoder input."""
+    masked_patch = patch.clone()
+    masked_patch[~ref_mask] = 0.0
+    return torch.stack([masked_patch, ref_mask.to(torch.float32)])
