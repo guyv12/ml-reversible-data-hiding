@@ -3,6 +3,8 @@ import torch.nn as nn
 import time
 import logging
 import argparse
+
+from collections.abc import Callable
 from pathlib import Path
 
 from backend.models.models import *
@@ -56,7 +58,8 @@ def log_model_parameters(model, logger: logging.Logger):
 
 
 def train_cnn_model(model: nn.Module, path: Path | str,
-                    mask: torch.Tensor, num_epochs: int, patience: int,
+                    mask_fn: Callable,
+                    num_epochs: int, patience: int,
                     criterion: nn.Module, optimizer: torch.optim.Optimizer,
                     train_loader: torch.utils.data.DataLoader,
                     val_loader: torch.utils.data.DataLoader):
@@ -81,8 +84,6 @@ def train_cnn_model(model: nn.Module, path: Path | str,
     logger.info("Using device: %s", device)
 
     model = model.to(device)
-    mask = mask.to(device)
-
     best_val_loss = float("inf")
     epochs_without_improvement = 0
     
@@ -96,6 +97,8 @@ def train_cnn_model(model: nn.Module, path: Path | str,
         for i, batch in enumerate(train_loader):
             # 1. Prepare
             batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
+            # Create mask per-batch as they may differ 
+            mask = mask_fn(batch.shape[-2], batch.shape[-1]).to(device)
 
             masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
             X = masked_batch.unsqueeze(1) # transform to (B, C, H, W)
@@ -125,6 +128,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
             for i, batch in enumerate(val_loader):
                 # 1. Prepare
                 batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
+                mask = mask_fn(batch.shape[-2], batch.shape[-1]).to(device)
 
                 masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
                 X = masked_batch.unsqueeze(1)
@@ -184,7 +188,6 @@ def main():
     args = parser.parse_args()
 
     model = load_model(args.model)
-    mask = reference_mask(512, 512) # to change for dicoms?
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
@@ -196,7 +199,7 @@ def main():
     train_cnn_model(
         model=model,
         path=args.save_path,
-        mask=mask,
+        mask_fn=reference_mask,
         num_epochs=args.epochs,
         patience=args.patience,
         criterion=criterion,
