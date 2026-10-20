@@ -5,11 +5,10 @@ import logging
 import argparse
 from pathlib import Path
 
-from backend.models.models import save_model, load_model
+from backend.models.models import *
 from backend.predictor.features import mask_batch
 from backend.predictor.pipelines import reference_mask
 from backend.data.loader import get_loader, get_dicom_loader
-import backend.models.cnn as cnn
 
 
 def data_split():
@@ -50,9 +49,17 @@ def setup_logger(log_path: str | Path) -> logging.Logger:
 
     return logger
 
+def log_model_parameters(model, logger: logging.Logger):
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+    logger.info("Model: %s", model.__class__.__name__)
+    logger.info("Total parameters: %s", f"{total_params:,}")
+    logger.info("Trainable parameters: %s", f"{trainable_params:,}")
+
 
 def train_cnn_model(model: nn.Module, path: Path | str,
-                    mask: torch.Tensor, num_epochs: int,
+                    mask: torch.Tensor, num_epochs: int, patience: int,
                     criterion: nn.Module, optimizer: torch.optim.Optimizer,
                     train_loader: torch.utils.data.DataLoader,
                     val_loader: torch.utils.data.DataLoader):
@@ -64,6 +71,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
     Args:
         model (nn.Module): model to train
         num_epochs (int): training epochs
+        patience (int): if this many epochs without val improvement, stop early
         criterion (nn.Module): loss function
         optimizer (torch.optim.Optimizer): optimizer
         train_loader (torch.utils.data.DataLoader): dataloader for train dataset
@@ -79,6 +87,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
     mask = mask.to(device)
 
     best_val_loss = float("inf")
+    epochs_without_improvement = 0
     
     for epoch in range(num_epochs):
         start = time.perf_counter()
@@ -109,7 +118,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
 
             # 5. Info
             running_loss += loss.item()
-            print(f"train batch {i + 1}")
+            #print(f"train batch {i + 1}")
         
         # 2. Validation loop
         model.eval()
@@ -131,7 +140,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
 
                 # 3. Info
                 val_running_loss += loss.item()
-                print(f"validation batch {i + 1}")
+                #print(f"validation batch {i + 1}")
 
         # 3. Info
         train_loss = running_loss / len(train_loader)
@@ -144,12 +153,21 @@ def train_cnn_model(model: nn.Module, path: Path | str,
             "Epoch [%d/%d] | Train Loss: %.6f | Validation Loss: %.6f | Duration: %.1f s (%.2f min)",
             epoch + 1, num_epochs, train_loss, val_loss, duration, duration / 60,
         )
+        log_model_parameters(model, logger)
 
-        if val_loss < best_val_loss:
+        if val_loss <= best_val_loss:
             best_val_loss = val_loss
             save_model(model, path)
+            epochs_without_improvement = 0
+        else:
+            epochs_without_improvement += 1
 
-    #save_model(model, path)
+        if epochs_without_improvement >= patience:
+            logger.info(
+                "Patience exceeded on epoch [%d/%d]. Stopping early",
+                epoch + 1, num_epochs
+            )
+            return
 
 
 def main():
@@ -161,24 +179,29 @@ def main():
 
     parser.add_argument("--save-path", type=Path, required=True)
     parser.add_argument("--model", type=Path, required=True)
-    parser.add_argument("--epochs", type=int, default=30)
-    parser.add_argument("--batch-size", type=int, default=4)
-    parser.add_argument("--learning-rate", type=float, default=1e-2)
+    parser.add_argument("--epochs", type=int, default=50)
+    parser.add_argument("--patience", type=int, default=5)
+    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--dicom", type=bool, default=False)
 
     args = parser.parse_args()
 
     model = load_model(args.model)
-    mask = reference_mask(512, 512)
+    mask = reference_mask(512, 512) # to change for dicoms?
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    train_loader, val_loader, _ = data_split()
+    if not args.dicom:
+        train_loader, val_loader, _ = data_split()
+    else:
+        train_loader, val_loader, _ = dicom_data_split()
 
     train_cnn_model(
         model=model,
         path=args.save_path,
         mask=mask,
         num_epochs=args.epochs,
+        patience=args.patience,
         criterion=criterion,
         optimizer=optimizer,
         train_loader=train_loader,
