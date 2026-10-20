@@ -14,17 +14,14 @@ from backend.data.loader import get_loader, get_dicom_loader
 def data_split():
     train_loader, _ = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
     val_loader, _ = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
-    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
-
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader
 
 
 def dicom_data_split():
-    train_loader, _ = get_dicom_loader("../datasets/dcm/train")
-    val_loader, _ = get_dicom_loader("../datasets/dcm/val", shuffle=False, num_workers=0)
-    test_loader, _ = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
+    train_loader, _ = get_dicom_loader("../datasets/dcm/train", train=True, num_workers=0)
+    val_loader, _ = get_dicom_loader("../datasets/dcm/val", train=True, shuffle=False, num_workers=0)
 
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader
 
 
 def setup_logger(log_path: str | Path) -> logging.Logger:
@@ -192,9 +189,9 @@ def main():
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     if not args.dicom:
-        train_loader, val_loader, _ = data_split()
+        train_loader, val_loader = data_split()
     else:
-        train_loader, val_loader, _ = dicom_data_split()
+        train_loader, val_loader = dicom_data_split()
 
     train_cnn_model(
         model=model,

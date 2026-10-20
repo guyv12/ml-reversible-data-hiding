@@ -1,6 +1,7 @@
 import torch
 import cv2
 import pydicom
+import os
 import re
 
 from torch.utils.data import Dataset, DataLoader
@@ -12,7 +13,7 @@ from backend.predictor.features import lr_decompose
 class ImageDataset(Dataset):
 
     def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
-        all_files = sorted(Path(img_dir))
+        all_files = sorted(Path(img_dir).glob('*'))
         if regex is None:
             self.files = all_files
         else:
@@ -79,7 +80,7 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
 
 def get_dicom_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
                      train: bool = False, shuffle: bool = True,
-                     batch_size: int = 8, num_workers: int = 4) -> tuple[DataLoader, int]:
+                     batch_size: int = 1, num_workers: int = 4) -> tuple[DataLoader, int]:
 
     if not train:
         dataset = DicomDataset(dataset_dir, regex)
