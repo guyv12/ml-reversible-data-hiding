@@ -33,9 +33,6 @@ class DecryptionPanel(QFrame):
 		self.message.setPlaceholderText("Hidden message")
 		self.message.setObjectName("messageEdit")
 
-		self.extraction_button = QPushButton("Extract")
-		self.extraction_button.setEnabled(False)
-
 		image_dec_key_layout = QHBoxLayout()
 		image_dec_key_layout.addWidget(QLabel("Image decryption key"))
 		image_dec_key_layout.addStretch()
@@ -50,9 +47,16 @@ class DecryptionPanel(QFrame):
 		layout.addLayout(message_dec_key_layout)
 		layout.addWidget(self.message_decryption_key)
 
+		self.extraction_button = QPushButton("Extract")
+		self.extraction_button.setEnabled(False)
+
+		footer_layout = QHBoxLayout()
+		footer_layout.addStretch()
+		footer_layout.addWidget(self.extraction_button)
+
 		layout.addWidget(QLabel("Hidden message"))
 		layout.addWidget(self.message)
-		layout.addWidget(self.extraction_button)
+		layout.addLayout(footer_layout)
 
 		self.ad_decryption_key.textChanged.connect(self._update_button)
 		self.message_decryption_key.textChanged.connect(self._update_button)

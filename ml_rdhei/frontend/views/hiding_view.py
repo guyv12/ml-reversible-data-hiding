@@ -43,8 +43,9 @@ class HidingView(QWidget):
 		self.title_label.setFixedHeight(30)
 		self.return_btn = QPushButton("Return to main window")
 
-		header_layout.addWidget(self.title_label, stretch=9)
-		header_layout.addWidget(self.return_btn, stretch=1)
+		header_layout.addWidget(self.title_label)
+		header_layout.addStretch()
+		header_layout.addWidget(self.return_btn)
 
 		sections_layout = QHBoxLayout()
 
