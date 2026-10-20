@@ -6,6 +6,8 @@ from PySide6.QtCore import QEvent, QObject, Qt
 from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
+from frontend.utils import load_stylesheet
+
 _WINDOW = QColor("#202326")
 _VIEW = QColor("#141618")
 _BUTTON = QColor("#292c30")
@@ -76,6 +78,7 @@ def apply_theme(app: QApplication) -> None:
 	font = app.font()
 	font.setPointSize(APP_FONT_POINT_SIZE)
 	app.setFont(font)
+	load_stylesheet(app, "buttons.css" )
 
 	if sys.platform == "win32":
 		app.installEventFilter(_TitleBarColorizer(app))

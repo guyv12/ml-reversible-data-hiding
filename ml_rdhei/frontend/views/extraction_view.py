@@ -40,13 +40,17 @@ class ExtractionView(QWidget):
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
+
+		header_layout = QHBoxLayout()
+
 		self.title_label = QLabel("Extraction View")
 		self.title_label.setFixedHeight(30)
 		self.return_btn = QPushButton("Return to main window")
-		layout.addWidget(self.title_label)
+
+		header_layout.addWidget(self.title_label, stretch=9)
+		header_layout.addWidget(self.return_btn, stretch=1)
 
 		sections_layout = QHBoxLayout()
-		layout.addLayout(sections_layout)
 
 		in_section = SectionFrame("Input", "inputSection")
 
@@ -92,8 +96,10 @@ class ExtractionView(QWidget):
 		sections_layout.addWidget(in_section, stretch=1)
 		sections_layout.addWidget(metrics_section, stretch=1)
 		sections_layout.addWidget(out_section, stretch=1)
+		
+		layout.addLayout(header_layout)
+		layout.addLayout(sections_layout)
 
-		layout.addWidget(self.return_btn)
 		self._manage_signals()
 
 	def _manage_signals(self):
