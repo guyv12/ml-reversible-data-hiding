@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as fn
 
 
-class ResidualBlock(nn.Module):
+class DoubleConv(nn.Module):
+    
     def __init__(self, channels: int, dilation: int, kernel_size: int):
         super().__init__()
 
@@ -21,21 +22,28 @@ class ResidualBlock(nn.Module):
         )
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        skip_connection = X
-
         out = fn.relu(self.conv1(X))
-        out = self.conv2(out)
+        return self.conv2(out)
 
-        return fn.relu(out + skip_connection)
 
-    @staticmethod
-    def make_res_blocks(channels: int, kernel_size: int, block_num: int, use_dilation: bool = False) -> list[nn.Module]:
-        blocks = []
-        for i in range(block_num):
-            dilation = i + 1 if use_dilation else 1
-            blocks.append(ResidualBlock(channels, dilation, kernel_size))
-        
-        return blocks
+class ResidualBlock(DoubleConv):
+    """Double Convolution with skip connection"""
+
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        return fn.relu(super().forward(X) + X)
+
+
+def make_residual_blocks(channels: int, kernel_size: int, block_num: int,
+                         dilations: list[int] | None = None) -> list[nn.Module]:
+    if dilations is None:
+        dilations = [1] * block_num
+    if len(dilations) != block_num:
+        raise ValueError("Provide exactly one dilation per residual block")
+
+    return [
+        ResidualBlock(channels, dilation, kernel_size)
+        for dilation in dilations
+    ]
 
 
 class ParallelFusionBlock(nn.Module):
@@ -77,7 +85,12 @@ class SeqDilatedCNNP(nn.Module):
         )
 
         self.blocks = nn.Sequential(
-            *ResidualBlock.make_res_blocks(channels, kernel_size, block_num, use_dilation)
+            *make_residual_blocks(
+                channels,
+                kernel_size,
+                block_num,
+                [i + 1 for i in range(block_num)] if use_dilation else None,
+            )
         )
 
         self.output_conv = nn.Conv2d(
@@ -99,7 +112,7 @@ class ParDilatedCCNP(nn.Module):
         self.input_op = ParallelFusionBlock(in_channels, channels, dilations, kernel_size)
 
         self.blocks = nn.Sequential(
-            *ResidualBlock.make_res_blocks(channels, kernel_size, block_num)
+            *make_residual_blocks(channels, kernel_size, block_num)
         )
 
         self.output_conv = nn.Conv2d(
