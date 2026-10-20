@@ -183,7 +183,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--dicom", type=bool, default=False)
+    parser.add_argument("--dicom", action="store_true")
 
     args = parser.parse_args()
 
@@ -193,8 +193,10 @@ def main():
 
     if not args.dicom:
         train_loader, val_loader = data_split()
+        print("PGM")
     else:
         train_loader, val_loader = dicom_data_split()
+        print("DICOM")
 
     train_cnn_model(
         model=model,

@@ -1,16 +1,16 @@
 import torch
 import cv2
 import pydicom
-import os
 import re
 
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
+from abc import ABC
 
 from backend.predictor.features import lr_decompose
 
 
-class ImageDataset(Dataset):
+class ImageDataset(Dataset, ABC):
 
     def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
         all_files = sorted(Path(img_dir).glob('*'))
@@ -22,7 +22,8 @@ class ImageDataset(Dataset):
     def __len__(self) -> int:
         return len(self.files)
 
-    # def __getitem__(self, idx: int) -> torch.Tensor:
+    def __getitem__(self, idx: int) -> torch.Tensor:
+        pass
     # if we do a dummy run to save images with torch.save()
     # we can do torch.load(map_location="cuda") to skip CPU & openCV completely
 
@@ -67,7 +68,7 @@ def get_loader(dataset_dir: str | Path, regex: re.Pattern | None = None,
     # if Ur on Windows, and this runs slow switch 'num_workers' to 0 in the DataLoaders
     # apparently this is a known headache for Windows machines - bruh
     
-    dataset = ImageDataset(dataset_dir, regex)
+    dataset = GraymapDataset(dataset_dir, regex)
     loader = DataLoader(
         dataset,
         pin_memory=True,
