@@ -3,6 +3,8 @@ import torch.nn as nn
 import time
 import logging
 import argparse
+
+from collections.abc import Callable
 from pathlib import Path
 
 from backend.models.models import *
@@ -14,17 +16,14 @@ from backend.data.loader import get_loader, get_dicom_loader
 def data_split():
     train_loader, _ = get_loader("../datasets/pgm/train", batch_size=8, num_workers=0)
     val_loader, _ = get_loader("../datasets/pgm/val", batch_size=8, shuffle=False, num_workers=0)
-    test_loader, _ = get_loader("../datasets/pgm/test", batch_size=8, shuffle=False, num_workers=0)
-
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader
 
 
 def dicom_data_split():
-    train_loader, _ = get_dicom_loader("../datasets/dcm/train")
-    val_loader, _ = get_dicom_loader("../datasets/dcm/val", shuffle=False, num_workers=0)
-    test_loader, _ = get_dicom_loader("../datasets/dcm/test", shuffle=False, num_workers=0)
+    train_loader, _ = get_dicom_loader("../datasets/dcm/train", train=True, num_workers=0)
+    val_loader, _ = get_dicom_loader("../datasets/dcm/val", train=True, shuffle=False, num_workers=0)
 
-    return train_loader, val_loader, test_loader
+    return train_loader, val_loader
 
 
 def setup_logger(log_path: str | Path) -> logging.Logger:
@@ -59,7 +58,8 @@ def log_model_parameters(model, logger: logging.Logger):
 
 
 def train_cnn_model(model: nn.Module, path: Path | str,
-                    mask: torch.Tensor, num_epochs: int, patience: int,
+                    mask_fn: Callable,
+                    num_epochs: int, patience: int,
                     criterion: nn.Module, optimizer: torch.optim.Optimizer,
                     train_loader: torch.utils.data.DataLoader,
                     val_loader: torch.utils.data.DataLoader):
@@ -84,8 +84,6 @@ def train_cnn_model(model: nn.Module, path: Path | str,
     logger.info("Using device: %s", device)
 
     model = model.to(device)
-    mask = mask.to(device)
-
     best_val_loss = float("inf")
     epochs_without_improvement = 0
     
@@ -99,6 +97,8 @@ def train_cnn_model(model: nn.Module, path: Path | str,
         for i, batch in enumerate(train_loader):
             # 1. Prepare
             batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
+            # Create mask per-batch as they may differ 
+            mask = mask_fn(batch.shape[-2], batch.shape[-1]).to(device)
 
             masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
             X = masked_batch.unsqueeze(1) # transform to (B, C, H, W)
@@ -128,6 +128,7 @@ def train_cnn_model(model: nn.Module, path: Path | str,
             for i, batch in enumerate(val_loader):
                 # 1. Prepare
                 batch = batch.to(device=device, dtype=torch.float32) / 255.0 # Normalize (batch dtype will be uint8)
+                mask = mask_fn(batch.shape[-2], batch.shape[-1]).to(device)
 
                 masked_batch, non_ref_pixels, _ = mask_batch(batch, mask)
                 X = masked_batch.unsqueeze(1)
@@ -182,24 +183,25 @@ def main():
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--patience", type=int, default=5)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
-    parser.add_argument("--dicom", type=bool, default=False)
+    parser.add_argument("--dicom", action="store_true")
 
     args = parser.parse_args()
 
     model = load_model(args.model)
-    mask = reference_mask(512, 512) # to change for dicoms?
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     if not args.dicom:
-        train_loader, val_loader, _ = data_split()
+        train_loader, val_loader = data_split()
+        print("PGM")
     else:
-        train_loader, val_loader, _ = dicom_data_split()
+        train_loader, val_loader = dicom_data_split()
+        print("DICOM")
 
     train_cnn_model(
         model=model,
         path=args.save_path,
-        mask=mask,
+        mask_fn=reference_mask,
         num_epochs=args.epochs,
         patience=args.patience,
         criterion=criterion,
