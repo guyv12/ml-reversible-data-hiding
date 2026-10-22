@@ -60,6 +60,21 @@ def ad_cnn_ridge(batch: torch.Tensor, model_fn: Callable = None):
     yield from get_ad(batch, mask, feature_fn, predictor_fn)
 
 
+def dicom_ad_cnn_ridge(batch: torch.Tensor, model_fn: Callable = None):
+    _, H, W = batch.shape
+    mask = reference_mask(H, W)
+    
+    feature_fn = partial(
+        cnn_features,
+        model_fn=model_fn
+    )
+    predictor_fn = partial(
+        ridge_prediction,
+        pred_fn=dot_product
+    )
+    
+    yield from get_dicom_ad(batch, mask, feature_fn, predictor_fn)
+
 # ----- CNN predictor -----
 
 def ad_cnn(batch: torch.Tensor, model_fn: Callable):
@@ -67,3 +82,10 @@ def ad_cnn(batch: torch.Tensor, model_fn: Callable):
     mask = reference_mask(H, W)
 
     yield from get_ad_cnn(batch, mask, model_fn)
+
+
+def dicom_ad_cnn(batch: torch.Tensor, model_fn: Callable):
+    _, H, W = batch.shape
+    mask = reference_mask(H, W)
+
+    yield from get_dicom_ad_cnn(batch, mask, model_fn)

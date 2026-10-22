@@ -78,13 +78,12 @@ def cnn_prediction(X: torch.Tensor, y: torch.Tensor,
     :return: error map
     :rtype: torch.Tensor[i16]
     """
-    model = model_fn() # The model output has to match the image dimensions
     valid_pred_range = (torch.iinfo(y.dtype).min, torch.iinfo(y.dtype).max)
 
     # Normalize for CNN input
     X_pre = X.unsqueeze(0).unsqueeze(0).float() / 255.0
    
-    model = model_fn()
+    model = model_fn() # The model output has to match the image dimensions
     model.eval()
    
     with torch.inference_mode():
@@ -92,7 +91,8 @@ def cnn_prediction(X: torch.Tensor, y: torch.Tensor,
         y_pred = model(X_pre)
 
     y_pred = y_pred.squeeze(0).squeeze(0)[~mask] # remove batch and channel dimensions, and ref pixels
-    y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
+    y_pred = (y_pred * 255.0).round() # Re-Normalize
+    y_pred = y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
 
     error_map = y.to(torch.int16) - y_pred.to(torch.int16)
 

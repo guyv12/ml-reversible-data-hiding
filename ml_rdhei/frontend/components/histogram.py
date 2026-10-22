@@ -178,9 +178,9 @@ class Histogram(QFrame):
 		self.plot_widget.clear()
 
 		if image_data.dtype == "uint8":
-			_range = (0, 255)
+			_range = (0, 256)
 		else:
-			_range = (image_data.min(), image_data.max())
+			_range = (int(image_data.min()), int(image_data.max()))
 
 		counts, bins = np.histogram(
 			image_data,

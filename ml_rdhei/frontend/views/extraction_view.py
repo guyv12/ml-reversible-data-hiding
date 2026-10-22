@@ -71,11 +71,11 @@ class ExtractionView(QWidget):
 		in_section.add_widget(self.image_uploader, stretch=1)
 		in_section.add_widget(self.in_histogram, stretch=1)
 
-		metrics_section = SectionFrame("Metrics", "metricsSection")
+		extraction_section = SectionFrame("Extraction", "extractionSection")
 
 		self.decryption_panel = DecryptionPanel()
 	
-		metrics_section.add_widget(self.decryption_panel)
+		extraction_section.add_widget(self.decryption_panel)
 
 		out_section = SectionFrame("Output", "outputSection")
 
@@ -94,7 +94,7 @@ class ExtractionView(QWidget):
 		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
-		sections_layout.addWidget(metrics_section, stretch=1)
+		sections_layout.addWidget(extraction_section, stretch=1)
 		sections_layout.addWidget(out_section, stretch=1)
 		
 		layout.addLayout(header_layout)

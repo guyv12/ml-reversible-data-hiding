@@ -5,7 +5,8 @@
     border: 1px solid #3498db;
 }
 
-#metricsSection
+#embeddingSection,
+#extractionSection
 {   
     background-color: #2b2b2b;
     border-radius: 8px;

@@ -1,5 +1,6 @@
 import math
 import struct
+import array
 import torch
 from bitarray import bitarray
 from backend.exceptions import CorruptedDataError
@@ -231,7 +232,6 @@ def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
 
 def weights_extraction(ad: bitarray, k: int) -> tuple[torch.Tensor, bitarray]:
     num_weights = k ** 2
-    weights = torch.empty(num_weights, dtype=torch.float64)
     
     weights_bits = num_weights * 64
     if len(ad) < weights_bits:
@@ -239,34 +239,34 @@ def weights_extraction(ad: bitarray, k: int) -> tuple[torch.Tensor, bitarray]:
             "AD too short for weigths extraction: "
             f"need {weights_bits} bits, {len(ad)} left"
         )
-
-    for i in range(num_weights):
-        weight_bytes = ad[:64].tobytes() # Assume storing W as 64bit
-        weights[i] = struct.unpack('>d', weight_bytes)[0]
-        ad = ad[64:]
+    
+    weight_bytes = ad[:weights_bits].tobytes() # Assume storing W as 64bit
+    weights = torch.tensor(struct.unpack(f'>{num_weights}d', weight_bytes), dtype=torch.float64)
+    ad = ad[weights_bits:]
 
     return weights, ad
 
 def huffman_decode(codebook: dict[str, int], compressed_data: str, n: int) -> torch.Tensor:
-    decoded = torch.empty(n, dtype=torch.int64)
+    decoded = array.array('q')
     buffer = ""
-    i = 0
 
     for bit in compressed_data:
         buffer += bit
 
         if buffer in codebook:
-            if i >= n:
+            if len(decoded) >= n:
                 raise CorruptedDataError(f"Data decodes to more than {n} symbols")
 
-            decoded[i] = codebook[buffer]
+            decoded.append(codebook[buffer])
             buffer = ""
-            i += 1
 
-    if i != n or buffer:
-        raise CorruptedDataError(f"Data decodes to {i} symbols, expected {n}")
+    if len(decoded) != n:
+        raise CorruptedDataError(f"Data decodes to {len(decoded)} symbols, expected {n}")
+        
+    if buffer:
+        raise CorruptedDataError(f"Data has {len(buffer)} undecodable bits")
 
-    return decoded
+    return torch.frombuffer(decoded, dtype=torch.int64)
 
 def delta_decoding(deltas: torch.Tensor) -> torch.Tensor:
     return torch.cumsum(deltas, dim=0)
@@ -279,7 +279,7 @@ def msg_decryption(image_bits, key):
     try:
         if padding_start != -1:
             padding = message[padding_start:]
-            is_not_zeros = torch.frombuffer(bytearray(padding), dtype=torch.uint8).any()
+            is_not_zeros = any(padding)
             if is_not_zeros:
                 raise CorruptedDataError("Corrupted padding")
 

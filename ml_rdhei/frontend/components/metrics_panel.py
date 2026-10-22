@@ -5,14 +5,7 @@ from backend.predictor.results import QualityMetrics
 
 from frontend.utils import load_stylesheet
 
-class QualityMetricsPanel(QFrame):
-    _ROWS = (
-        ("PSNR", "psnr", "{:.2f} dB"),
-        ("SSIM", "ssim", "{:.4f}"),
-        ("Payload capacity", "payload_capacity", "{} B"),
-        ("Embedding rate", "embedding_rate", "{:.4f} bpp"),
-    )
-
+class MetricsPanel(QFrame):
     def __init__(self):
         super().__init__()
         layout = QFormLayout(self)
@@ -30,10 +23,26 @@ class QualityMetricsPanel(QFrame):
 
         return label
 
-    def set_metrics(self, metrics: QualityMetrics) -> None:
+    def set_metrics(self, metrics) -> None:
         for _, attr, fmt in self._ROWS:
             self._labels[attr].setText(fmt.format(getattr(metrics, attr)))
 
     def clear(self) -> None:
         for label in self._labels.values():
             label.setText("-")
+
+class QualityMetricsPanel(MetricsPanel):
+    _ROWS = (
+        ("PSNR", "psnr", "{:.2f} dB"),
+        ("SSIM", "ssim", "{:.4f}"),
+        ("Payload capacity", "payload_capacity", "{} B"),
+        ("Embedding rate", "embedding_rate", "{:.4f} bpp"),
+    )
+
+class EncryptionMetricsPanel(MetricsPanel):
+    _ROWS = (
+        ("NPCR", "npcr", "{:.4f} %"),
+        ("UACI", "uaci", "{:.4f} %"),
+        ("Information entropy", "information_entropy", "{:.4f} bits"),
+        ("Histogram uniformity", "histogram_uniformity", "p = {:.3f}"),
+    )
