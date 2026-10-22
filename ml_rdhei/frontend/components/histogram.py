@@ -9,9 +9,10 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QPixmap, QPainter
 
 from frontend.utils import load_stylesheet
+from frontend.theme import HISTOGRAM_GRID_COLOR, HISTOGRAM_BACKGROUND_COLOR, HISTOGRAM_PEN_COLOR
 from frontend.config import (
 	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE, HISTOGRAM_BINS, 
-	HISTOGRAM_GRID_COLOR, HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
+	HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
 )
 
 class ThrottledResizeContainer(QWidget):
@@ -147,7 +148,7 @@ class Histogram(QFrame):
 	def _setup_plot_widget(self):
 		self.plot_widget = pg.PlotWidget()
 		
-		self.plot_widget.setBackground("#323232")
+		self.plot_widget.setBackground(HISTOGRAM_BACKGROUND_COLOR)
 		self.plot_widget.showGrid(x=True, y=True, alpha=0.2)
 
 		for axis_name in ("left", "bottom"):
@@ -191,8 +192,8 @@ class Histogram(QFrame):
 			bins, counts, 
 			stepMode="center", 
 			fillLevel=0, 
-			fillBrush=(74, 144, 226, 100),
-			pen=pg.mkPen('#4A90E2', width=1.5)
+			brush=pg.mkBrush(HISTOGRAM_PEN_COLOR),
+			pen=pg.mkPen(HISTOGRAM_PEN_COLOR, width=1.5)
 		)
 		self.plot_widget.addItem(histogram_item)
 		self._update_ui()

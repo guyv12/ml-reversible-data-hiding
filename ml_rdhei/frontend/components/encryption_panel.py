@@ -35,13 +35,6 @@ class EncryptionPanel(QFrame):
 		self.message.setPlaceholderText("Enter message")
 		self.message.setObjectName("messageEdit")
 
-		self.message_count_label = QLabel("-")
-		self.message_count_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-		self.message_count_label.setObjectName("messageCountLabel")
-
-		self.hide_button = QPushButton("Hide")
-		self.hide_button.setEnabled(False)
-
 		image_enc_key_layout = QHBoxLayout()
 		image_enc_key_layout.addWidget(QLabel("Image encryption key"))
 		image_enc_key_layout.addStretch()
@@ -56,10 +49,21 @@ class EncryptionPanel(QFrame):
 		layout.addLayout(message_enc_key_layout)
 		layout.addWidget(self.message_encryption_key)
 
+		footer_layout = QHBoxLayout()
+		self.message_count_label = QLabel("-")
+
+		self.message_count_label.setObjectName("messageCountLabel")
+
+		self.hide_button = QPushButton("Hide")
+		self.hide_button.setEnabled(False)
+
+		footer_layout.addWidget(self.message_count_label)
+		footer_layout.addStretch()
+		footer_layout.addWidget(self.hide_button)
+
 		layout.addWidget(QLabel("Message to hide"))
 		layout.addWidget(self.message)
-		layout.addWidget(self.message_count_label)
-		layout.addWidget(self.hide_button)
+		layout.addLayout(footer_layout)
 
 		self.message.textChanged.connect(self._on_message_changed)
 		self.ad_encryption_key.textChanged.connect(self._update_button)
