@@ -159,18 +159,18 @@ def extract(
     ba.frombytes(source_image.tobytes())
 
     if fmt.lower() == ".pgm":
-        image, message = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        image, message, errors = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
         if image is None:
             return image, message
             
-        return image.numpy(), message
+        return image.numpy(), message, errors
 
     elif fmt.lower() == ".dcm":
-        image, message = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+        image, message, errors = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
         if image is None:
-            return image, message
+            return image, message, errors
 
-        return image.numpy().astype(np.uint16), message
+        return image.numpy().astype(np.uint16), message, errors
     else:
         raise ValueError(f"Unsupported image format: '{fmt}'")
     
