@@ -77,12 +77,15 @@ def run_experiment(loader: DataLoader, predictor_fn: Callable,
                 K_h,
             )
 
-            reconstructed, message = receiver_fn(
+            reconstructed, message, errors = receiver_fn(
                 stego_image=stego,
                 key_ad=K_e,
                 key_msg=K_h,
                 img_size=prediction.shape,
             )
+
+            if errors:
+                raise errors[0]
 
             test_receiver.test_image_reconstruction(
                 original,
