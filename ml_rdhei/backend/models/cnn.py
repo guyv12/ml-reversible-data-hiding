@@ -158,27 +158,31 @@ def main():
         "par_dilated_3b_cnn": ParDilatedCCNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
+            block_num=3,
+            use_dilation=True,
         ),
-        "par_non_dilated_3b_cnn": SeqDilatedCNNP(
+        "par_non_dilated_3b_cnn": ParDilatedCCNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
+            block_num=3,
             use_dilation=False,
         ),
         "seq_non_dilated_3b_cnn": SeqDilatedCNNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
+            block_num=3,
             use_dilation=False,
         ),
         "seq_non_dilated_1b_cnn": SeqDilatedCNNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
-            use_dilation=False,
             block_num=1,
+            use_dilation=False,
         ),
     }
 
     for name, model in models.items():
-        path = args.save_dir / f"{name}.pt"
+        path = args.save_dir / f"{name}.pth"
         torch.save(model, path)
         print(f"Created {name}: {path}")
 
