@@ -13,7 +13,7 @@ from backend.predictor.features import lr_decompose
 class ImageDataset(Dataset, ABC):
 
     def __init__(self, img_dir: str | Path, regex: re.Pattern | None = None) -> None:
-        all_files = sorted(Path(img_dir).glob('*'))
+        all_files = sorted([f for f in Path(img_dir).glob('*') if not f.name.startswith('.')])
         if regex is None:
             self.files = all_files
         else:
