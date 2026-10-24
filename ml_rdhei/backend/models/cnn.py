@@ -5,8 +5,6 @@ import argparse
 
 from pathlib import Path
 
-from backend.models.models import save_model
-
 
 class DoubleConv(nn.Module):
     
@@ -151,6 +149,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create base models")
     parser.add_argument("--save-dir", type=Path, required=True)
     parser.add_argument("--channels", type=int, default=32)
+    parser.add_argument("--kernel-size", type=int, default=3)
     args = parser.parse_args()
 
     args.save_dir.mkdir(parents=True, exist_ok=True)
@@ -159,12 +158,10 @@ def main():
         "par_dilated_3b_cnn": ParDilatedCCNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
-            block_num=args.blocks,
         ),
         "par_non_dilated_3b_cnn": SeqDilatedCNNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
-            block_num=args.blocks,
             use_dilation=False,
         ),
         "seq_non_dilated_3b_cnn": SeqDilatedCNNP(
@@ -182,7 +179,7 @@ def main():
 
     for name, model in models.items():
         path = args.save_dir / f"{name}.pt"
-        save_model(model, path)
+        torch.save(model, path)
         print(f"Created {name}: {path}")
 
 if __name__ == '__main__':
