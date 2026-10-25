@@ -525,13 +525,13 @@ def pipeline():
     return
 
 def preprocessing():
-    #test_preprocessing_ad_unfold_ridge_border()
+    test_preprocessing_ad_unfold_ridge_border()
     #test_preprocessing_dicom_ad_unfold_ridge_border()
     #test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge()
     #test_preprocessing_ad_mobilenet_v2()
     #test_preprocessing_dicom_ad_mobilenet_v2()
     #test_preprocessing_ad_cnn()
-    test_preprocessing_autoencoder()
+    #test_preprocessing_autoencoder()
     return
 
 

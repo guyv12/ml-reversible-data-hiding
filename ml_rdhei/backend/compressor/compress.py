@@ -36,6 +36,8 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor) -> str:
     codebook = huffman_codebook_to_bits(pixels_codes, b_sym)
     compressed_data = "".join([pixels_codes[val] for val in pixels_list])
 
+    print(len(codebook), len(compressed_data))
+
     return str(
         format(len(codebook), f'0{width}b')
         + codebook
