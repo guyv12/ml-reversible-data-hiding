@@ -42,7 +42,7 @@ def compute_dicom_quality_metrics(
 	original: Tensor,
 	lsb_error_map: Tensor,
 	mask: Tensor,
-	ad_bits: int,
+	ad_bits: int, # plaintext AD length (before encryption, without nonce)
 	bpp: int = 16
 ) -> QualityMetrics:    
 
