@@ -161,7 +161,7 @@ def extract(
     if fmt.lower() == ".pgm":
         image, message, errors = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
         if image is None:
-            return image, message
+            return image, message, errors
             
         return image.numpy(), message, errors
 
