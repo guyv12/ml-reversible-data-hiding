@@ -4,12 +4,15 @@ import torch.nn.functional as fn
 import argparse
 
 from pathlib import Path
+from collections.abc import Callable
 
 
 class DoubleConv(nn.Module):
     
-    def __init__(self, channels: int, dilation: int, kernel_size: int):
+    def __init__(self, channels: int, dilation: int, kernel_size: int,
+                 activation_fn: Callable = fn.relu):
         super().__init__()
+        self.activation_fn = activation_fn
 
         self.conv1 = nn.Conv2d(
             channels, channels, # in == out for skip connection
@@ -25,7 +28,7 @@ class DoubleConv(nn.Module):
         )
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        out = fn.relu(self.conv1(X))
+        out = self.activation_fn(self.conv1(X))
         return self.conv2(out)
 
 
@@ -33,11 +36,12 @@ class ResidualBlock(DoubleConv):
     """Double Convolution with skip connection"""
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return fn.relu(super().forward(X) + X)
+        return self.activation_fn(super().forward(X) + X)
 
 
 def make_residual_blocks(channels: int, kernel_size: int, block_num: int,
-                         dilations: list[int] | None = None) -> list[nn.Module]:
+                         dilations: list[int] | None = None,
+                         activation_fn: Callable = fn.relu) -> list[nn.Module]:
     if dilations is None:
         dilations = [1] * block_num
 
@@ -45,14 +49,17 @@ def make_residual_blocks(channels: int, kernel_size: int, block_num: int,
         raise ValueError("Provide exactly one dilation per residual block")
 
     return [
-        ResidualBlock(channels, dilation, kernel_size)
+        ResidualBlock(channels, dilation, kernel_size, activation_fn)
         for dilation in dilations
     ]
 
 
 class ParallelFusionBlock(nn.Module):
-    def __init__(self, in_channels: int, channels: int, dilations: list[int], kernel_size: int):
+    def __init__(self, in_channels: int, channels: int,
+                 dilations: list[int], kernel_size: int,
+                 activation_fn: Callable = fn.relu):
         super().__init__()
+        self.activation_fn = activation_fn
 
         self.branches = nn.ModuleList([
             nn.Conv2d(
@@ -72,10 +79,10 @@ class ParallelFusionBlock(nn.Module):
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         features = torch.cat(
-            [fn.relu(branch(X)) for branch in self.branches],
+            [self.activation_fn(branch(X)) for branch in self.branches],
             dim=1,
         )
-        return fn.relu(self.fusion(features))
+        return self.activation_fn(self.fusion(features))
 
 
 class ParDilatedCCNP(nn.Module):
@@ -87,14 +94,16 @@ class ParDilatedCCNP(nn.Module):
     """
 
     def __init__(self, channels: int, kernel_size: int, in_channels: int = 1, out_channels: int = 1, 
-                 block_num: int = 3, use_dilation: bool = True):
+                 block_num: int = 3, use_dilation: bool = True,
+                 activation_fn: Callable = fn.relu):
         super().__init__()
 
         dilations = [1, 2, 3] if use_dilation else [1, 1, 1]
-        self.input_op = ParallelFusionBlock(in_channels, channels, dilations, kernel_size)
+        self.activation_fn = activation_fn
+        self.input_op = ParallelFusionBlock(in_channels, channels, dilations, kernel_size, activation_fn)
 
         self.blocks = nn.Sequential(
-            *make_residual_blocks(channels, kernel_size, block_num)
+            *make_residual_blocks(channels, kernel_size, block_num, activation_fn=activation_fn)
         )
 
         self.output_conv = nn.Conv2d(
@@ -102,7 +111,7 @@ class ParDilatedCCNP(nn.Module):
         )
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        X = fn.relu(self.input_op(X))
+        X = self.activation_fn(self.input_op(X))
         X = self.blocks(X)
         return self.output_conv(X)
 
@@ -115,8 +124,10 @@ class SeqDilatedCNNP(nn.Module):
     output conv
     """
     def __init__(self, channels: int, kernel_size: int, in_channels: int = 1, out_channels: int = 1, 
-                 block_num: int = 3, use_dilation: bool = True):
+                 block_num: int = 3, use_dilation: bool = True,
+                 activation_fn: Callable = fn.relu):
         super().__init__()
+        self.activation_fn = activation_fn
 
         self.input_conv = nn.Conv2d(
             in_channels, channels, kernel_size, padding=(kernel_size - 1) // 2
@@ -128,6 +139,7 @@ class SeqDilatedCNNP(nn.Module):
                 kernel_size,
                 block_num,
                 [i + 1 for i in range(block_num)] if use_dilation else None,
+                activation_fn,
             )
         )
 
@@ -136,7 +148,7 @@ class SeqDilatedCNNP(nn.Module):
         )
 
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        X = fn.relu(self.input_conv(X))
+        X = self.activation_fn(self.input_conv(X))
         X = self.blocks(X)
         return self.output_conv(X)
 
@@ -155,6 +167,13 @@ def main():
     args.save_dir.mkdir(parents=True, exist_ok=True)
 
     models = {
+        "par_dilated_3b_leaky_cnn": ParDilatedCCNP(
+            channels=args.channels,
+            kernel_size=args.kernel_size,
+            block_num=3,
+            use_dilation=True,
+            activation_fn=fn.leaky_relu,
+        ),
         "par_dilated_3b_cnn": ParDilatedCCNP(
             channels=args.channels,
             kernel_size=args.kernel_size,
