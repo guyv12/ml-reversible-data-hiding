@@ -2,9 +2,7 @@ import argparse
 import time
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
 
-from experiments.dataset import PatchDataset
 from backend.data.loader import get_loader
 from backend.models.models import save_model
 from backend.models.train import setup_logger
@@ -13,7 +11,7 @@ from backend.models.train import setup_logger
 DEFAULT_LATENT_DIM = 4096
 DEFAULT_INPUT_SIZE = 65536
 
-class Autoencoder(nn.Module):
+class CompressionAutoencoder(nn.Module):
     def __init__(self, latent_dim: int = DEFAULT_LATENT_DIM, input_size: int = DEFAULT_INPUT_SIZE):
         super().__init__()
 
@@ -159,7 +157,7 @@ def train(model, epochs, criterion, optimizer, train_loader, val_loader, path):
         )
 
         if device.type == 'cuda':
-            torch.cuda.synchronize() # to sync time for perf_counter
+            torch.cuda.synchronize()
         duration = time.perf_counter() - start
 
         logger.info(
@@ -170,25 +168,6 @@ def train(model, epochs, criterion, optimizer, train_loader, val_loader, path):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             save_model(model, path)
-
-
-def test(model, test_loader, criterion):
-    logger = setup_logger("../logs/test.log")
-    logger.info("Testing Starts")
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    logger.info("Using device: %s", device)
-
-    model = model.to(device)
-    test_loss = run_epoch(
-        model=model,
-        image_loader=test_loader,
-        criterion=criterion,
-        optimizer=None,
-        device=device,
-        train_mode=False,
-    )
-    logger.info("Test Loss: %.6f", test_loss)
 
 def main():
     torch.manual_seed(0)
@@ -206,7 +185,7 @@ def main():
 
     args = parser.parse_args()
 
-    model = Autoencoder(
+    model = CompressionAutoencoder(
         latent_dim=args.latent_dim,
         input_size=args.input_size,
     )
@@ -214,7 +193,7 @@ def main():
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    train_loader, val_loader, test_loader = data_split(args.image_batch_size)
+    train_loader, val_loader, _ = data_split(args.image_batch_size)
 
     train(
         model=model,
@@ -225,12 +204,6 @@ def main():
         val_loader=val_loader,
         path=args.path,
     )
-
-    #test(
-    #    model=model,
-    #    test_loader=test_loader,
-    #    criterion=criterion,
-    #)
 
 if __name__ == "__main__":
     main()
