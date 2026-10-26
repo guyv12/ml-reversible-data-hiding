@@ -67,7 +67,7 @@ class CompressionAutoencoder(nn.Module):
     def decode(self, latent: torch.Tensor) -> torch.Tensor:
         restored = self.from_latent(latent)
         restored = self.decoder(restored)
-        return restored.reshape(-1, self.input_size) * 255.0
+        return restored.reshape(-1, self.input_size)
 
     def forward(self, x: torch.Tensor, return_latent: bool = False):
         latent = self.encode(x)
@@ -111,6 +111,7 @@ def run_epoch(model, image_loader, criterion, optimizer, device, train_mode):
                 optimizer.zero_grad()
             
             reconstructed, _ = model(input_batch, return_latent=True)
+            reconstructed = reconstructed * 255.0
             loss = criterion(reconstructed, reference_pixels)
 
             if train_mode:

@@ -52,22 +52,20 @@ def __latent_to_bits(latent: torch.Tensor) -> str:
     latent_bytes = latent.detach().contiguous().cpu().numpy().astype('>f2').tobytes()
     return "".join(f"{b:08b}" for b in latent_bytes)
 
-def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor,
+def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor, N: int,
                                       model_path: str = DEFAULT_AUTOENCODER_PATH) -> str:
     model = load_model(model_path)
 
     ref_img = ref_pixels.float() / 255.0
 
     with torch.no_grad():
-        latent = model.encode(ref_img)
-
-        latent_q = latent.to(torch.float16)
-        prediction = model.decode(latent_q.float()).reshape(-1)
+        latent = model.encode(ref_img).to(torch.float16)
+        prediction = model.decode(latent.float()).reshape(-1) * 255.0
 
     prediction = prediction.round().clamp(0, 255).to(torch.int16)
     error_map = ref_pixels.to(torch.int16) - prediction  # [-255, 255]
 
-    latent_bits = __latent_to_bits(latent_q.reshape(-1))
+    latent_bits = __latent_to_bits(latent.reshape(-1))
     latent_width = math.ceil(math.log2(ref_pixels.numel() * 8))  # latent can't exceed raw ref pixel size
 
     if len(latent_bits) >= 2 ** latent_width:
@@ -76,7 +74,7 @@ def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor,
     return str(
         format(len(latent_bits), f'0{latent_width}b')
         + latent_bits
-        + __compress_error_map(error_map, ref_pixels.numel(), 0, 9)  # range [0, 510] so 9 bits are required
+        + __compress_error_map(error_map, N, N - ref_pixels.numel(), 9)  # range [0, 510] so 9 bits are required
     )
 
 def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, b_sym: int, add_offset: bool = True) -> str:
@@ -114,7 +112,7 @@ def compress_pgm_ad(img_size: tuple[int, int],
     ad = __compress_kernel_weights(kernel_weights)
 
     if autoencoder:
-        ad += __compress_ref_pixels_autoencoder(ref_pixels, autoencoder_path)
+        ad += __compress_ref_pixels_autoencoder(ref_pixels, N, autoencoder_path)
     else:
         ad += __compress_ref_pixels(ref_pixels)
 
