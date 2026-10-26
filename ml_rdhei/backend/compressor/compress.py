@@ -56,14 +56,16 @@ def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor, N: int,
                                       model_path: str = DEFAULT_AUTOENCODER_PATH) -> str:
     model = load_model(model_path)
 
-    ref_img = ref_pixels.float() / 255.0
+    side = math.isqrt(ref_pixels.numel())
+    device = next(model.parameters()).device
+    ref_img = ref_pixels.reshape(1, 1, side, side).float().div(255.0).to(device)
 
     with torch.no_grad():
         latent = model.encode(ref_img).to(torch.float16)
-        prediction = model.decode(latent.float()).reshape(-1) * 255.0
+        prediction = model.decode(latent.float()).reshape(-1).cpu() * 255.0
 
     prediction = prediction.round().clamp(0, 255).to(torch.int16)
-    error_map = ref_pixels.to(torch.int16) - prediction  # [-255, 255]
+    error_map = ref_pixels.cpu().to(torch.int16) - prediction  # [-255, 255]
 
     latent_bits = __latent_to_bits(latent.reshape(-1))
     latent_width = math.ceil(math.log2(ref_pixels.numel() * 8))  # latent can't exceed raw ref pixel size

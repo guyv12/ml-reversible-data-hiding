@@ -55,6 +55,9 @@ class CompressionAutoencoder(nn.Module):
             nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
             nn.ReLU(),
 
+            nn.ConvTranspose2d(16, 16, kernel_size=4, stride=2, padding=1),  # 128 -> 256
+            nn.ReLU(),
+
             nn.Conv2d(16, 1, kernel_size=3, padding=1),
             nn.Sigmoid(),
         )
@@ -99,19 +102,14 @@ def run_epoch(model, image_loader, criterion, optimizer, device, train_mode):
 
     with grad_context:
         for image_batch in image_loader:
-            input_batch = image_batch.to(device)
-
-            reference_pixels = image_batch[:, ::2, ::2].reshape(
-                image_batch.shape[0], -1
-            )
-
-            reference_pixels = reference_pixels.float() / 255.0
+            # (B, H, W) uint8 -> (B, 1, H/2, W/2) float in [0, 1]
+            input_batch = image_batch[:, ::2, ::2].unsqueeze(1).float().div(255.0).to(device)
+            reference_pixels = input_batch.flatten(1)
 
             if train_mode:
                 optimizer.zero_grad()
             
             reconstructed, _ = model(input_batch, return_latent=True)
-            reconstructed = reconstructed * 255.0
             loss = criterion(reconstructed, reference_pixels)
 
             if train_mode:
