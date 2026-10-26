@@ -247,6 +247,13 @@ def weights_extraction(ad: bitarray, k: int) -> tuple[torch.Tensor, bitarray]:
     return weights, ad
 
 def huffman_decode(codebook: dict[str, int], compressed_data: str, n: int) -> torch.Tensor:
+    # 1 symbol case - empty codebook ("" check is unnecessary - but helpful if anything changes)
+    if len(codebook) == 1 and "" in codebook:
+        if compressed_data:
+            raise CorruptedDataError("Unexpected compressed bits for a zero-length Huffman code")
+
+        return torch.full((n,), next(iter(codebook.values())), dtype=torch.int64)
+
     decoded = array.array('q')
     buffer = ""
 
