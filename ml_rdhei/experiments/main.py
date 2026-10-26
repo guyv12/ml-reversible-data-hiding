@@ -127,28 +127,6 @@ def test_preprocessing_ad_cnn():
     )
 
 
-def test_preprocessing_autoencoder():
-    loader, _ = dloader.get_loader("../datasets/pgm/test")
-    model = get_custom_model("autoencoder.pth")
-
-    model_fn = partial(
-        get_custom_model,
-        path="autoencoder.pth",
-    )
-
-    run_preprocessing(
-        loader,
-        predictor_fn=partial(
-            prediction.ad_autoencoder,
-            model_fn=model_fn,
-        ),
-        prep_fn=prepare_cnn,
-        compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
-        bpp=8,
-    )
-
-
 def test_preprocessing_dicom_ad_mobilenet_v2():
     loader, _ = dloader.get_dicom_loader("../datasets/dcm/test")
     model = get_mobilenet_v2_unet_model(classes=1)
@@ -171,6 +149,46 @@ def test_preprocessing_dicom_ad_mobilenet_v2():
         compressor_fn=compression.compress_cnn_dicom_ad,
         metrics_fn=compute_dicom_metrics,
         bpp=16,
+    )
+
+
+def test_preprocessing_autoencoder():
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
+    model = get_custom_model("autoencoder.pth")
+
+    model_fn = partial(
+        get_custom_model,
+        path="autoencoder.pth",
+    )
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_autoencoder,
+            model_fn=model_fn,
+        ),
+        prep_fn=prepare_cnn,
+        compressor_fn=compression.compress_cnn_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+    )
+
+
+def test_preprocessing_autoencoder_compression():
+    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    K = 5
+
+    run_preprocessing(
+        loader,
+        predictor_fn=partial(
+            prediction.ad_unfold_ridge_border,
+            K=K
+        ),
+        prep_fn=prepare_pgm,
+        compressor_fn=compression.compress_pgm_ad,
+        metrics_fn=compute_metrics,
+        bpp=8,
+        autoencoder=True
     )
 
 # ----- All pipeline tests -----
@@ -429,7 +447,7 @@ def run_experiment(loader: DataLoader, predictor_fn: Callable,
 
 def run_preprocessing(loader: DataLoader, predictor_fn: Callable, 
                       prep_fn: Callable, compressor_fn: Callable,
-                      metrics_fn: Callable, bpp: int) -> None:
+                      metrics_fn: Callable, bpp: int, autoencoder: bool = False) -> None:
     """Runs preprocessing for the experiment
 
     Args:
@@ -453,7 +471,7 @@ def run_preprocessing(loader: DataLoader, predictor_fn: Callable,
         for raw_ad in predictor_fn(batch):
             ad_args, metric_args, _ = prep_fn(raw_ad)
 
-            ad = compressor_fn((H, W), *ad_args)
+            ad = compressor_fn((H, W), *ad_args, autoencoder=autoencoder)
 
             prediction = Prediction(
                 ad=ad,

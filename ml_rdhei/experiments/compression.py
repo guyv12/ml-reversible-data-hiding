@@ -176,7 +176,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Train the patch autoencoder")
 
-    parser.add_argument("--path", type=str, default="autoencoder.pth")
+    parser.add_argument("--path", type=str, default="compression_autoencoder.pth")
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--image-batch-size", type=int, default=8)
     parser.add_argument("--input-size", type=int, default=DEFAULT_INPUT_SIZE)
