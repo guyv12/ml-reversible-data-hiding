@@ -106,7 +106,7 @@ def run_experiment(loader: DataLoader, predictor_fn: Callable,
 
 def run_preprocessing(loader: DataLoader, predictor_fn: Callable, 
                       prep_fn: Callable, compressor_fn: Callable,
-                      metrics_fn: Callable, bpp: int) -> None:
+                      metrics_fn: Callable, bpp: int, autoencoder: bool = False) -> None:
     """Runs preprocessing for the experiment
 
     Args:
@@ -130,7 +130,7 @@ def run_preprocessing(loader: DataLoader, predictor_fn: Callable,
         for raw_ad in predictor_fn(batch):
             ad_args, metric_args, _ = prep_fn(raw_ad)
 
-            ad = compressor_fn((H, W), *ad_args)
+            ad = compressor_fn((H, W), *ad_args, autoencoder=autoencoder)
 
             prediction = Prediction(
                 ad=ad,
@@ -143,6 +143,7 @@ def run_preprocessing(loader: DataLoader, predictor_fn: Callable,
                 ),
             )
 
+            print(f"AD Length: {len(ad) // 8} bytes")
             print(f"ER: {prediction.metrics.embedding_rate:.3f}")
             print(f"PSNR: {prediction.metrics.psnr:.3f}")
             print(f"SSIM: {prediction.metrics.ssim:.3f}")

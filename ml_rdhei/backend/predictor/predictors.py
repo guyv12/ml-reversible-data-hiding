@@ -3,6 +3,7 @@ import torch
 from collections.abc import Callable
 
 from backend.models.models import *
+from backend.predictor.features import build_patch_input
 
 
 def quantize_weights(weights: torch.Tensor) -> torch.Tensor:
@@ -93,6 +94,51 @@ def cnn_prediction(X: torch.Tensor, y: torch.Tensor,
     y_pred = y_pred.squeeze(0).squeeze(0)[~mask] # remove batch and channel dimensions, and ref pixels
     y_pred = (y_pred * 255.0).round() # Re-Normalize
     y_pred = y_pred.clamp(valid_pred_range[0], valid_pred_range[1]) # clamp to avoid big errors
+
+    error_map = y.to(torch.int16) - y_pred.to(torch.int16)
+
+    return error_map
+
+
+def autoencoder_predict_image(masked_image: torch.Tensor, model: torch.nn.Module,
+                              mask: torch.Tensor, patch_size: int) -> torch.Tensor:
+    H, W = masked_image.shape
+    if H % patch_size != 0 or W % patch_size != 0:
+        raise ValueError(
+            f"Autoencoder predictor requires image dimensions divisible by patch_size; got {(H, W)} and {patch_size}"
+        )
+
+    device = next(model.parameters()).device
+    patches = []
+    coords = []
+
+    for row in range(0, H, patch_size):
+        for column in range(0, W, patch_size):
+            patch = masked_image[row: row + patch_size, column: column + patch_size].float() / 255.0
+            patch_mask = mask[row: row + patch_size, column: column + patch_size]
+            patches.append(build_patch_input(patch, patch_mask))
+            coords.append((row, column))
+
+    input_batch = torch.stack(patches, dim=0).to(device)
+
+    with torch.inference_mode():
+        prediction_batch = model(input_batch).squeeze(1).clamp(0.0, 1.0).cpu() * 255.0
+
+    prediction_image = torch.zeros((H, W), dtype=torch.float32)
+    for predicted_patch, (row, column) in zip(prediction_batch, coords):
+        prediction_image[row: row + patch_size, column: column + patch_size] = predicted_patch
+
+    return prediction_image
+
+
+def autoencoder_prediction(X: torch.Tensor, y: torch.Tensor,
+                           model_fn: Callable, mask: torch.Tensor) -> torch.Tensor:
+    model = model_fn()
+    model.eval()
+
+    patch_size = getattr(model, "patch_size", 64)
+    y_pred = autoencoder_predict_image(X, model, mask, patch_size)
+    y_pred = torch.round(y_pred)[~mask].clamp(torch.iinfo(y.dtype).min, torch.iinfo(y.dtype).max)
 
     error_map = y.to(torch.int16) - y_pred.to(torch.int16)
 

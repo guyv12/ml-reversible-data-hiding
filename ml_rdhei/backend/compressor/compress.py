@@ -2,6 +2,8 @@ import math
 import torch
 from bitarray import bitarray
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode, huffman_codebook_to_bits
+from experiments.compression import *
+from backend.models.models import load_model
 
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
     t = t.detach().contiguous().cpu()
@@ -43,6 +45,39 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor) -> str:
         + compressed_data
     )
 
+DEFAULT_AUTOENCODER_PATH = "compression_autoencoder.pth"
+
+def __latent_to_bits(latent: torch.Tensor) -> str:
+    latent_bytes = latent.detach().contiguous().cpu().numpy().astype('>f2').tobytes()
+    return "".join(f"{b:08b}" for b in latent_bytes)
+
+def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor, N: int,
+                                      model_path: str = DEFAULT_AUTOENCODER_PATH) -> str:
+    model = load_model(model_path)
+
+    side = math.isqrt(ref_pixels.numel())
+    device = next(model.parameters()).device
+    ref_img = ref_pixels.reshape(1, 1, side, side).float().div(255.0).to(device)
+
+    with torch.no_grad():
+        latent = model.encode(ref_img).to(torch.float16)
+        prediction = model.decode(latent.float()).reshape(-1).cpu() * 255.0
+
+    prediction = prediction.round().clamp(0, 255).to(torch.int16)
+    error_map = ref_pixels.cpu().to(torch.int16) - prediction  # [-255, 255]
+
+    latent_bits = __latent_to_bits(latent.reshape(-1))
+    latent_width = math.ceil(math.log2(ref_pixels.numel() * 8))  # latent can't exceed raw ref pixel size
+
+    if len(latent_bits) >= 2 ** latent_width:
+        raise ValueError("Latent vector is larger than raw reference pixels")
+
+    return str(
+        format(len(latent_bits), f'0{latent_width}b')
+        + latent_bits
+        + __compress_error_map(error_map, N, N - ref_pixels.numel(), 9)  # range [0, 510] so 9 bits are required
+    )
+
 def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, b_sym: int, add_offset: bool = True) -> str:
     # huffman compression (error map)
     if add_offset:
@@ -67,7 +102,8 @@ def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, b_sym: int
     )
 
 def compress_pgm_ad(img_size: tuple[int, int], 
-                    kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor
+                    kernel_weights: torch.Tensor, ref_pixels: torch.Tensor, error_map: torch.Tensor,
+                    autoencoder: bool = False, autoencoder_path: str = DEFAULT_AUTOENCODER_PATH
                     ) -> bitarray:
     H, W = img_size
     N = H * W
@@ -75,7 +111,12 @@ def compress_pgm_ad(img_size: tuple[int, int],
     header_width = math.ceil(math.log2(N * bpp))
 
     ad = __compress_kernel_weights(kernel_weights)
-    ad += __compress_ref_pixels(ref_pixels)
+
+    if autoencoder:
+        ad += __compress_ref_pixels_autoencoder(ref_pixels, N, autoencoder_path)
+    else:
+        ad += __compress_ref_pixels(ref_pixels)
+
     ad += __compress_error_map(error_map, N, len(ref_pixels), 9) # range [0, 510] so 9 bits are required
 
     # add len(ad) at the beggining
@@ -87,7 +128,8 @@ def compress_pgm_ad(img_size: tuple[int, int],
     return ad_bits
 
 def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
-                      img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                      img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor,
+                      autoencoder: bool = False
                       ) -> bitarray:
     H, W = img_size
     N = H * W
@@ -108,7 +150,7 @@ def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
 
     return ad_bits
 
-def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bitarray:
+def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_map: torch.Tensor, autoencoder: bool = False) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 8
@@ -126,7 +168,8 @@ def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_m
     return ad_bits
 
 def compress_cnn_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
-                          img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                          img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor,
+                          autoencoder: bool = False
                           ) -> bitarray:
     H, W = img_size
     N = H * W

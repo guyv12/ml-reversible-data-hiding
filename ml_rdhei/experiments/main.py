@@ -28,6 +28,8 @@ PREPROCESSING_EXPERIMENTS = {
     "pgm_custom_cnn": test_preprocessing_ad_cnn,
     "pgm_mobilenet_cnn": test_preprocessing_ad_mobilenet_v2,
     "pgm_resnet_cnn": test_preprocessing_ad_resnet_50,
+    "pgm_autoencoder": test_preprocessing_autoencoder,
+    "pgm_ridge_autoencoder": test_preprocessing_autoencoder_compression,
     "dicom_ridge": test_preprocessing_dicom_ad_unfold_ridge_border,
     "dicom_mobilenet_ridge": test_preprocessing_dicom_ad_unet_mobilenet_v2_ridge,
     "dicom_resnet_ridge": test_preprocessing_dicom_ad_unet_resnet50_ridge,
