@@ -10,6 +10,8 @@ import backend.receiver.test as test_receiver
 from backend.predictor.results import Prediction
 from backend.predictor.pipelines import reference_mask ## <--- bad should be elevated higher not owned by the predictor
 
+from experiments.autoencoder import * ## <-- import fix
+
 
 #---- Generic runner ----
 
