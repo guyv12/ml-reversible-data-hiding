@@ -2,16 +2,17 @@ import numpy as np
 import pyqtgraph as pg
 
 from PySide6.QtWidgets import (
-	QFrame, QWidget, QVBoxLayout, QStackedLayout,
-	QLabel
+	QFrame, QWidget, QLabel,
+	QVBoxLayout, QStackedLayout,
 )
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QIcon, QPixmap, QPainter
+from PySide6.QtGui import QPixmap, QPainter
 
 from frontend.utils import load_stylesheet
+from frontend.theme import HISTOGRAM_GRID_COLOR, HISTOGRAM_BACKGROUND_COLOR, HISTOGRAM_PEN_COLOR
 from frontend.config import (
 	HISTOGRAM_MARGIN, EMPTY_LAYOUT_SPACING, ICON_SIZE, HISTOGRAM_BINS, 
-	HISTOGRAM_GRID_COLOR, HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
+	HISTOGRAM_RESIZE_INTERVAL_MS, HISTOGRAM_RESIZE_SETTLE_MS
 )
 
 class ThrottledResizeContainer(QWidget):
@@ -131,11 +132,10 @@ class Histogram(QFrame):
 	
 	def _setup_icon(self, icon_name: str):
 		self.icon_label = QLabel()
-		icon = QIcon.fromTheme(icon_name)
-		self.icon_label.setPixmap(icon.pixmap(*ICON_SIZE))
-		self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.icon_label.setObjectName(icon_name)
+		self.icon_label.setFixedSize(*ICON_SIZE)
 		
-		self.empty_layout.addWidget(self.icon_label)
+		self.empty_layout.addWidget(self.icon_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
 	def _setup_title(self, title: str):
 		self.title_label = QLabel(title)
@@ -148,7 +148,7 @@ class Histogram(QFrame):
 	def _setup_plot_widget(self):
 		self.plot_widget = pg.PlotWidget()
 		
-		self.plot_widget.setBackground("#323232")
+		self.plot_widget.setBackground(HISTOGRAM_BACKGROUND_COLOR)
 		self.plot_widget.showGrid(x=True, y=True, alpha=0.2)
 
 		for axis_name in ("left", "bottom"):
@@ -178,9 +178,9 @@ class Histogram(QFrame):
 		self.plot_widget.clear()
 
 		if image_data.dtype == "uint8":
-			_range = (0, 255)
+			_range = (0, 256)
 		else:
-			_range = (image_data.min(), image_data.max())
+			_range = (int(image_data.min()), int(image_data.max()))
 
 		counts, bins = np.histogram(
 			image_data,
@@ -192,8 +192,8 @@ class Histogram(QFrame):
 			bins, counts, 
 			stepMode="center", 
 			fillLevel=0, 
-			fillBrush=(74, 144, 226, 100),
-			pen=pg.mkPen('#4A90E2', width=1.5)
+			brush=pg.mkBrush(HISTOGRAM_PEN_COLOR),
+			pen=pg.mkPen(HISTOGRAM_PEN_COLOR, width=1.5)
 		)
 		self.plot_widget.addItem(histogram_item)
 		self._update_ui()

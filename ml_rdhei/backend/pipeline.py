@@ -9,8 +9,9 @@ from pathlib import Path
 from backend.exceptions import InvalidImageKeyError, InvalidMessageKeyError
 import backend.predictor.predict as ppredict
 from backend.predictor.results import (
-    compute_metrics, compute_dicom_metrics, Prediction
+    compute_quality_metrics, compute_dicom_quality_metrics, Prediction
 )
+from backend.compressor.metrics import compute_encryption_metrics, EncryptionMetrics
 import backend.compressor.compress as ccompress
 import backend.compressor.encryption as encryption
 from backend.compressor.hiding import hider
@@ -91,7 +92,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
         kernel_weights, ref_pixels, error_map, _ = next(raw_ad)
 
         ad = ccompress.compress_pgm_ad((H, W), kernel_weights, ref_pixels, error_map)
-        metrics = compute_metrics(tensor, error_map, mask, len(ad), bpp)
+        metrics = compute_quality_metrics(tensor, error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
     elif fmt.lower() == ".dcm":
@@ -111,7 +112,7 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
             lsb_error_map
         )
 
-        metrics = compute_dicom_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
+        metrics = compute_dicom_quality_metrics(tensor, lsb_error_map, mask, len(ad), bpp)
         return Prediction(ad, metrics, bpp, (H, W))
 
     else:
@@ -119,11 +120,12 @@ def predict(image: np.ndarray, fmt: str) -> Prediction:
     
 
 def hide(
+    original: np.ndarray,
     prediction: Prediction,
     ad_encryption_key: str,
     message_encryption_key: str,
     message: str
-) -> np.ndarray:
+) -> tuple[np.ndarray, EncryptionMetrics]:
     
     ad_enrypted = encryption.encrypt_ad(
         prediction.ad,
@@ -138,8 +140,11 @@ def hide(
         message,
         message_encryption_key
     )
- 
-    return _transform_bits_to_image(bits, prediction.shape, prediction.bpp)
+    
+    encrypted = _transform_bits_to_image(bits, prediction.shape, prediction.bpp)
+    metrics = compute_encryption_metrics(original, encrypted, prediction.bpp)
+
+    return encrypted, metrics
 
 def extract(
     source_image: np.ndarray,
@@ -154,18 +159,18 @@ def extract(
     ba.frombytes(source_image.tobytes())
 
     if fmt.lower() == ".pgm":
-        image, message = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
+        image, message, errors = receive(ba, ad_decryption_key, message_decryption_key, (H, W))
         if image is None:
-            return image, message
+            return image, message, errors
             
-        return image.numpy(), message
+        return image.numpy(), message, errors
 
     elif fmt.lower() == ".dcm":
-        image, message = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
+        image, message, errors = receive_dicom(ba, ad_decryption_key, message_decryption_key, (H, W))
         if image is None:
-            return image, message
+            return image, message, errors
 
-        return image.numpy().astype(np.uint16), message
+        return image.numpy().astype(np.uint16), message, errors
     else:
         raise ValueError(f"Unsupported image format: '{fmt}'")
     

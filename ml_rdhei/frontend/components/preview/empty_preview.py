@@ -2,8 +2,8 @@ from PySide6.QtWidgets import (
 	QWidget, QVBoxLayout, QHBoxLayout, QLabel
 ) 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QIcon
 
+from frontend.config import ICON_SIZE
 
 class EmptyPreview(QWidget):
 	def __init__(
@@ -22,7 +22,6 @@ class EmptyPreview(QWidget):
 		self.title_label: QLabel
 		self.icon_label: QLabel | None = None
 		self.subtitle_label: QLabel | None = None
-		self.subtitle_label: QLabel | None = None
 
 		if icon_name:
 			self._set_icon(icon_name)
@@ -37,11 +36,10 @@ class EmptyPreview(QWidget):
 		
 	def _set_icon(self, icon_name: str):
 		self.icon_label = QLabel()
-		icon = QIcon.fromTheme(icon_name)
-		self.icon_label.setPixmap(icon.pixmap(48, 48))
-		self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+		self.icon_label.setObjectName(icon_name)
+		self.icon_label.setFixedSize(*ICON_SIZE)
 
-		self.main_layout.addWidget(self.icon_label)
+		self.main_layout.addWidget(self.icon_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
 	def _set_title(self, title: str):
 		self.title_label = QLabel(title)

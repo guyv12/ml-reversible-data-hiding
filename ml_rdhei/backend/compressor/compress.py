@@ -128,7 +128,8 @@ def compress_pgm_ad(img_size: tuple[int, int],
     return ad_bits
 
 def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
-                      img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                      img2_kernel_weights: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor,
+                      autoencoder: bool = False
                       ) -> bitarray:
     H, W = img_size
     N = H * W
@@ -149,7 +150,7 @@ def compress_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
 
     return ad_bits
 
-def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_map: torch.Tensor) -> bitarray:
+def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_map: torch.Tensor, autoencoder: bool = False) -> bitarray:
     H, W = img_size
     N = H * W
     bpp = 8
@@ -167,7 +168,8 @@ def compress_cnn_ad(img_size: tuple[int, int], ref_pixels: torch.Tensor, error_m
     return ad_bits
 
 def compress_cnn_dicom_ad(img_size: tuple[int, int], img1_error_map: torch.Tensor,
-                          img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor
+                          img2_ref_pixels: torch.Tensor, img2_error_map: torch.Tensor,
+                          autoencoder: bool = False
                           ) -> bitarray:
     H, W = img_size
     N = H * W

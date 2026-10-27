@@ -106,22 +106,19 @@ http-client.private.env.json
 
 # ----- datasets -----
 
-datasets/pgm/train/*
-datasets/pgm/val/*
-datasets/pgm/test/*
-datasets/dcm/train/*
-datasets/dcm/val/*
-datasets/dcm/test/*
+datasets/*
 
-# keep the dirs tho
-!datasets/pgm/train/.gitkeep
-!datasets/pgm/val/.gitkeep
-!datasets/pgm/test/.gitkeep
+# keep dirs
+!datasets/pgm/
+!datasets/dcm/
 
-!datasets/dcm/train/.gitkeep
-!datasets/dcm/val/.gitkeep
-!datasets/dcm/test/.gitkeep
+# ignore all folders/files inside train/test/val
+datasets/pgm/*/*
+datasets/dcm/*/*
 
+# keep the subdirs tho
+!datasets/pgm/*/.gitkeep
+!datasets/dcm/*/.gitkeep
 
 # ----- logs -----
 

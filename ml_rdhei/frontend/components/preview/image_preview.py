@@ -193,7 +193,7 @@ class InputImagePreview(ImagePreview):
 		self.file_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 		self.file_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
-		self.delete_btn = QPushButton("✕")
+		self.delete_btn = QPushButton()
 		self.delete_btn.setObjectName("deleteBtn")
 		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.delete_btn.setFixedSize(*LABEL_BUTTON_SIZE)
@@ -225,13 +225,13 @@ class OutputImagePreview(ImagePreview):
 	def __init__(self):
 		super().__init__()
 
-		self.download_btn = QPushButton("⭳")
+		self.download_btn = QPushButton()
 		self.download_btn.setObjectName("downloadBtn")
 		self.download_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.download_btn.setFixedSize(*LABEL_BUTTON_SIZE)
 		self.download_btn.clicked.connect(self._save_image)
 
-		self.delete_btn = QPushButton("✕")
+		self.delete_btn = QPushButton()
 		self.delete_btn.setObjectName("deleteBtn")
 		self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 		self.delete_btn.setFixedSize(*LABEL_BUTTON_SIZE)

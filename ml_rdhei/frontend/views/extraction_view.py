@@ -6,10 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import QThreadPool
 
-from backend.exceptions import (
-	InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError
-)
-
+from backend.exceptions import CorruptedStegoImageError
 from backend.pipeline import extract, transform_image_to_ndarray
 
 from frontend.components.section_frame import SectionFrame
@@ -40,19 +37,23 @@ class ExtractionView(QWidget):
 		load_stylesheet(self, "sections.css")
 
 		layout = QVBoxLayout(self)
+
+		header_layout = QHBoxLayout()
 		self.title_label = QLabel("Extraction View")
 		self.title_label.setFixedHeight(30)
 		self.return_btn = QPushButton("Return to main window")
-		layout.addWidget(self.title_label)
+
+		header_layout.addWidget(self.title_label)
+		header_layout.addStretch()
+		header_layout.addWidget(self.return_btn)
 
 		sections_layout = QHBoxLayout()
-		layout.addLayout(sections_layout)
 
 		in_section = SectionFrame("Input", "inputSection")
 
 		self.in_empty_preview = EmptyPreview(
 			"Drop Grayscale or DICOM image",
-			"system-file-manager",
+			"folderIcon",
 			"or click to browse",
 			ACCEPTED_FORMATS
 		)
@@ -60,29 +61,29 @@ class ExtractionView(QWidget):
 		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
 		self.image_uploader = ImageUploader(self.in_preview_manager)
 		self.in_histogram = Histogram(
-			"emblem-important",
+			"importantIcon",
 			"Upload an image to see the histogram"
 		)
 
 		in_section.add_widget(self.image_uploader, stretch=1)
 		in_section.add_widget(self.in_histogram, stretch=1)
 
-		metrics_section = SectionFrame("Metrics", "metricsSection")
+		extraction_section = SectionFrame("Extraction", "extractionSection")
 
 		self.decryption_panel = DecryptionPanel()
 	
-		metrics_section.add_widget(self.decryption_panel)
+		extraction_section.add_widget(self.decryption_panel)
 
 		out_section = SectionFrame("Output", "outputSection")
 
 		self.out_empty_preview = EmptyPreview(
 			"Output image",
-			"insert-image",
+			"infoIcon",
 		)
 		self.out_image_preview = OutputImagePreview()
 		self.out_preview_manager = PreviewManager(self.out_empty_preview, self.out_image_preview)
 		self.out_histogram = Histogram(
-			"emblem-important",
+			"importantIcon",
 			"Upload an image to see the histogram"
 		)
 
@@ -90,10 +91,12 @@ class ExtractionView(QWidget):
 		out_section.add_widget(self.out_histogram, stretch=1)
 
 		sections_layout.addWidget(in_section, stretch=1)
-		sections_layout.addWidget(metrics_section, stretch=1)
+		sections_layout.addWidget(extraction_section, stretch=1)
 		sections_layout.addWidget(out_section, stretch=1)
+		
+		layout.addLayout(header_layout)
+		layout.addLayout(sections_layout)
 
-		layout.addWidget(self.return_btn)
 		self._manage_signals()
 
 	def _manage_signals(self):
@@ -126,7 +129,7 @@ class ExtractionView(QWidget):
 		if self._session is None: 
 			return
 
-		self._session.marked_image, message = result
+		self._session.marked_image, message, errors = result
 
 		if self._session.marked_image is not None:
 			self.out_preview_manager.set_image(
@@ -139,8 +142,11 @@ class ExtractionView(QWidget):
 			
 		self.decryption_panel.display_message(message)
 
+		if errors:
+			QMessageBox.warning(self, "Extracting failed", "\n".join(str(e) for e in errors))
+
 	def _on_extract_error(self, error):
-		if isinstance(error,(InvalidImageKeyError, InvalidMessageKeyError, CorruptedStegoImageError)):
+		if isinstance(error, CorruptedStegoImageError):
 			QMessageBox.warning(self, "Extracting failed", str(error))
 		
 		elif isinstance(error, Exception):

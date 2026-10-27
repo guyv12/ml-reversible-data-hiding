@@ -15,20 +15,23 @@ PHOTO_DISPLAY_MARGIN: Final[tuple[int, int, int, int]] = (10, 10, 10, 10)
 HISTOGRAM_MARGIN: Final[tuple[int, int, int, int]] = (BORDER_PADDING, 10, 10, BORDER_PADDING)
 ZERO_MARGINS: Final[tuple[int, int, int, int]] = (0, 0, 0, 0)
 EMPTY_LAYOUT_SPACING: Final[int] = 8
-ICON_SIZE: Final[tuple[int, int]] = (48, 48)
 LABEL_BUTTON_SIZE: Final[tuple[int, int]] = (20, 20)
 ACCEPTED_FORMATS: Final[tuple[str, ...]] = ('.pgm', '.dcm')
 IMAGE_FILE_FILTER: Final[str] = f"Image Files ({' '.join('*' + f for f in ACCEPTED_FORMATS)})"
 KEYS_LEN_LIMIT: Final[int] = 20
-HISTOGRAM_GRID_COLOR: Final[str] = "#424242"
 HISTOGRAM_RESIZE_INTERVAL_MS: Final[int] = 20
 HISTOGRAM_RESIZE_SETTLE_MS: Final[int] = 100
-HISTOGRAM_BINS = 15
+HISTOGRAM_BINS = 32
 
 FRONTEND_DIR = Path(__file__).parent
 
 ASSETS_DIR = FRONTEND_DIR / "assets"
 STYLES_DIR = ASSETS_DIR / "styles"
+
+ICON_SET: Final[str] = "light"
+ICONS_DIR = ASSETS_DIR / "icons"
+
+ICON_SIZE: Final[tuple[int, int]] = (48, 48)
 
 STARTING_IMAGE_PATH = ASSETS_DIR / "start.webp"
 HIDING_VIEW_IMAGE_PATH = ASSETS_DIR / "hiding.webp"

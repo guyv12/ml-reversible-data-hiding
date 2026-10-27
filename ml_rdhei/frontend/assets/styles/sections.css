@@ -2,19 +2,20 @@
 {   
     background-color: #2b2b2b;
     border-radius: 8px;
-    border: 2px solid #4A90E2;
+    border: 1px solid #3498db;
 }
 
-#metricsSection
+#embeddingSection,
+#extractionSection
 {   
     background-color: #2b2b2b;
     border-radius: 8px;
-    border: 2px solid #E74C3C;
+    border: 1px solid #3498db;
 }
 
 #outputSection
 {   
     background-color: #2b2b2b;
     border-radius: 8px;
-    border: 2px solid #2ECC71;
+    border: 1px solid #3498db;
 }
