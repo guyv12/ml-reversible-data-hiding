@@ -277,7 +277,7 @@ def test_preprocessing_dicom_ad_resnet_50(source_regex: re.Pattern):
 
 # --- Autoencoder ---
 # - pgm - pixel prediction autoencoder
-def test_preprocessing_autoencoder():
+def test_preprocessing_autoencoder(source_regex: re.Pattern):
     loader, _ = dloader.get_loader("../datasets/pgm/test")
     model = get_custom_model("autoencoder.pth")
 
@@ -294,12 +294,12 @@ def test_preprocessing_autoencoder():
         ),
         prep_fn=prepare_cnn,
         compressor_fn=compression.compress_cnn_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         bpp=8,
     )
 
 # - pgm - ref pixels compression autoencoder
-def test_preprocessing_autoencoder_compression():
+def test_preprocessing_autoencoder_compression(source_regex: re.Pattern):
     loader, _ = dloader.get_loader("../datasets/pgm/test")
     K = 5
 
@@ -311,7 +311,7 @@ def test_preprocessing_autoencoder_compression():
         ),
         prep_fn=prepare_pgm,
         compressor_fn=compression.compress_pgm_ad,
-        metrics_fn=compute_metrics,
+        metrics_fn=compute_quality_metrics,
         bpp=8,
         autoencoder=True
     )
