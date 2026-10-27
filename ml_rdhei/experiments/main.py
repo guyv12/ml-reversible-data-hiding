@@ -175,7 +175,7 @@ def test_preprocessing_autoencoder():
 
 
 def test_preprocessing_autoencoder_compression():
-    loader, _ = dloader.get_loader("../datasets/BOSSbase_512")
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
     K = 5
 
     run_preprocessing(
@@ -484,10 +484,11 @@ def run_preprocessing(loader: DataLoader, predictor_fn: Callable,
                 ),
             )
 
+            print(f"AD Length: {len(ad) // 8} bytes")
             print(f"ER: {prediction.metrics.embedding_rate}")
             print(f"PSNR: {prediction.metrics.psnr}")
             print(f"SSIM: {prediction.metrics.ssim}")
-            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}")
+            print(f"Avg ER: {avg_er(prediction.metrics.embedding_rate)}\n")
 
 
 #---- Functions for getting the AD for PGM/Dicom ----
@@ -550,6 +551,7 @@ def preprocessing():
     #test_preprocessing_dicom_ad_mobilenet_v2()
     #test_preprocessing_ad_cnn()
     #test_preprocessing_autoencoder()
+    #test_preprocessing_autoencoder_compression()
     return
 
 

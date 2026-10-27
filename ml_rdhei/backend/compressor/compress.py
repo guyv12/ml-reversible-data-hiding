@@ -3,6 +3,7 @@ import torch
 from bitarray import bitarray
 from .huffman import build_huffman_tree, get_huffman_codes, delta_encode, huffman_codebook_to_bits
 from experiments.compression import *
+from backend.models.models import load_model
 
 def __tensor_to_bytes(t: torch.Tensor) -> bytes:
     t = t.detach().contiguous().cpu()
@@ -36,8 +37,6 @@ def __compress_ref_pixels(ref_pixels: torch.Tensor) -> str:
     width = math.ceil(math.log2(n_ref * b_sym))
     codebook = huffman_codebook_to_bits(pixels_codes, b_sym)
     compressed_data = "".join([pixels_codes[val] for val in pixels_list])
-
-    print(len(codebook), len(compressed_data))
 
     return str(
         format(len(codebook), f'0{width}b')
