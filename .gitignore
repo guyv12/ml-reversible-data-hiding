@@ -105,11 +105,30 @@ http-client.private.env.json
 
 
 # ----- datasets -----
+
 datasets/*
 
-# keep the dir tho
-!datasets/.gitkeep
+# keep dirs
+!datasets/pgm/
+!datasets/dcm/
+
+# ignore all folders/files inside train/test/val
+datasets/pgm/*/*
+datasets/dcm/*/*
+
+# keep the subdirs tho
+!datasets/pgm/*/.gitkeep
+!datasets/dcm/*/.gitkeep
+
+# ----- logs -----
+
+logs/*
+!logs/.gitkeep
 
 
 # ----- pyproj.toml -----
 *.egg-info/
+
+
+# ----- models -----
+*.pth

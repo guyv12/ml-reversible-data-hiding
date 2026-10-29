@@ -1,0 +1,66 @@
+ImageUploader[has_image="false"] 
+{
+    border: 2px dashed #aaa;
+	border-radius: 10px;
+	background-color: #2b2b2b;
+}
+
+ImageUploader[has_image="false"]:hover, 
+ImageUploader[has_image="false"][drag_active="true"]
+{
+	border-color: #3498db;
+	background-color: #323232;
+}
+
+ImageUploader[has_image="true"],
+PreviewManager
+{
+    border-radius: 10px;
+    background-color: #323232;
+}
+
+PreviewManager QLabel
+{
+    border: none;
+    background: transparent;
+    color: #aaa;
+}
+
+PreviewManager #titleLabel
+{
+    font-size: 15px;
+    font-weight: bold;
+    color: #ececec
+}
+
+PreviewManager #subtitleLabel {font-size: 12px;}
+
+PreviewManager #chipLabel
+{
+    border-radius: 5px;
+    padding: 3px 8px;
+    background-color: #565656;
+    color: #ececec;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+PreviewManager #deleteBtn,
+PreviewManager #downloadBtn
+{
+    background: transparent;
+    border: none;
+    padding: 3px;
+}
+
+PreviewManager #deleteBtn {image: url(buttons:dismiss/normal.svg);}
+PreviewManager #deleteBtn:hover {image: url(buttons:dismiss/hover.svg);}
+PreviewManager #deleteBtn:pressed {image: url(buttons:dismiss/pressed.svg);}
+PreviewManager #deleteBtn:disabled {image: url(buttons:dismiss/disabled.svg);}
+
+PreviewManager #downloadBtn {image: url(buttons:download/normal.svg);}
+PreviewManager #downloadBtn:hover {image: url(buttons:download/hover.svg);}
+PreviewManager #downloadBtn:pressed {image: url(buttons:download/pressed.svg);}
+
+PreviewManager #folderIcon {image: url(icons:folder.svg);}
+PreviewManager #infoIcon {image: url(icons:info.svg);}
