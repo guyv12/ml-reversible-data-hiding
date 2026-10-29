@@ -18,5 +18,6 @@ class Session:
     def image_format(self) -> str:
         return self.source_path.suffix.lower()
 
+@dataclass
 class HideSession(Session):
     prediction: Prediction | None = None
