@@ -53,7 +53,7 @@ def __latent_to_bits(latent: torch.Tensor) -> str:
 
 def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor, N: int,
                                       model_path: str = DEFAULT_AUTOENCODER_PATH) -> str:
-    model = load_model(model_path)
+    model = get_custom_model(model_path)
 
     side = math.isqrt(ref_pixels.numel())
     device = next(model.parameters()).device
