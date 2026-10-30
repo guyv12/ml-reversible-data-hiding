@@ -4,6 +4,8 @@ import numpy as np
 from torch import full_like, Tensor
 from bitarray import bitarray
 
+from backend.compressor.encryption import NONCE_BITS
+
 @dataclass(frozen=True)
 class QualityMetrics:
 	psnr: float
@@ -28,7 +30,7 @@ def compute_quality_metrics(
 	
 	data_range = 2 ** bpp - 1
 	pixels = original.numel()
-	capacity = pixels * bpp - ad_bits
+	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
 		psnr=peak_signal_noise_ratio(y, y_pred, data_range=data_range),
 		ssim=structural_similarity(y, y_pred, data_range=data_range),
@@ -40,7 +42,7 @@ def compute_dicom_quality_metrics(
 	original: Tensor,
 	lsb_error_map: Tensor,
 	mask: Tensor,
-	ad_bits: int,
+	ad_bits: int, # plaintext AD length (before encryption, without nonce)
 	bpp: int = 16
 ) -> QualityMetrics:    
 
@@ -62,7 +64,7 @@ def compute_dicom_quality_metrics(
 
 	data_range = 2 ** bpp - 1
 	pixels = original.numel()
-	capacity = pixels * bpp - ad_bits
+	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
 		psnr=peak_signal_noise_ratio(y, y_pred, data_range=data_range),
 		ssim=structural_similarity(y, y_pred, data_range=data_range),

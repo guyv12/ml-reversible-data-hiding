@@ -4,7 +4,7 @@ import array
 import torch
 from bitarray import bitarray
 from backend.exceptions import CorruptedDataError
-from backend.compressor.encryption import encrypt_data
+from backend.compressor.encryption import decrypt_data, NONCE_BITS
 from backend.predictor.predict import reference_mask
 
 def image_geometry(image_size: tuple[int, int]):
@@ -20,7 +20,7 @@ def split_payload(bitstream: bitarray, image_size: tuple[int, int], bpp: int = 8
     length = math.ceil(math.log2(n * bpp))
     ad_length = bitstream[:length]
     ad_and_message = bitstream[length:]
-    ad_length_int = int(ad_length.to01(), 2)
+    ad_length_int = int(ad_length.to01(), 2) + NONCE_BITS
     ad = ad_and_message[:ad_length_int]
     message = ad_and_message[ad_length_int:]
 
@@ -38,7 +38,7 @@ def ad_extraction(ad: bitarray, key: str, image_size: tuple[int, int], k: int = 
     H, W, n, n_ref = image_geometry(image_size)
 
     # decrypting
-    ad = encrypt_data(ad, key)  
+    ad = decrypt_data(ad, key)  
 
     # Kernel weights
     weights_float, ad = weights_extraction(ad, k)
@@ -79,7 +79,7 @@ def ad_dicom_extraction(ad: bitarray, key: str, image_size: tuple[int, int], k: 
     H, W, n, n_ref = image_geometry(image_size)
 
     # decrypting
-    ad = encrypt_data(ad, key)
+    ad = decrypt_data(ad, key)
 
     # 1. Image1 error map
     b_sym = 4
@@ -128,7 +128,7 @@ def ad_cnn_extraction(ad: bitarray, key: str, image_size: tuple[int, int],
     H, W, n, n_ref = image_geometry(image_size)
 
     # decrypting
-    ad = encrypt_data(ad, key)
+    ad = decrypt_data(ad, key)
 
     # Compressed reference pixels
     b_sym = 9
@@ -279,9 +279,10 @@ def delta_decoding(deltas: torch.Tensor) -> torch.Tensor:
     return torch.cumsum(deltas, dim=0)
 
 def msg_decryption(image_bits, key):
-    image_bits = image_bits[:len(image_bits) // 8 * 8]
-    message = encrypt_data(image_bits, key)
-    message = message.tobytes()
+    nonce_bits = image_bits[:NONCE_BITS]
+    body = image_bits[NONCE_BITS:]
+    body = body[:len(body) // 8 * 8]
+    message = decrypt_data(nonce_bits + body, key).tobytes()
     padding_start = message.find(b'\x00')
     try:
         if padding_start != -1:
