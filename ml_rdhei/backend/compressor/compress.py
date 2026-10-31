@@ -64,18 +64,30 @@ def __compress_ref_pixels_autoencoder(ref_pixels: torch.Tensor, N: int,
         prediction = model.decode(latent.float()).reshape(-1).cpu() * 255.0
 
     prediction = prediction.round().clamp(0, 255).to(torch.int16)
-    error_map = ref_pixels.cpu().to(torch.int16) - prediction  # [-255, 255]
+    error_map = ref_pixels.cpu().to(torch.int16).reshape(-1) - prediction  # [-255, 255]
+    n_ref = error_map.numel()
 
     latent_bits = __latent_to_bits(latent.reshape(-1))
-    latent_width = math.ceil(math.log2(ref_pixels.numel() * 8))  # latent can't exceed raw ref pixel size
+    latent_width = math.ceil(math.log2(n_ref * 8))  # latent can't exceed raw ref pixel size
 
     if len(latent_bits) >= 2 ** latent_width:
         raise ValueError("Latent vector is larger than raw reference pixels")
 
+    # Mode 0: plain residual, symbols residual + 255 in [0, 510] -> 9 bits
+    plain_bits = __compress_error_map(error_map, n_ref, 0, 9)
+
+    # Mode 1: residual deltas (first value kept, deltas of [-255, 255] are in [-510, 510]),
+    #         symbols delta + 510 in [0, 1020] -> 10 bits
+    deltas = torch.diff(error_map, prepend=error_map.new_zeros(1))
+    delta_bits = __compress_error_map(deltas + 510, n_ref, 0, 10, add_offset=False)
+
+    # 1-bit flag: keep whichever residual coding is shorter for this image
+    residual_bits = "0" + plain_bits if len(plain_bits) <= len(delta_bits) else "1" + delta_bits
+
     return str(
         format(len(latent_bits), f'0{latent_width}b')
         + latent_bits
-        + __compress_error_map(error_map, N, N - ref_pixels.numel(), 9)  # range [0, 510] so 9 bits are required
+        + residual_bits
     )
 
 def __compress_error_map(error_map: torch.Tensor, N: int, n_ref: int, b_sym: int, add_offset: bool = True) -> str:
