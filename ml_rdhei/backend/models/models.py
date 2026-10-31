@@ -12,8 +12,8 @@ from backend.models.cnn import *
 def save_model(model: torch.nn.Module, path: Path | str = None) -> None:
     torch.save(model, path)
 
-def load_model(path: Path | str = None) -> torch.nn.Module:
-    model = torch.load(path, weights_only=False)
+def load_model(path: Path | str = None, map_location: torch.device = 'cpu') -> torch.nn.Module:
+    model = torch.load(path, weights_only=False, map_location=map_location)
     model.eval()
     return model
 
@@ -54,4 +54,4 @@ def get_parallel_dilated_res_block_cnn_model():
     return ParDilatedCCNP(channels=32, kernel_size=3)
 
 def get_custom_model(path: Path | str, target_dev: torch.device = 'cpu'):
-    return load_model(path).to(device=target_dev)
+    return load_model(path, map_location=target_dev).to(device=target_dev)
