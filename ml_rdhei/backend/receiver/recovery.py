@@ -244,6 +244,52 @@ def cnn_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor,
 
     return reconstructed_img
 
+def dicom_cnn_recovery(img1_err_map: torch.Tensor, img2_ref_pixels: torch.Tensor, img2_err_map: torch.Tensor,
+                   model_fn: Callable, img_size: tuple[int, int], K: int = 5) -> torch.Tensor:
+
+    H, W = img_size
+    half = K // 2
+
+    # Image 1
+    img1 = 15 - img1_err_map.to(dtype=torch.int16).reshape(H, W)
+
+    # Image2
+    # reference pixels
+    img2 = torch.zeros((H, W), dtype=torch.uint8)
+    img2[::2, ::2] = img2_ref_pixels.to(dtype=torch.uint8).reshape(img2[::2, ::2].shape)
+
+    # error map
+    target_mask = torch.ones((H, W), dtype=torch.bool)
+    target_mask[::2, ::2] = False
+    error_img = torch.zeros((H, W), dtype=torch.int64)
+    error_img[target_mask] = img2_err_map
+
+    # rest
+    model = model_fn()
+    model.eval()
+
+    # Normalize for CNN input
+    X_pre = img2.clone().unsqueeze(0).unsqueeze(0).float() / 255.0
+
+    with torch.inference_mode():
+        # (B, C, H, W) output
+        y_pred = model(X_pre)
+
+    y_pred = y_pred.squeeze(0).squeeze(0)[target_mask] # remove batch and channel dimensions, and ref pixels
+    y_pred = (y_pred * 255.0).round() # Re-Normalize
+    y_pred = y_pred.clamp(0, 255)
+
+    errors = img2_err_map.to(dtype=torch.int64)
+
+    img2[target_mask] = torch.clamp(
+        y_pred.to(torch.int64) + errors,
+        0,
+        255,
+    ).to(torch.uint8)
+
+    reconstructed_image = (img1 << 8) | img2
+    return reconstructed_image
+
 
 def autoencoder_recovery(ref_pixels: torch.Tensor, error_map: torch.Tensor,
                          model_fn: Callable, img_size: tuple[int, int]) -> torch.Tensor:

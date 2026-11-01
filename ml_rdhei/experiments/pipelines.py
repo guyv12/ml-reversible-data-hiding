@@ -513,3 +513,28 @@ def test_ad_resnet_50(show=False):
     )
 
 # - dcm -
+
+def test_dicom_ad_cnn(show=False):
+    loader, _ = dloader.get_loader("../datasets/pgm/test")
+
+    model_fn=partial(
+        get_custom_model,
+        path="cnn.pth",
+    )
+
+    run_experiment(
+        loader,
+        predictor_fn=partial(
+            prediction.dicom_ad_cnn,
+            model_fn=model_fn
+        ),
+        prep_fn=prepare_dicom_cnn,
+        compressor_fn=compression.compress_cnn_dicom_ad,
+        metrics_fn=compute_quality_metrics,
+        receiver_fn=partial(
+            receiver.receive_cnn_dicom, 
+            model_fn=model_fn
+        ),
+        bpp=8,
+        show=show,
+    )
