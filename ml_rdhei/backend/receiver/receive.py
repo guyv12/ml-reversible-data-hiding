@@ -116,7 +116,7 @@ def receive_cnn(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Call
     return original_image, message, errors
 
 
-def receive_dicom_cnn(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
+def receive_cnn_dicom(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
                       img_size: tuple[int, int] = (512, 512), bpp: int = 16) -> tuple[torch.Tensor | None, str | None, list[ValueError]]:
     errors = []
     original_image, message = None, None
@@ -128,11 +128,11 @@ def receive_dicom_cnn(stego_image: bitarray, key_ad: str, key_msg: str, model_fn
 
 
     if key_ad:
-        try:
+        #try:
             img1_error_map, img2_ref_pixels, img2_error_map = ad_dicom_cnn_extraction(ad, key_ad, img_size)
-        except CorruptedDataError:
+        #except CorruptedDataError:
             errors.append(InvalidImageKeyError("Invalid image or image decryption key"))
-        else:
+        #else:
             original_image = dicom_cnn_recovery(img1_error_map, img2_ref_pixels, img2_error_map, model_fn, img_size)
     
     if key_msg:
