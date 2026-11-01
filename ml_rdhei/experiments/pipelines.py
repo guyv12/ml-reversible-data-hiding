@@ -535,6 +535,6 @@ def test_dicom_ad_cnn(show=False):
             receiver.receive_cnn_dicom, 
             model_fn=model_fn
         ),
-        bpp=8,
+        bpp=16,
         show=show,
     )
