@@ -158,6 +158,49 @@ def ad_cnn_extraction(ad: bitarray, key: str, image_size: tuple[int, int],
     return pixels, error_map
 
 
+def ad_dicom_cnn_extraction(ad: bitarray, key: str, image_size: tuple[int, int],
+                      ) -> tuple[torch.Tensor, torch.Tensor]:
+   
+    H, W, n, n_ref = image_geometry(image_size)
+
+    # decrypting
+    ad = encrypt_data(ad, key)
+
+    # 1. Image1 error map
+    b_sym = 4
+    header_length_error = math.ceil(math.log2(n * b_sym))
+    img1_codebook_error, img1_compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
+
+    # 2. Image2 compressed reference pixels
+    b_sym = 9
+    header_length_pixels = math.ceil(math.log2(n_ref * b_sym))
+    img2_codebook_pixels, img2_compressed_pixels, ad = huffman_extraction(ad, b_sym, header_length_pixels)
+
+    # 3. Image2 compressed error map
+    header_length_error = math.ceil(math.log2((n - n_ref) * b_sym))
+    img2_codebook_error, img2_compressed_error, ad = huffman_extraction(ad, b_sym, header_length_error)
+
+    if len(ad) > 0:
+        raise CorruptedDataError(f"AD has {len(ad)} leftover bits after last section")
+
+    # Decode Huffman
+    img1_error_map = huffman_decode(img1_codebook_error, img1_compressed_error, n)
+    img2_ref_pixels = huffman_decode(img2_codebook_pixels, img2_compressed_pixels, n_ref)
+    img2_error_map = huffman_decode(img2_codebook_error, img2_compressed_error, n - n_ref)
+
+    if len(img2_ref_pixels) != n_ref or len(img2_error_map) != n - n_ref or len(img1_error_map) != n:
+        raise CorruptedDataError("Invalid number of extracted reference pixels or errors")
+
+    # remove offset
+    deltas = torch.cat([img2_ref_pixels[:1], img2_ref_pixels[1:] - 255])
+    img2_error_map = img2_error_map - 255
+    
+    # remove delta encoding
+    img2_ref_pixels = delta_decoding(deltas)
+
+    return img1_error_map, img2_ref_pixels, img2_error_map
+
+
 def huffman_extraction(ad: bitarray, b_sym: int, header_length: int):
     if len(ad) < header_length:
         raise CorruptedDataError(

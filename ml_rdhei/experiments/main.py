@@ -16,7 +16,7 @@ PIPELINE_EXPERIMENTS = {
     "pgm_custom_cnn": test_ad_cnn,
     "pgm_mobilenet_cnn": test_ad_mobilenet_v2,
     "pgm_resnet_cnn": test_ad_resnet_50,
-    #dicom_custom_cnn, -- not needed
+    "dicom_custom_cnn": test_dicom_ad_cnn,
     #dicom_mobilenet_cnn, --not needed
     #dicom_resnet_cnn --not needed
 }

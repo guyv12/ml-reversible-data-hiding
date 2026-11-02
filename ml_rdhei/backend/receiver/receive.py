@@ -116,6 +116,34 @@ def receive_cnn(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Call
     return original_image, message, errors
 
 
+def receive_cnn_dicom(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
+                      img_size: tuple[int, int] = (512, 512), bpp: int = 16) -> tuple[torch.Tensor | None, str | None, list[ValueError]]:
+    errors = []
+    original_image, message = None, None
+    
+    try:
+        ad, message_bits = split_payload(stego_image, img_size, bpp)
+    except CorruptedDataError:
+        raise CorruptedStegoImageError("Corrupted image")
+
+
+    if key_ad:
+        try:
+            img1_error_map, img2_ref_pixels, img2_error_map = ad_dicom_cnn_extraction(ad, key_ad, img_size)
+        except CorruptedDataError:
+            errors.append(InvalidImageKeyError("Invalid image or image decryption key"))
+        else:
+            original_image = dicom_cnn_recovery(img1_error_map, img2_ref_pixels, img2_error_map, model_fn, img_size)
+    
+    if key_msg:
+        try:
+            message = msg_decryption(message_bits, key_msg)
+        except CorruptedDataError:
+            errors.append(InvalidMessageKeyError("Invalid message decryption key"))
+
+    return original_image, message, errors
+
+
 def receive_autoencoder(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
                         img_size: tuple[int, int] = (512, 512), bpp: int = 8) -> tuple[torch.Tensor | None, str | None, list[ValueError]]:
     errors = []
