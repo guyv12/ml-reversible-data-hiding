@@ -73,7 +73,7 @@ class ThrottledResizeContainer(QWidget):
 		self._snapshot = None
 		self._child.show()
 
-	def paintEvent(self):
+	def paintEvent(self, event):
 		if self._snapshot is not None:
 			painter = QPainter(self)
 			painter.drawPixmap(0, 0, self._snapshot)
