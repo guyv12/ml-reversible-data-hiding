@@ -73,7 +73,7 @@ class ThrottledResizeContainer(QWidget):
 		self._snapshot = None
 		self._child.show()
 
-	def paintEvent(self, event):
+	def paintEvent(self):
 		if self._snapshot is not None:
 			painter = QPainter(self)
 			painter.drawPixmap(0, 0, self._snapshot)
@@ -180,7 +180,8 @@ class Histogram(QFrame):
 		if image_data.dtype == "uint8":
 			_range = (0, 256)
 		else:
-			_range = (int(image_data.min()), int(image_data.max()))
+			bits = 12 if image_data.max() < 2**12 else 16
+			_range = (0, 2**bits)
 
 		counts, bins = np.histogram(
 			image_data,
