@@ -1,4 +1,5 @@
 import argparse
+import math
 import time
 import torch
 import torch.nn as nn
@@ -8,69 +9,96 @@ from backend.models.models import save_model
 from backend.models.train import setup_logger
 
 
-DEFAULT_LATENT_DIM = 4096
+DEFAULT_LATENT_DIM = 1024
 DEFAULT_INPUT_SIZE = 65536
 
+class ResidualBlock(nn.Module):
+    """Two 3x3 convs with an identity shortcut (skip connection inside encoder/decoder)."""
+    def __init__(self, channels: int):
+        super().__init__()
+        self.body = nn.Sequential(
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(channels, channels, kernel_size=3, padding=1),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self.body(x)
+
+
+def _down(in_ch: int, out_ch: int) -> nn.Sequential:
+    # learned stride-2 downsampling (H, W) -> (H/2, W/2)
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=2, padding=1),
+        nn.ReLU(),
+        ResidualBlock(out_ch),
+    )
+
+
+def _up(in_ch: int, out_ch: int) -> nn.Sequential:
+    # resize + conv instead of ConvTranspose2d to reduce checkerboard artifacts
+    return nn.Sequential(
+        nn.Upsample(scale_factor=2, mode="nearest"),
+        nn.Conv2d(in_ch, out_ch, kernel_size=3, padding=1),
+        nn.ReLU(),
+        ResidualBlock(out_ch),
+    )
+
+
 class CompressionAutoencoder(nn.Module):
+    """Fully convolutional autoencoder for the (side x side) reference-pixel grid.
+
+    The latent is a (latent_channels, side/32, side/32) tensor, exposed as a flat
+    vector of length latent_dim, e.g. 1024 = 16 x 8 x 8 for a 256x256 grid.
+    """
+    N_DOWN = 5
+
     def __init__(self, latent_dim: int = DEFAULT_LATENT_DIM, input_size: int = DEFAULT_INPUT_SIZE):
         super().__init__()
 
+        side = math.isqrt(input_size)
+        if side * side != input_size or side % 2 ** self.N_DOWN != 0:
+            raise ValueError(f"input_size must be a square side^2 with side divisible by {2 ** self.N_DOWN}")
+
+        self.latent_hw = side // 2 ** self.N_DOWN
+        if latent_dim % (self.latent_hw ** 2) != 0:
+            raise ValueError(f"latent_dim must be divisible by {self.latent_hw ** 2}")
+
         self.latent_dim = latent_dim
         self.input_size = input_size
+        self.side = side
+        self.latent_channels = latent_dim // self.latent_hw ** 2
 
-        self.feature_extractor = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=2, padding=1),
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, padding=1),         # 256
             nn.ReLU(),
-
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.Conv2d(128, 128, kernel_size=3, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.AdaptiveAvgPool2d((8, 8)),
-        )
-        self.flatten = nn.Flatten()
-        self.to_latent = nn.Linear(128 * 8 * 8, latent_dim)
-
-        self.from_latent = nn.Sequential(
-            nn.Linear(latent_dim, 128 * 8 * 8),
-            nn.ReLU(),
-            nn.Unflatten(1, (128, 8, 8)),
+            _down(32, 64),                                      # 128
+            _down(64, 128),                                     # 64
+            _down(128, 128),                                    # 32
+            _down(128, 128),                                    # 16
+            _down(128, 128),                                    # 8
+            nn.Conv2d(128, self.latent_channels, kernel_size=3, padding=1),  # latent, no activation
         )
 
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(128, 128, kernel_size=4, stride=2, padding=1),
+            nn.Conv2d(self.latent_channels, 128, kernel_size=3, padding=1),  # 8
             nn.ReLU(),
-
-            nn.ConvTranspose2d(128, 64, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(32, 16, kernel_size=4, stride=2, padding=1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(16, 16, kernel_size=4, stride=2, padding=1),  # 128 -> 256
-            nn.ReLU(),
-
-            nn.Conv2d(16, 1, kernel_size=3, padding=1),
+            ResidualBlock(128),
+            _up(128, 128),                                      # 16
+            _up(128, 128),                                      # 32
+            _up(128, 64),                                       # 64
+            _up(64, 32),                                        # 128
+            _up(32, 32),                                        # 256
+            nn.Conv2d(32, 1, kernel_size=3, padding=1),
             nn.Sigmoid(),
         )
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
-        features = self.feature_extractor(x)
-        flattened = self.flatten(features)
-        return self.to_latent(flattened)
+        return self.encoder(x).flatten(1)
 
     def decode(self, latent: torch.Tensor) -> torch.Tensor:
-        restored = self.from_latent(latent)
-        restored = self.decoder(restored)
-        return restored.reshape(-1, self.input_size)
+        z = latent.reshape(-1, self.latent_channels, self.latent_hw, self.latent_hw)
+        return self.decoder(z).flatten(1)
 
     def forward(self, x: torch.Tensor, return_latent: bool = False):
         latent = self.encode(x)
@@ -189,7 +217,7 @@ def main():
         input_size=args.input_size,
     )
 
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     train_loader, val_loader, _ = data_split(args.image_batch_size)
