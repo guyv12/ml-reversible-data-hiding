@@ -1,0 +1,180 @@
+from pathlib import Path
+
+from PySide6.QtWidgets import (
+	QWidget, QHBoxLayout, QMessageBox,
+	QVBoxLayout, QLabel, QPushButton
+)
+from PySide6.QtCore import QThreadPool
+
+from backend.exceptions import CorruptedStegoImageError
+from backend.pipeline import extract, transform_image_to_ndarray
+
+from frontend.components.section_frame import SectionFrame
+from frontend.components.image_uploader import ImageUploader
+from frontend.components.histogram import Histogram
+from frontend.components.preview_manager import PreviewManager
+from frontend.components.preview import (
+	EmptyPreview, InputImagePreview, OutputImagePreview
+)
+from frontend.components.decryption_panel import DecryptionPanel
+from frontend.worker import Worker
+from frontend.session import Session
+from frontend.config import ACCEPTED_FORMATS
+from frontend.utils import load_stylesheet
+
+class ExtractionView(QWidget):
+	"""
+	Extraction screen view for RDHEI operations.
+
+	Provides workspace and UI controls for RDHEI operations.
+	"""
+
+	def __init__(self):
+		super().__init__()
+		
+		self._session: Session | None = None
+		self.threadpool = QThreadPool()
+		load_stylesheet(self, "sections.css")
+
+		layout = QVBoxLayout(self)
+
+		header_layout = QHBoxLayout()
+		self.title_label = QLabel("Extraction View")
+		self.title_label.setFixedHeight(30)
+		self.return_btn = QPushButton("Return to main window")
+
+		header_layout.addWidget(self.title_label)
+		header_layout.addStretch()
+		header_layout.addWidget(self.return_btn)
+
+		sections_layout = QHBoxLayout()
+
+		in_section = SectionFrame("Input", "inputSection")
+
+		self.in_empty_preview = EmptyPreview(
+			"Drop Grayscale or DICOM image",
+			"folderIcon",
+			"or click to browse",
+			ACCEPTED_FORMATS
+		)
+		self.in_image_preview = InputImagePreview()
+		self.in_preview_manager = PreviewManager(self.in_empty_preview, self.in_image_preview)
+		self.image_uploader = ImageUploader(self.in_preview_manager)
+		self.in_histogram = Histogram(
+			"importantIcon",
+			"Upload an image to see the histogram"
+		)
+
+		in_section.add_widget(self.image_uploader, stretch=1)
+		in_section.add_widget(self.in_histogram, stretch=1)
+
+		extraction_section = SectionFrame("Extraction", "extractionSection")
+
+		self.decryption_panel = DecryptionPanel()
+	
+		extraction_section.add_widget(self.decryption_panel)
+
+		out_section = SectionFrame("Output", "outputSection")
+
+		self.out_empty_preview = EmptyPreview(
+			"Output image",
+			"infoIcon",
+		)
+		self.out_image_preview = OutputImagePreview()
+		self.out_preview_manager = PreviewManager(self.out_empty_preview, self.out_image_preview)
+		self.out_histogram = Histogram(
+			"importantIcon",
+			"Upload an image to see the histogram"
+		)
+
+		out_section.add_widget(self.out_preview_manager, stretch=1)
+		out_section.add_widget(self.out_histogram, stretch=1)
+
+		sections_layout.addWidget(in_section, stretch=1)
+		sections_layout.addWidget(extraction_section, stretch=1)
+		sections_layout.addWidget(out_section, stretch=1)
+		
+		layout.addLayout(header_layout)
+		layout.addLayout(sections_layout)
+
+		self._manage_signals()
+
+	def _manage_signals(self):
+		self.image_uploader.image_uploaded.connect(self._on_image_uploaded)
+		self.image_uploader.image_removed.connect(self._on_image_removed)
+
+		self.decryption_panel.extraction_request.connect(self._on_extract_request)
+		
+		self.in_preview_manager.image_loaded.connect(self.in_histogram.plot_histogram)
+		self.out_preview_manager.image_loaded.connect(self.out_histogram.plot_histogram)
+		self.out_preview_manager.image_removed.connect(self.out_histogram.clear)
+
+	def _on_image_uploaded(self, image_path: Path):
+		try:
+			image_data = transform_image_to_ndarray(image_path)
+		except (ValueError, OSError) as e:
+			QMessageBox.warning(self, "Cannot open image", str(e))
+			return
+		
+		self._session = Session(image_path, image_data)
+		self.in_preview_manager.set_image(image_path, image_data)
+		self.decryption_panel.enable()
+
+	def _on_image_removed(self):
+		self._session = None
+		self.in_histogram.clear()
+		self.decryption_panel.clear()
+
+	def _on_extract_results(self, result: object):
+		if self._session is None: 
+			return
+
+		self._session.marked_image, message, errors = result
+
+		if self._session.marked_image is not None:
+			self.out_preview_manager.set_image(
+				self._session.output_path,
+				self._session.marked_image,
+				self._session.source_path
+			)
+		else:
+			self.out_preview_manager.clear_image()
+			
+		self.decryption_panel.display_message(message)
+
+		if errors:
+			QMessageBox.warning(self, "Extracting failed", "\n".join(str(e) for e in errors))
+
+	def _on_extract_error(self, error):
+		if isinstance(error, CorruptedStegoImageError):
+			QMessageBox.warning(self, "Extracting failed", str(error))
+		
+		elif isinstance(error, Exception):
+			QMessageBox.critical(
+				self,
+				"Extracting failed",
+				"An unexpected error occurred while extracting the data."
+			)
+
+	def _on_extract_finished(self):
+		self.decryption_panel.set_busy(False)
+		self.in_preview_manager.deletion_disabled(False)
+
+	def _on_extract_request(self, ad_decryption_key: str, message_decryption_key: str):
+		self.decryption_panel.set_busy(True)
+		self.in_preview_manager.deletion_disabled(True)
+		
+		worker = Worker(
+			extract,
+			self._session.source_image,
+			ad_decryption_key,
+			message_decryption_key,
+			self._session.image_format
+		)
+
+		worker.signals.result.connect(self._on_extract_results)
+		worker.signals.error.connect(self._on_extract_error)
+		worker.signals.finished.connect(self._on_extract_finished)
+		
+		self.threadpool.start(worker)
+			
