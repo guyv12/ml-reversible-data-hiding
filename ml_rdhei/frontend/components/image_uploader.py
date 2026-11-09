@@ -77,7 +77,7 @@ class ImageUploader(QFrame):
 				self.image_uploaded.emit(file_path)
 				self._update_style()
 			else:
-				QMessageBox.critical(self,"Error",f"Unsupported image format: {fmt}")
+				QMessageBox.warning(self,"Error",f"Unsupported image format: {fmt}")
 				
 	def dragEnterEvent(self, event):
 		if not self.has_image and event.mimeData().hasUrls():
