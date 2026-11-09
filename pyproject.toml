@@ -9,7 +9,7 @@ dependencies = ["torch", "torchvision",
                 "segmentation_models_pytorch", "numpy",
                 "pydicom", "opencv-python",
                 "scikit-learn", "scikit-image",
-                "bitarray", "matplotlib",
+                "bitarray", "matplotlib", "pycryptodome",
                 "PySide6>=6.8", "pyqtgraph"
 ]
 requires-python = ">=3.13.0"
