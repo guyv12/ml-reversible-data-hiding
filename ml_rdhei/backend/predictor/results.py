@@ -65,7 +65,7 @@ def compute_dicom_quality_metrics(
 	y = y.numpy().astype(np.float32)
 	y_pred = y_pred.numpy().astype(np.float32)
 
-	data_range = 2 ** bpp - 1
+	data_range = 2 ** 12 - 1
 	pixels = original.numel()
 	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
