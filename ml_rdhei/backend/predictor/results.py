@@ -25,15 +25,19 @@ def compute_quality_metrics(
 	bpp: int = 8
 ) -> QualityMetrics:    
 
-	y = original.flatten()[~mask.flatten()].numpy().astype(np.float32)
-	y_pred = y - error_map.numpy().astype(np.float32)
+	y = original.squeeze().numpy().astype(np.float32)
+	m = mask.numpy()
+
+	y_pred = y.copy()
+	y_pred[~m] = y[~m] - error_map.numpy().astype(np.float32)
 	
 	data_range = 2 ** bpp - 1
 	pixels = original.numel()
 	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
 		psnr=peak_signal_noise_ratio(y, y_pred, data_range=data_range),
-		ssim=structural_similarity(y, y_pred, data_range=data_range),
+		ssim=structural_similarity(y, y_pred, data_range=data_range, 
+		                           gaussian_weights=True, sigma=1.5, use_sample_covariance=False),
 		payload_capacity=capacity//8,
 		embedding_rate=capacity / pixels,
 	)
@@ -46,15 +50,14 @@ def compute_dicom_quality_metrics(
 	bpp: int = 16
 ) -> QualityMetrics:    
 
-	flat_original = original.flatten().int()
-	flat_mask = mask.flatten()
+	orig = original.squeeze().int()
 
-	y_high = flat_original >> 8
-	pred_high = full_like(y_high, 15)
+	y_high = orig >> 8
+	pred_high = y_high.clone()
 	
-	y_low = flat_original & 0x00FF
+	y_low = orig & 0x00FF
 	pred_low = y_low.clone()
-	pred_low[~flat_mask] = y_low[~flat_mask] - lsb_error_map.flatten().int()
+	pred_low[~mask] = y_low[~mask] - lsb_error_map.flatten().int()
 
 	y = y_high * 2 ** 8 + y_low
 	y_pred = pred_high * 2 ** 8 + pred_low
@@ -67,7 +70,8 @@ def compute_dicom_quality_metrics(
 	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
 		psnr=peak_signal_noise_ratio(y, y_pred, data_range=data_range),
-		ssim=structural_similarity(y, y_pred, data_range=data_range),
+		ssim=structural_similarity(y, y_pred, data_range=data_range, 
+									gaussian_weights=True, sigma=1.5, use_sample_covariance=False),
 		payload_capacity=capacity//8,
 		embedding_rate=capacity / pixels,
 	)
