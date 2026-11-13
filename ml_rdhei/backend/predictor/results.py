@@ -51,21 +51,15 @@ def compute_dicom_quality_metrics(
 ) -> QualityMetrics:    
 
 	orig = original.squeeze().int()
-
-	y_high = orig >> 8
-	pred_high = y_high.clone()
 	
 	y_low = orig & 0x00FF
 	pred_low = y_low.clone()
 	pred_low[~mask] = y_low[~mask] - lsb_error_map.flatten().int()
 
-	y = y_high * 2 ** 8 + y_low
-	y_pred = pred_high * 2 ** 8 + pred_low
+	y = y_low.numpy().astype(np.float32)
+	y_pred = pred_low.numpy().astype(np.float32)
 
-	y = y.numpy().astype(np.float32)
-	y_pred = y_pred.numpy().astype(np.float32)
-
-	data_range = 2 ** 12 - 1
+	data_range = 2 ** 8 - 1
 	pixels = original.numel()
 	capacity = pixels * bpp - ad_bits - 2 * NONCE_BITS
 	return QualityMetrics(
