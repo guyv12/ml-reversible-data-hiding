@@ -6,10 +6,10 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Check DICOM pixel values or prefix failing filenames.")
 parser.add_argument("--prefix",action="store_true",help="Prefix failing DICOM filenames with a dot.")
-parser.add_argument("--check",action="store_true",help="Check only; do not rename files (default).")
+parser.add_argument("--dir",type=Path, required=True, help="Directory to check.")
 args = parser.parse_args()
 
-ROOT = Path("datasets/dcm/test")
+ROOT = args.dir
 
 checked = 0
 passed = 0

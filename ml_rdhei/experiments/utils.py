@@ -20,8 +20,8 @@ def setup_datasets(
 
     def split_and_copy(dataset_path: Path | str, output_type: str, prefix: str) -> None:
         dataset_path = Path(dataset_path)
-        dataset = sorted(p for p in dataset_path.iterdir() if p.is_file())
-        
+        dataset = sorted(p for p in dataset_path.iterdir() if p.is_file() and not p.name.startswith("."))
+
         rng.shuffle(dataset)
 
         size = len(dataset)
