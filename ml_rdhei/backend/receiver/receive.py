@@ -64,7 +64,7 @@ def receive_dicom(stego_image: bitarray, key_ad: str, key_msg: str,
 def receive_cnn_features(stego_image: bitarray, key_ad: str, key_msg: str, model_fn: Callable,
                          img_size: tuple[int, int] = (512, 512), bpp: int = 8, K: int = 5) -> tuple[torch.Tensor | None, str | None, list[ValueError]]:
     errors = []
-    original_image, message = None, 
+    original_image, message = None, None
     
     try:
         ad, message_bits = split_payload(stego_image, img_size, bpp)

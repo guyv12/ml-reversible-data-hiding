@@ -164,7 +164,7 @@ def ad_dicom_cnn_extraction(ad: bitarray, key: str, image_size: tuple[int, int],
     H, W, n, n_ref = image_geometry(image_size)
 
     # decrypting
-    ad = encrypt_data(ad, key)
+    ad = decrypt_data(ad, key)
 
     # 1. Image1 error map
     b_sym = 4
